@@ -1,0 +1,346 @@
+**Next.js React TypeScript**
+
+You are an expert in TypeScript, Node.js, Next.js App Router, React, Shadcn UI, Radix UI and Tailwind.
+
+Key Principles
+- Write concise, technical TypeScript code with accurate examples.
+- Use functional and declarative programming patterns; avoid classes.
+- Prefer iteration and modularization over code duplication.
+- Use descriptive variable names with auxiliary verbs (e.g., isLoading, hasError).
+- Structure files: exported component, subcomponents, helpers, static content, types.
+
+Naming Conventions
+- Use lowercase with dashes for directories (e.g., components/auth-wizard).
+- Favor named exports for components.
+
+TypeScript Usage
+- Use TypeScript for all code; prefer interfaces over types.
+- Avoid enums; use maps instead.
+- Use functional components with TypeScript interfaces.
+
+Syntax and Formatting
+- Use the "function" keyword for pure functions.
+- Avoid unnecessary curly braces in conditionals; use concise syntax for simple statements.
+- Use declarative JSX.
+
+UI and Styling
+- Use Shadcn UI, Radix, and Tailwind for components and styling.
+- Implement responsive design with Tailwind CSS; use a mobile-first approach.
+
+Performance Optimization
+- Minimize 'use client', 'useEffect', and 'setState'; favor React Server Components (RSC).
+- Wrap client components in Suspense with fallback.
+- Use dynamic loading for non-critical components.
+- Optimize images: use WebP format, include size data, implement lazy loading.
+
+Key Conventions
+- Use 'nuqs' for URL search parameter state management.
+- Optimize Web Vitals (LCP, CLS, FID).
+- Limit 'use client':
+- Favor server components and Next.js SSR.
+- Use only for Web API access in small components.
+- Avoid for data fetching or state management.
+
+Follow Next.js docs for Data Fetching, Rendering, and Routing.
+
+## Project Overview
+
+*   **Type:** cursorrules_file
+*   **Description:** I need to create a schedule that provides 24/7 coverage for a 911 dispatch center. The schedule must meet strict minimum staffing requirements in defined time periods with at least one shift supervisor per period. Staffing specifics are: at least 6 employees from 5 AM to 9 AM, at least 8 employees from 9 AM to 9 PM, at least 7 employees from 9 PM to 1 AM, and at least 6 employees from 1 AM to 5 AM. Shifts can cross midnight and may cover staffing for two separate days. Additional constraints include adherence to specific employee shift patterns (either four consecutive 10‐hour shifts or three consecutive 12‐hour shifts plus one 4‐hour shift), a 40-hour weekly cap (unless manually overridden), and integration of time-off management. Managers will use this system to perform CRUD operations on schedules and related data while employees view and manage their own scheduling information.
+To develop a comprehensive 24/7 schedule for a 911 dispatch center that meets specific staffing requirements, consider the following structured approach:
+
+1. Staffing Requirements:
+	•	5:00 AM – 9:00 AM: Minimum of 6 employees, including 1 shift supervisor.
+	•	9:00 AM – 9:00 PM: Minimum of 8 employees, including 1 shift supervisor.
+	•	9:00 PM – 1:00 AM: Minimum of 7 employees, including 1 shift supervisor.
+	•	1:00 AM – 5:00 AM: Minimum of 6 employees, including 1 shift supervisor.
+2. Employee Shift Patterns:
+	•	Pattern A: Four consecutive 10-hour shifts.
+	•	Pattern B: Three consecutive 12-hour shifts plus one 4-hour shift, scheduled consecutively.
+3. Shift Options:
+	•	Day Shift Early:
+	•	5:00 AM – 9:00 AM (4-hour shift)
+	•	5:00 AM – 3:00 PM (10-hour shift)
+	•	5:00 AM – 5:00 PM (12-hour shift)
+	•	Day Shift:
+	•	9:00 AM – 1:00 PM (4-hour shift)
+	•	9:00 AM – 7:00 PM (10-hour shift)
+	•	9:00 AM – 9:00 PM (12-hour shift)
+	•	Swing Shift:
+	•	1:00 PM – 5:00 PM (4-hour shift)
+	•	3:00 PM – 1:00 AM (10-hour shift)
+	•	3:00 PM – 3:00 AM (12-hour shift)
+	•	Graveyard Shift:
+	•	1:00 AM – 5:00 AM (4-hour shift)
+	•	7:00 PM – 5:00 AM (10-hour shift)
+	•	5:00 PM – 5:00 AM (12-hour shift)
+4. Scheduling Constraints:
+	•	Weekly Hours: Employees should not exceed 40 hours per week without managerial approval.
+	•	Schedule Duration: Plan schedules over a four-month period with consistent weekly patterns.
+	•	Time Off Requests:
+	•	Approved requests must be honored.
+	•	Pending requests should be accommodated when possible but can be overridden to meet staffing needs.
+	•	Shift Consistency: Employees should generally work the same shift type on their scheduled days.
+5. Scheduling Priorities:
+	•	Primary Objective: Ensure minimum staffing levels for each time period.
+	•	Supervisor Coverage: Guarantee at least one supervisor per time period.
+	•	Employee Preferences: Consider default shift types and time off requests.
+	•	Pattern Adherence: Aim to schedule employees according to their assigned patterns (Pattern A or B).
+	•	Fairness: Distribute shifts and necessary overtime equitably.
+	•	Flexibility: Allow for managerial adjustments.
+	•	Optimization: Minimize unfulfilled staffing requirements and overtime.
+By following this structured approach, you can create an effective schedule that ensures continuous coverage while respecting employee constraints and preferences.
+
+*   **Primary Goal:** Streamline the creation of compliant 24/7 schedules by automating complex staffing rules, optimizing shift assignments per employee patterns, and providing an intuitive dashboard for both managers and staff.
+
+## Project Structure
+
+### Framework-Specific Routing
+
+*   **Directory Rules:**
+
+    *   Next.js 14 (App Router): Enforce the use of the `app/` directory with nested route folders.
+    *   Example: "Next.js 14 (App Router)" → `app/[route]/page.tsx` conventions for dynamic page rendering.
+
+### Core Directories
+
+*   **Versioned Structure:**
+
+    *   `app/api`: Implements Next.js 14 API routes with Route Handlers for backend scheduling logic.
+    *   `app/schedule`: Contains components and pages for schedule CRUD interfaces, reflecting modern frontend routing patterns.
+
+### Key Files
+
+*   **Stack-Versioned Patterns:**
+
+    *   `app/dashboard/layout.tsx`: Implements Next.js 14 root layout for the management dashboard.
+    *   `app/schedule/page.tsx`: Hosts the scheduling interface with drag-and-drop functionality and real-time alerts.
+
+## Tech Stack Rules
+
+*   **Version Enforcement:**
+
+    *   next@14: Enforces Nextjs 14+ App Router conventions; disallows deprecated patterns such as `getInitialProps` in favor of server actions and modern data fetching methods.
+
+## PRD Compliance
+
+*   **Non-Negotiable:**
+
+    *   "The scheduling system must provide 24/7 coverage with strict adherence to minimum staffing requirements (including at least one supervisor per period) while enforcing shift options, shiftpatterns, and a 40-hour weekly limit." Enforces version-specific constraints that guarantee robust handling of shifts crossing midnight, manual overtime approvals, and comprehensive time-off management.
+
+## App Flow Integration
+
+*   **Stack-Aligned Flow:**
+
+    *   Example: "Next.js 14 Auth Flow → `app/(auth)/login/page.tsx` uses server actions to ensure secure login and role-based access control for managers and employees."
+
+
+**Next.js App Router Mandatory Rules**
+
+**Route Group Implementation**  
+
+
+Route grouping in the Next.js App Router is a feature that lets you organize your file structure without affecting your URL paths. By wrapping a folder name in parentheses (for example, `(dashboard)`), Next.js treats the folder as a logical group. This means that while files inside this folder can benefit from shared layouts, metadata, or loading states, the parentheses-wrapped folder itself isn’t reflected in the URL.
+
+For example, if you structure your project like this:
+
+```
+app/
+└── (dashboard)/
+    ├── layout.tsx   // Shared layout for all routes in this group
+    ├── page.tsx     // Renders at the root URL '/'
+    └── settings/
+        └── page.tsx // Renders at '/settings'
+```
+
+The URL paths will be `/` for the top-level page and `/settings` for the settings page—even though both files are grouped under `(dashboard)`. This approach improves code organization:
+- **Separation of Concerns:** Group related routes together without influencing their URL structure.
+- **Nested Layouts:** Easily apply a common layout or loading skeleton to a set of pages.
+- **Clean URLs:** Keep URLs simple and free from extraneous directory names used for grouping.
+- **Do**: Use for auth (`(auth)`), marketing (`(marketing)`), or API versioning (`(v1)`)
+- **Don't**: Use in URL paths (groups are invisible in routes)
+
+```json
+  "paths": {
+      "@/*": ["./*"],
+      "@/components/*": ["./components/*"],
+      "@/ui/*": ["./components/ui/*"],
+      "@/lib/*": ["./lib/*"],
+      "@/utils/*": ["./utils/*"],
+      "@/types/*": ["./types/*"],
+      "@/app/*": ["./app/*"],
+      "@/hooks/*": ["./app/hooks/*"],
+      "@/styles/*": ["./app/styles/*"],
+      "@/api/*": ["./app/api/*"]
+    }
+```
+
+**6. Type Safety Protocol**  
+```bash
+types/             # Global type definitions
+   ├── api.d.ts        # API response shapes
+   └── auth.d.ts       # Auth session types
+```
+```typescript
+// app/_types/auth.d.ts
+declare interface AuthSession {
+  user: {
+    id: string;
+    role: 'admin' | 'user';
+  };
+  expires: ISO8601String;
+}
+```
+**Frequently use this tree command to view the file structure**
+
+```bash
+tree -L -I 'node_modules|.next|.git' 
+```
+
+---
+
+**API Route Modernization**
+```bash
+app/
+└── api/
+    └── v1/            # Versioned API group
+        ├── users/
+        │   └── route.ts # GET/POST handlers
+        └── route.ts   # API root endpoint
+```
+```typescript
+// app/api/v1/users/route.ts
+export async function GET() {
+  return NextResponse.json({ users: [] });
+}
+```
+
+---
+
+**Compliance Checklist**
+1. ☑ Removed `src/` directory entirely  
+2. ☑ All routes exist under `app/`  
+3. ☑ Client components isolated in `components/ui/`  
+4. ☑ Private directories use `_prefix`  
+5. ☑ Route groups use `(parentheses)`  
+6. ☑ Type definitions in `app/_types/`  
+7. ☑ Tests colocated in `__tests__/` folders  
+8. ☑ API routes use `/app/api/[version]/route.ts`  
+
+---
+
+**Migration Command**
+```bash
+npx @next/codemod@latest migrate-app-router ./src ./app
+```
+
+**Final Verification**  
+```bash
+next build --lint --strict
+```  
+Fails build if architecture violates any of these rules
+
+
+
+**Supabase + Next.js Mandatory Integration Rules**
+
+**Supabase Module Modernization**
+Never use @supabase/auth-helpers-nextjs! It is now deprecated in favor of @supabase/ssr. This is a crucial update we must make.
+
+**Rules**
+All auth logic must be server-side.  
+Allways use supabase/ssr module.
+supabase/ssr handles cookies and sessions for you.  
+
+**Type Generation Command**
+```bash
+# Required after schema changes
+npx supabase gen types typescript --project-id dvnzmtowppsbfxkwgnod > app/_types/supabase/database.ts
+```
+
+**Real-time Implementation**
+```typescript
+// app/_components/realtime/[component].tsx
+'use client'
+
+export function RealtimeComponent() {
+  useEffect(() => {
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+      }, (payload) => handleChange(payload))
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [])
+}
+```
+
+**Storage Security Rules**
+```typescript
+// app/api/storage/route.ts
+export async function POST(req: Request) {
+  // CORRECT: Generate signed URLs server-side
+  const { signedUrl } = await serverSupabase
+    .storage
+    .from('bucket')
+    .createSignedUrl('file.pdf', 60);
+
+  // INCORRECT: Direct client storage access
+  // const { data } = await supabase.storage.from('bucket').upload()
+}
+```
+
+**Environment Configuration**
+```bash
+
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+SUPABASE_DB_PASSWORD=your_supabase_db_password
+SUPABASE_PROJECT_ID=your_supabase_project_id
+
+
+```
+
+ **Compliance Verification**
+
+Run these commands to verify your setup:
+```bash
+# 1. Type check
+npm run type-check
+
+# 2. Security audit
+npx supabase-security-check
+
+# 3. Generate types
+npx supabase gen types typescript
+
+# 4. Test RLS policies
+npx supabase test rls
+```
+
+**Migration Command**
+```bash
+npx supabase-migration-helper@latest
+```
+
+**Final Verification**
+```bash
+next build --lint --strict
+```
+Fails build if architecture violates any of these rules
+
+**Shadcn Mandatory Rules**
+
+when running any schadcn command you must not use shadcn-ui.
+They depricated the '-ui' so all related commands are: 'shadcn [your-command]'
+
+```bash 
+npm install shadcn@latest
+```

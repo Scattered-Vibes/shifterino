@@ -1,0 +1,25 @@
+# Introduction
+
+A well-organized file structure is essential for building a robust scheduling system for a 911 dispatch center. This document lays out the file organization tailored to a system that manages 24/7 staffing, optimizes shift patterns, and integrates employee data in a way that’s easy for both managers and employees to understand. By clearly separating concerns and maintaining a logical hierarchy, this file structure supports collaborative development, simplifies maintenance, and ensures that everyone on the team can work together without confusion.
+
+# Overview of the Tech Stack
+
+This project is built using modern web technologies designed to deliver a dynamic and interactive scheduling system. The frontend leverages Next.js 14 with the App Router and React combined with TypeScript to create a responsive and user-friendly interface. On the backend, Next.js 14 is used to process server-side logic and integrate complex scheduling algorithms with external systems. A relational database (Supabase) securely stores employee, scheduling, and operational data. Supabase also handles user authentication. Complementing these tools, the project also benefits from AI-powered development support using Cursor, which facilitates coding and adherence to best practices. The chosen tech stack influences the file structure by segregating client components, server logic, configuration settings, and documentation clearly across different directories.
+
+# Root Directory Structure
+
+The root directory of the project is organized into several key folders and files to ensure clarity and ease of navigation. At the top level, the structure includes folders such as ‘app’ for the Next.js App Router components, ‘components’ for reusable UI elements, and ‘lib’ for shared libraries and utility functions. The ‘public’ folder holds static assets like images and icons, while the ‘styles’ folder contains global and modular CSS files. A ‘config’ directory houses various configuration settings, including integration details for the scheduling system. Additionally, a ‘documentation’ directory is provided to house all project documentation, ranging from high-level requirements to detailed implementation plans.
+
+Important files in the root directory include the package.json which manages project dependencies, the next.config.js for Next.js specific configuration, and the tsconfig.json for TypeScript settings. There are also essential environment files (.env.local, .env.production) that hold sensitive information and settings crucial for proper functioning across different environments.
+
+# Configuration and Environment Files
+
+The configuration and environment files form the backbone of the project setup. Environment variables stored in files like .env.local and .env.production are used for managing sensitive information such as database credentials, API keys, and integration tokens with employee management and scheduling platforms. The next.config.js file controls how the Next.js framework behaves, enabling necessary custom configurations and optimizations. Other configuration files, including tsconfig.json for TypeScript and any build or deployment scripts, are strategically placed to ensure that the project can be built and run consistently in development, testing, and production environments. This careful organization of configuration files simplifies deployment and helps maintain consistency across different stages of the project lifecycle.
+
+# Documentation Structure
+
+Documentation is organized in its own dedicated directory called ‘documentation’, which contains all the instructional, architectural, and technical guides that support the project. Inside this folder, you will find files that cover everything from the high-level project requirements and app flow to detailed developer guidelines and technical specifications. The documentation structure is designed to facilitate knowledge sharing across the team, ensuring that even those without deep technical expertise can understand the design decisions and file organization. In addition, any file such as an implementation plan or project walkthrough is stored here, making it easy to refer back to when onboarding new team members or for quality assurance checks.
+
+# Conclusion and Overall Summary
+
+In summary, a clear and consistent file structure is paramount for developing and maintaining the complex scheduling system for a 911 dispatch center. This structure not only supports the technical needs—by separating frontend components, backend logic, configuration settings, and documentation—but also promotes collaboration and ease of navigation for the entire team. By employing a thoughtful organization of directories and files influenced by a modern tech stack, this project stands out as a well-planned and maintainable solution. This unique structure, along with comprehensive documentation, ensures that both development and long-term maintenance are streamlined and accessible to anyone involved in the project.
