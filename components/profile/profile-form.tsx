@@ -66,10 +66,8 @@ export function ProfileForm({ user }: ProfileFormProps) {
         .from('profiles')
         .upsert({
           id: user.id,
-          first_name: firstName,
-          last_name: lastName,
-          role: role,
           email: user.email,
+          role: role,
           updated_at: new Date().toISOString()
         }, {
           onConflict: 'id'
@@ -86,9 +84,9 @@ export function ProfileForm({ user }: ProfileFormProps) {
           auth_id: user.id,
           first_name: firstName,
           last_name: lastName,
+          email: user.email,
           role: role,
           shift_pattern: shiftPattern,
-          email: user.email,
           updated_at: new Date().toISOString()
         }, {
           onConflict: 'auth_id'
@@ -101,7 +99,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
 
       toast.success('Profile completed successfully')
       startTransition(() => {
-        router.replace('/dashboard')
+        router.replace('/overview')
       })
     } catch (err) {
       console.error('Error completing profile:', err)

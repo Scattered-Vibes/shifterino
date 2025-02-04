@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Card } from '@/components/ui/card'
 import { createTimeOffRequest, checkTimeOffConflicts } from '../actions/time-off'
-import { toast } from '@/components/ui/use-toast'
+import { toast } from 'sonner'
 
 interface TimeOffRequestFormProps {
   employeeId: string
@@ -22,47 +22,41 @@ export default function TimeOffRequestForm({
   const [reason, setReason] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  // Helper function to format date to YYYY-MM-DD
+  function formatDateForDB(date: Date) {
+    return date.toISOString().split('T')[0]
+  }
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!startDate || !endDate || !reason.trim()) {
-      toast({
-        title: 'Validation Error',
-        description: 'Please fill in all fields',
-        variant: 'destructive'
-      })
+      toast.error('Please fill in all fields')
       return
     }
 
     setIsSubmitting(true)
     try {
-      // Check for conflicts
+      // Check for conflicts using formatted dates
       const hasConflicts = await checkTimeOffConflicts(
         employeeId,
-        startDate.toISOString(),
-        endDate.toISOString()
+        formatDateForDB(startDate),
+        formatDateForDB(endDate)
       )
 
       if (hasConflicts) {
-        toast({
-          title: 'Schedule Conflict',
-          description: 'You already have approved time off during this period',
-          variant: 'destructive'
-        })
+        toast.error('You already have approved time off during this period')
         return
       }
 
-      // Submit request
+      // Submit request with formatted dates
       await createTimeOffRequest({
         employee_id: employeeId,
-        start_date: startDate.toISOString(),
-        end_date: endDate.toISOString(),
+        start_date: formatDateForDB(startDate),
+        end_date: formatDateForDB(endDate),
         reason
       })
 
-      toast({
-        title: 'Success',
-        description: 'Time off request submitted successfully'
-      })
+      toast.success('Time off request submitted successfully')
 
       // Reset form
       setStartDate(undefined)
@@ -73,11 +67,7 @@ export default function TimeOffRequestForm({
       onRequestSubmitted?.()
     } catch (err) {
       console.error('Failed to submit time off request:', err)
-      toast({
-        title: 'Error',
-        description: 'Failed to submit time off request',
-        variant: 'destructive'
-      })
+      toast.error('Failed to submit time off request')
     } finally {
       setIsSubmitting(false)
     }

@@ -46,7 +46,7 @@ export async function login(formData: FormData) {
 
     // Revalidate all pages using the root layout
     revalidatePath('/', 'layout')
-    return redirect('/dashboard')
+    return redirect('/overview')
   } catch (error) {
     // Preserve Next.js redirect errors
     if (error instanceof Error && error.message === 'NEXT_REDIRECT') {

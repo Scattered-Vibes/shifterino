@@ -1,6 +1,6 @@
 import './globals.css'
 import { Inter } from 'next/font/google'
-import { Toaster } from 'sonner'
+import { Toaster } from '@/components/ui/toaster'
 import { createClient } from '@/lib/supabase/server'
 import { SupabaseAuthProvider } from '@/components/providers/supabase-auth-provider'
 import type { Metadata } from 'next'
@@ -51,7 +51,7 @@ export default async function RootLayout({
       <body className={inter.className}>
         <SupabaseAuthProvider session={session}>
           {children}
-          <Toaster richColors closeButton position="top-right" />
+          <Toaster />
         </SupabaseAuthProvider>
       </body>
     </html>

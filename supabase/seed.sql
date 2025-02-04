@@ -53,10 +53,25 @@ INSERT INTO auth.users (
 -- Insert shift options
 INSERT INTO shift_options (id, name, start_time, end_time, duration_hours, category)
 VALUES
+    -- Early Shift
     ('a1111111-1111-1111-1111-111111111111'::uuid, 'Early 4hr', '05:00', '09:00', 4, 'early'),
+    ('a1111112-1111-1111-1111-111111111111'::uuid, 'Early 10hr', '05:00', '15:00', 10, 'early'),
+    ('a1111113-1111-1111-1111-111111111111'::uuid, 'Early 12hr', '05:00', '17:00', 12, 'early'),
+
+    -- Day Shift
+    ('a2222221-2222-2222-2222-222222222222'::uuid, 'Day 4hr', '09:00', '13:00', 4, 'day'),
     ('a2222222-2222-2222-2222-222222222222'::uuid, 'Day 10hr', '09:00', '19:00', 10, 'day'),
+    ('a2222223-2222-2222-2222-222222222222'::uuid, 'Day 12hr', '09:00', '21:00', 12, 'day'),
+
+    -- Swing Shift
+    ('a3333331-3333-3333-3333-333333333333'::uuid, 'Swing 4hr', '13:00', '17:00', 4, 'swing'),
+    ('a3333332-3333-3333-3333-333333333333'::uuid, 'Swing 10hr', '15:00', '01:00', 10, 'swing'),
     ('a3333333-3333-3333-3333-333333333333'::uuid, 'Swing 12hr', '15:00', '03:00', 12, 'swing'),
-    ('a4444444-4444-4444-4444-444444444444'::uuid, 'Night 10hr', '21:00', '07:00', 10, 'graveyard');
+
+    -- Graveyard Shift
+    ('a4444441-4444-4444-4444-444444444444'::uuid, 'Graveyard 4hr', '01:00', '05:00', 4, 'graveyard'),
+    ('a4444444-4444-4444-4444-444444444444'::uuid, 'Graveyard 10hr', '19:00', '05:00', 10, 'graveyard'),
+    ('a4444445-4444-4444-4444-444444444444'::uuid, 'Graveyard 12hr', '17:00', '05:00', 12, 'graveyard');
 
 -- Insert staffing requirements
 INSERT INTO staffing_requirements (id, name, time_block_start, time_block_end, min_total_staff, min_supervisors)
@@ -107,7 +122,7 @@ WHERE e.email = 'bob.dispatcher@test.com';
 
 -- Insert time off request
 INSERT INTO time_off_requests (
-    id, employee_id, start_date, end_date, status, notes
+    id, employee_id, start_date, end_date, status, notes, reason
 )
 SELECT
     'e1111111-1111-1111-1111-111111111111'::uuid,
@@ -115,6 +130,7 @@ SELECT
     CURRENT_DATE + INTERVAL '7 days',
     CURRENT_DATE + INTERVAL '8 days',
     'pending'::time_off_status,
+    'Family event',
     'Family event'
 FROM employees e
 WHERE e.email = 'bob.dispatcher@test.com';

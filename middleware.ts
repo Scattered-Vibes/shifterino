@@ -94,7 +94,7 @@ export async function middleware(request: NextRequest) {
     // If authenticated and trying to access auth pages, redirect to dashboard
     if (session && (normalizedPath === '/login' || normalizedPath === '/signup')) {
       console.log('Authenticated user trying to access auth page, redirecting to dashboard')
-      return NextResponse.redirect(new URL('/dashboard', request.url))
+      return NextResponse.redirect(new URL('/overview', request.url))
     }
 
     // For all other routes, require authentication
@@ -111,14 +111,14 @@ export async function middleware(request: NextRequest) {
     // Auth routes - if logged in, redirect to dashboard
     if (request.nextUrl.pathname.startsWith('/auth')) {
       if (session) {
-        return NextResponse.redirect(new URL('/dashboard', request.url))
+        return NextResponse.redirect(new URL('/overview', request.url))
       }
       return response
     }
 
     // Protected routes - if not logged in, redirect to login
     if (
-      request.nextUrl.pathname.startsWith('/dashboard') ||
+      request.nextUrl.pathname.startsWith('/overview') ||
       request.nextUrl.pathname.startsWith('/profile')
     ) {
       if (!session) {
@@ -126,7 +126,7 @@ export async function middleware(request: NextRequest) {
       }
 
       // Check if profile is complete when accessing dashboard
-      if (request.nextUrl.pathname.startsWith('/dashboard')) {
+      if (request.nextUrl.pathname.startsWith('/overview')) {
         const { data: employee, error } = await supabase
           .from('employees')
           .select()
@@ -147,7 +147,7 @@ export async function middleware(request: NextRequest) {
           .single()
 
         if (!error && employee?.first_name && employee?.last_name) {
-          return NextResponse.redirect(new URL('/dashboard', request.url))
+          return NextResponse.redirect(new URL('/overview', request.url))
         }
       }
     }

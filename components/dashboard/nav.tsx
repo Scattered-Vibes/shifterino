@@ -60,7 +60,7 @@ export const dashboardNavItems = [
     href: "/employees",
   },
   {
-    title: "Schedule Management",
+    title: "Management",
     href: "/manage",
   },
   {

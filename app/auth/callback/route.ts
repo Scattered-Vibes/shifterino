@@ -13,7 +13,7 @@ import type { Database } from '@/types/database'
  * to the dashboard page, preserving the original request's origin.
  *
  * @param {Request} request - The incoming HTTP request object.
- * @returns {Promise<Response>} A NextResponse that redirects to the '/dashboard' page.
+ * @returns {Promise<Response>} A NextResponse that redirects to the '/overview' page.
  */
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
 
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
+      return NextResponse.redirect(new URL('/overview', request.url))
     }
   }
 

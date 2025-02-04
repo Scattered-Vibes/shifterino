@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import SignUpForm from './signup-form'
+import { SignUpForm } from './signup-form'
 import Link from 'next/link'
 
 /**
