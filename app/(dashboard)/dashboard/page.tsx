@@ -30,113 +30,107 @@
  * @returns {Promise<JSX.Element>} The rendered dashboard interface
  */
 import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
-import { DashboardSkeleton } from '@/components/ui/skeletons'
-import { DashboardError } from '@/components/ui/errors'
-import { Suspense } from 'react'
+import { DashboardHeader } from '@/components/dashboard/dashboard-header'
+import { ScheduleCalendar } from '@/components/schedule/schedule-calendar'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
-async function DashboardContent() {
+async function getEmployeeData(userId: string) {
   const supabase = createClient()
+  const { data: employee, error } = await supabase
+    .from('employees')
+    .select('*')
+    .eq('auth_id', userId)
+    .single()
 
-  try {
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      redirect('/login?error=Session expired')
-    }
-
-    const { data: employee, error: employeeError } = await supabase
-      .from('employees')
-      .select('*')
-      .eq('auth_id', user.id)
-      .maybeSingle()
-
-    if (employeeError) {
-      if (employeeError.code === 'PGRST116') {
-        return (
-          <DashboardError 
-            title="Profile Not Found"
-            message="Your employee profile has not been set up yet. Please contact your administrator."
-          />
-        )
-      }
-      
-      throw new Error('Failed to fetch employee data')
-    }
-
-    if (!employee) {
-      return (
-        <DashboardError 
-          title="Profile Not Found"
-          message="Your employee profile has not been set up yet. Please contact your administrator."
-        />
-      )
-    }
-
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold mb-6">Welcome, {employee.first_name}</h1>
-        <div className="space-y-6">
-          <div>
-            <h3 className="text-lg font-medium leading-6 text-gray-900">
-              Welcome back, {employee.first_name}!
-            </h3>
-            <p className="mt-1 text-sm text-gray-500">
-              This is your dashboard where you can view your schedule and manage your shifts.
-            </p>
-          </div>
-
-          <div className="border-t border-gray-200 pt-6">
-            <h3 className="text-lg font-medium leading-6 text-gray-900">Quick Actions</h3>
-            <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              <div className="bg-white overflow-hidden shadow rounded-lg">
-                <div className="px-4 py-5 sm:p-6">
-                  <h4 className="text-base font-medium text-gray-900">View Schedule</h4>
-                  <p className="mt-1 text-sm text-gray-500">
-                    Check your upcoming shifts and schedule.
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-white overflow-hidden shadow rounded-lg">
-                <div className="px-4 py-5 sm:p-6">
-                  <h4 className="text-base font-medium text-gray-900">Request Time Off</h4>
-                  <p className="mt-1 text-sm text-gray-500">
-                    Submit and manage your time off requests.
-                  </p>
-                </div>
-              </div>
-
-              {employee.role === 'supervisor' && (
-                <div className="bg-white overflow-hidden shadow rounded-lg">
-                  <div className="px-4 py-5 sm:p-6">
-                    <h4 className="text-base font-medium text-gray-900">Manage Team</h4>
-                    <p className="mt-1 text-sm text-gray-500">
-                      View and manage team schedules.
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  } catch (error) {
-    console.error('Dashboard error:', error)
-    return (
-      <DashboardError 
-        title="Error Loading Dashboard"
-        message="There was a problem loading your dashboard. Please try again later."
-      />
-    )
-  }
+  if (error) throw error
+  return employee
 }
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const supabase = createClient()
+  const { data: { session } } = await supabase.auth.getSession()
+
+  if (!session?.user) {
+    throw new Error('No user found')
+  }
+
+  const employee = await getEmployeeData(session.user.id)
+
   return (
-    <Suspense fallback={<DashboardSkeleton />}>
-      <DashboardContent />
-    </Suspense>
+    <>
+      <DashboardHeader
+        heading="Schedule Dashboard"
+        text="View and manage your schedule"
+      />
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Next Shift
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">Tomorrow</div>
+            <p className="text-xs text-muted-foreground">
+              5:00 AM - 3:00 PM
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Hours This Week
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">32</div>
+            <p className="text-xs text-muted-foreground">
+              8 hours remaining
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Time Off Balance
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">80</div>
+            <p className="text-xs text-muted-foreground">
+              Hours available
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Shift Pattern
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {employee.shift_pattern === 'pattern_a' ? 'Pattern A' : 'Pattern B'}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {employee.shift_pattern === 'pattern_a' 
+                ? '4x10 Hour Shifts' 
+                : '3x12 + 1x4 Hour Shifts'}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle>Schedule</CardTitle>
+          <CardDescription>
+            Your upcoming shifts for the next month
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ScheduleCalendar employeeId={employee.id} />
+        </CardContent>
+      </Card>
+    </>
   )
 }

@@ -18,7 +18,7 @@ export async function middleware(request: NextRequest) {
   console.log('Middleware Debug:')
   console.log('Original pathname:', pathname)
   
-  const response = NextResponse.next({
+  let response = NextResponse.next({
     request: {
       headers: request.headers,
     },
@@ -34,6 +34,16 @@ export async function middleware(request: NextRequest) {
           return request.cookies.get(name)?.value
         },
         set(name: string, value: string, options: CookieOptions) {
+          request.cookies.set({
+            name,
+            value,
+            ...options,
+          })
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          })
           response.cookies.set({
             name,
             value,
@@ -41,6 +51,16 @@ export async function middleware(request: NextRequest) {
           })
         },
         remove(name: string, options: CookieOptions) {
+          request.cookies.set({
+            name,
+            value: '',
+            ...options,
+          })
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          })
           response.cookies.set({
             name,
             value: '',
@@ -88,6 +108,50 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(redirectUrl)
     }
 
+    // Auth routes - if logged in, redirect to dashboard
+    if (request.nextUrl.pathname.startsWith('/auth')) {
+      if (session) {
+        return NextResponse.redirect(new URL('/dashboard', request.url))
+      }
+      return response
+    }
+
+    // Protected routes - if not logged in, redirect to login
+    if (
+      request.nextUrl.pathname.startsWith('/dashboard') ||
+      request.nextUrl.pathname.startsWith('/profile')
+    ) {
+      if (!session) {
+        return NextResponse.redirect(new URL('/auth/login', request.url))
+      }
+
+      // Check if profile is complete when accessing dashboard
+      if (request.nextUrl.pathname.startsWith('/dashboard')) {
+        const { data: employee, error } = await supabase
+          .from('employees')
+          .select()
+          .eq('auth_id', session.user.id)
+          .single()
+
+        if (error || !employee?.first_name || !employee?.last_name) {
+          return NextResponse.redirect(new URL('/profile/complete', request.url))
+        }
+      }
+
+      // Prevent accessing profile completion if profile is already complete
+      if (request.nextUrl.pathname === '/profile/complete') {
+        const { data: employee, error } = await supabase
+          .from('employees')
+          .select()
+          .eq('auth_id', session.user.id)
+          .single()
+
+        if (!error && employee?.first_name && employee?.last_name) {
+          return NextResponse.redirect(new URL('/dashboard', request.url))
+        }
+      }
+    }
+
     console.log('Allowing access to protected route')
     return response
   } catch (error) {
@@ -101,12 +165,12 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
+     * Match all request paths except:
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
+     * - public folder
      */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 } 

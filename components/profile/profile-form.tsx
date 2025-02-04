@@ -27,7 +27,6 @@ interface ProfileFormProps {
 
 export function ProfileForm({ user }: ProfileFormProps) {
   const router = useRouter()
-  const supabase = createClient()
   const [isLoading, setIsLoading] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [role, setRole] = useState<Employee['role']>()
@@ -67,81 +66,32 @@ export function ProfileForm({ user }: ProfileFormProps) {
       email: user.email,
       shift_pattern: shiftPattern,
     }
-    console.log('Submitting employee data:', employeeData)
 
     try {
-      // First check if employee record already exists
-      const { data: existingEmployee, error: checkError } = await supabase
+      const supabase = createClient()
+      const { error: upsertError } = await supabase
         .from('employees')
+        .upsert(employeeData)
         .select()
-        .eq('auth_id', user.id)
         .single()
 
-      if (checkError && checkError.code !== 'PGRST116') {
-        // PGRST116 means no record found, which is what we want
-        console.error('Error checking for existing employee:', checkError)
-        throw checkError
-      }
+      if (upsertError) throw upsertError
 
-      let result
-      if (existingEmployee) {
-        console.log('Found existing employee record:', existingEmployee)
-        
-        // Check if the existing record is incomplete (missing required fields)
-        if (!existingEmployee.first_name || !existingEmployee.last_name) {
-          // Update the existing record
-          const { data, error } = await supabase
-            .from('employees')
-            .update(employeeData)
-            .eq('id', existingEmployee.id)
-            .select()
-            .single()
-            
-          if (error) throw error
-          result = data
-          toast.success('Profile updated successfully')
-        } else {
-          // Profile is already complete
-          toast.error('Profile already exists and is complete')
-          startTransition(() => {
-            router.push('/dashboard')
-          })
-          return
-        }
-      } else {
-        // Create new employee record
-        const { data, error } = await supabase
-          .from('employees')
-          .insert(employeeData)
-          .select()
-          .single()
-
-        if (error) throw error
-        result = data
-        toast.success('Profile completed successfully')
-      }
-
-      console.log('Operation successful:', result)
+      toast.success('Profile completed successfully')
       startTransition(() => {
-        router.push('/dashboard')
+        router.replace('/dashboard')
       })
     } catch (err) {
       console.error('Error completing profile:', err)
       if (err instanceof Error) {
         toast.error(err.message)
-      } else if (typeof err === 'object' && err !== null) {
-        console.error('Full error object:', JSON.stringify(err, null, 2))
-        toast.error('Failed to complete profile. Please check the console for details.')
       } else {
-        toast.error('An unexpected error occurred')
+        toast.error('Failed to complete profile')
       }
     } finally {
       setIsLoading(false)
     }
   }
-
-  // Debug log when component mounts
-  console.log('ProfileForm mounted with user:', user)
 
   return (
     <form onSubmit={onSubmit} className="mt-8 space-y-6">
@@ -173,7 +123,6 @@ export function ProfileForm({ user }: ProfileFormProps) {
           <Select
             value={role}
             onValueChange={(value) => {
-              console.log('Selected role:', value)
               setRole(value as Employee['role'])
             }}
             disabled={isLoading || isPending}
@@ -194,7 +143,6 @@ export function ProfileForm({ user }: ProfileFormProps) {
           <Select
             value={shiftPattern}
             onValueChange={(value) => {
-              console.log('Selected shift pattern:', value)
               setShiftPattern(value as 'pattern_a' | 'pattern_b')
             }}
             disabled={isLoading || isPending}
