@@ -61,8 +61,26 @@ export function ProfileForm({ user }: ProfileFormProps) {
     try {
       const supabase = createClient()
       
-      // Use upsert operation with auth_id as the unique key
-      const { error: upsertError } = await supabase
+      // Start a transaction to update both profiles and employees
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert({
+          id: user.id,
+          first_name: firstName,
+          last_name: lastName,
+          role: role,
+          email: user.email,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'id'
+        })
+
+      if (profileError) {
+        console.error('Error updating profile:', profileError)
+        throw profileError
+      }
+
+      const { error: employeeError } = await supabase
         .from('employees')
         .upsert({
           auth_id: user.id,
@@ -76,9 +94,9 @@ export function ProfileForm({ user }: ProfileFormProps) {
           onConflict: 'auth_id'
         })
 
-      if (upsertError) {
-        console.error('Error upserting employee record:', upsertError)
-        throw upsertError
+      if (employeeError) {
+        console.error('Error updating employee record:', employeeError)
+        throw employeeError
       }
 
       toast.success('Profile completed successfully')
