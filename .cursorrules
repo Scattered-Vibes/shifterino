@@ -223,7 +223,7 @@ export async function GET() {
 3. ☑ Client components isolated in `components/ui/`  
 4. ☑ Private directories use `_prefix`  
 5. ☑ Route groups use `(parentheses)`  
-6. ☑ Type definitions in `app/_types/`  
+6. ☑ Type definitions in `types/`  
 7. ☑ Tests colocated in `__tests__/` folders  
 8. ☑ API routes use `/app/api/[version]/route.ts`  
 

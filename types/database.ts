@@ -96,13 +96,45 @@ export const SHIFT_PATTERNS = {
   }
 }
 
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
 export interface Database {
   public: {
     Tables: {
       employees: {
-        Row: Employee
-        Insert: Omit<Employee, 'id' | 'created_at' | 'updated_at'>
-        Update: Partial<Omit<Employee, 'id' | 'created_at' | 'updated_at'>>
+        Row: {
+          id: string
+          user_id: string
+          first_name: string
+          last_name: string
+          role: 'dispatcher' | 'supervisor' | 'manager'
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          first_name: string
+          last_name: string
+          role: 'dispatcher' | 'supervisor' | 'manager'
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          first_name?: string
+          last_name?: string
+          role?: 'dispatcher' | 'supervisor' | 'manager'
+          created_at?: string
+          updated_at?: string
+        }
       }
       schedules: {
         Row: Schedule

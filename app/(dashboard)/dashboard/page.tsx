@@ -33,28 +33,26 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { DashboardSkeleton } from '@/components/ui/skeletons'
 import { DashboardError } from '@/components/ui/errors'
+import { Suspense } from 'react'
 
-export default async function DashboardPage() {
+async function DashboardContent() {
   const supabase = createClient()
 
   try {
-    // Get authenticated user using getUser instead of getSession
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
       redirect('/login?error=Session expired')
     }
 
-    // Fetch employee data with proper error handling
     const { data: employee, error: employeeError } = await supabase
       .from('employees')
       .select('*')
       .eq('auth_id', user.id)
-      .maybeSingle() // Use maybeSingle instead of single to handle no results
+      .maybeSingle()
 
     if (employeeError) {
       if (employeeError.code === 'PGRST116') {
-        // Handle case where employee record doesn't exist
         return (
           <DashboardError 
             title="Profile Not Found"
@@ -63,16 +61,9 @@ export default async function DashboardPage() {
         )
       }
       
-      // Handle other database errors
-      return (
-        <DashboardError 
-          title="Error Loading Dashboard"
-          message="There was a problem loading your dashboard. Please try again later."
-        />
-      )
+      throw new Error('Failed to fetch employee data')
     }
 
-    // If no employee record found
     if (!employee) {
       return (
         <DashboardError 
@@ -84,11 +75,11 @@ export default async function DashboardPage() {
 
     return (
       <div className="container mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold mb-6">Welcome, {employee.name}</h1>
+        <h1 className="text-2xl font-bold mb-6">Welcome, {employee.first_name}</h1>
         <div className="space-y-6">
           <div>
             <h3 className="text-lg font-medium leading-6 text-gray-900">
-              Welcome back, {employee?.first_name}!
+              Welcome back, {employee.first_name}!
             </h3>
             <p className="mt-1 text-sm text-gray-500">
               This is your dashboard where you can view your schedule and manage your shifts.
@@ -116,7 +107,7 @@ export default async function DashboardPage() {
                 </div>
               </div>
 
-              {employee?.is_supervisor && (
+              {employee.role === 'supervisor' && (
                 <div className="bg-white overflow-hidden shadow rounded-lg">
                   <div className="px-4 py-5 sm:p-6">
                     <h4 className="text-base font-medium text-gray-900">Manage Team</h4>
@@ -140,4 +131,12 @@ export default async function DashboardPage() {
       />
     )
   }
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<DashboardSkeleton />}>
+      <DashboardContent />
+    </Suspense>
+  )
 }

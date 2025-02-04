@@ -16,7 +16,9 @@
 
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import type { Database } from '@/types/database'
+import { Database } from '@/types/database'
+
+let supabaseInstance: ReturnType<typeof createServerClient<Database>> | null = null
 
 /**
  * Creates and configures a server-side Supabase client instance
@@ -31,25 +33,39 @@ import type { Database } from '@/types/database'
  * ```
  */
 export function createClient() {
-  const cookieStore = cookies()
+  if (supabaseInstance) {
+    return supabaseInstance
+  }
 
-  return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    throw new Error('Missing env.NEXT_PUBLIC_SUPABASE_URL')
+  }
+  if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    throw new Error('Missing env.NEXT_PUBLIC_SUPABASE_ANON_KEY')
+  }
+
+  supabaseInstance = createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
       cookies: {
         /**
          * Get a cookie value by name
          */
         get(name: string) {
-          return cookieStore.get(name)?.value
+          try {
+            return cookies().get(name)?.value
+          } catch (error) {
+            console.error(`Error getting cookie ${name}:`, error)
+            return undefined
+          }
         },
         /**
          * Set a cookie with the specified name, value, and options
          */
         set(name: string, value: string, options: CookieOptions) {
           try {
-            cookieStore.set({
+            cookies().set({
               name,
               value,
               ...options,
@@ -60,7 +76,7 @@ export function createClient() {
               path: '/',
             })
           } catch (error) {
-            console.error('Failed to set cookie:', error)
+            console.error(`Error setting cookie ${name}:`, error)
           }
         },
         /**
@@ -68,13 +84,13 @@ export function createClient() {
          */
         remove(name: string, options: CookieOptions) {
           try {
-            cookieStore.delete({ 
+            cookies().delete({
               name,
               ...options,
-              path: '/' 
+              path: '/',
             })
           } catch (error) {
-            console.error('Failed to remove cookie:', error)
+            console.error(`Error removing cookie ${name}:`, error)
           }
         },
       },
@@ -87,9 +103,11 @@ export function createClient() {
       },
       global: {
         headers: {
-          'X-Client-Info': 'supabase-ssr',
+          'X-Client-Info': 'supabase-ssr/0.0.0',
         },
       },
     }
   )
+
+  return supabaseInstance
 } 

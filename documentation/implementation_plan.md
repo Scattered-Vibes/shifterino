@@ -1,171 +1,147 @@
-# Actionable Implementation Plan for the 911 Dispatch Center Scheduling System
+Updated actionable items list with estimated progress and status indicated.
 
-This document outlines a step-by-step plan for setting up the development environment, building frontend and backend components, integrating the system, and deploying the application. Follow each phase’s tasks in order, and verify functionality at every stage.
+**Note:**  The progress estimations are based on the code and documentation provided. Since I don't have access to a live development environment, testing results, or a task tracking system, these are educated guesses.
 
----
+**Actionable Items List**
 
-## Phase 1: Environment Setup
+**Key:**
 
-1. **Node.js & Project Initialization**  
-   - **Action:** Verify Node.js installation  
-     - Command: `node -v`
-   - **Action:** Create a new Next.js 14 project with TypeScript  
-     - Command: `npx create-next-app@latest --ts`
-   - **Action:** Set up a Git repository and create branches `main` and `dev`  
-     - Commands:
-       - `git init`
-       - `git checkout -b main`
-       - `git checkout -b dev`
+*   **Status:**
+    *   `Not Started`
+    *   `In Progress`
+    *   `Blocked`
+    *   `Completed`
+    *   `Testing`
+*   **Progress:** Estimated percentage of completion
+*   **Priority:**
+    *   `High`
+    *   `Medium`
+    *   `Low`
 
-2. **Install Dependencies**  
-   - **Supabase Clients:**  
-     - Client-side: `npm install @supabase/supabase-js`  
-     - Server-side: `npm install @supabase/ssr`
-   - **UI Toolkit (Shadcn):**  
-     - Command: `npx shadcn@latest init`  
-       *(Remember: Use `shadcn` without the deprecated `-ui` suffix.)*
-     
-3. **Validation:**  
-   - **Action:** Start the development server  
-     - Command: `npm run dev`  
-   - **Result:** Verify that the default Next.js app loads without errors.
+**I. Authentication & Authorization**
 
----
+| Item                                                                       | Priority | Status        | Progress | Notes                                                                                                                                      |
+| :------------------------------------------------------------------------- | :------- | :------------ | :------- | :----------------------------------------------------------------------------------------------------------------------------------------- |
+| Implement User Login (email/password)                                     | High     | Completed     | 100%     | Implemented using Supabase Auth.                                                                                                         |
+| Implement User Signup                                                     | High     | Completed     | 100%     | Implemented using Supabase Auth.                                                                                                         |
+| Implement Email Confirmation                                               | High     | Completed     | 100%     | Implemented using Supabase Auth.                                                                                                         |
+| Implement Password Reset                                                   | Medium   | Not Started   | 0%       | Supabase Auth supports this, needs UI and workflow.                                                                                      |
+| Implement Logout                                                           | High     | Completed     | 100%     | Implemented using Supabase Auth.                                                                                                         |
+| Implement Role-Based Access Control (Dispatcher, Supervisor, Manager)      | High     | In Progress   | 75%      | Roles are created in database. RLS policies implemented. Dashboard, employees, and manage pages have basic checks. Need more granular control. |
+| Implement Session Management (Refresh, Expiration)                          | High     | In Progress   | 60%      | Implemented refresh-session API.  Needs more testing and refinement for edge cases.                                                     |
+| Implement "Complete Profile" Page                                          | High     | Completed     | 100%     | Basic functionality working, needs more validation and UI polish.                                                                         |
+| Redirect to "Complete Profile" on First Login                             | High     | Completed     | 100%     | Implemented, redirects to the complete-profile page if employee record is missing.                                                       |
+| Implement Secure Password Storage (hashing)                                | High     | Completed     | 100%     | Handled by Supabase Auth.                                                                                                               |
+| Implement OAuth (Social Logins) - (Future Feature)                        | Low      | Not Started   | 0%       | Future feature. Supabase Auth supports this, needs UI and integration.                                                                   |
+| Implement Auth Callback Route                                             | High     | Completed     | 100%     | Implemented.                                                                                                                            |
+| Secure API Endpoints                                                       | High     | In Progress   | 50%      | Some API endpoints are secured. More comprehensive testing and implementation for all endpoints needed.                                |
+| Implement rate limiting for login attempts                                  | Medium   | Not Started   | 0%       | Need to implement rate limiting to prevent brute-force attacks.                                                                     |
 
-## Phase 2: Frontend Development
+**II. Profile Management**
 
-1. **Manager Dashboard Component**  
-   - **Path:** `app/(dashboard)/ManagerDashboard/page.tsx`  
-   - **Action:** Develop a dashboard view displaying:
-     - Current staffing levels
-     - Pending time-off requests
-     - Overtime approvals
+| Item                                           | Priority | Status        | Progress | Notes                                                                                                              |
+| :--------------------------------------------- | :------- | :------------ | :------- | :----------------------------------------------------------------------------------------------------------------- |
+| Allow Users to View Their Profile              | High     | Completed     | 100%     | Basic information displayed on the dashboard.                                                                       |
+| Allow Users to Update Their Profile (Name, etc.) | Medium   | In Progress   | 30%      | Need UI for profile editing, and backend logic to update `employees` table.                                        |
+| Validate Profile Updates                       | Medium   | Not Started   | 0%       | Need to add validation rules for profile updates (e.g., name format, email format).                               |
+| Allow Managers to View/Edit All Profiles       | High     | In Progress   | 20%      | Managers can view all employees in the employees and manage pages. Need UI for editing and proper role-based checks. |
 
-2. **Employee Dashboard Component**  
-   - **Path:** `app/(dashboard)/EmployeeDashboard/page.tsx`  
-   - **Action:** Build a dashboard for employees to:
-     - View assigned shifts
-     - Submit time-off requests
-     - Update availability
+**III. Scheduling**
 
-3. **Shared Schedule Viewer Component**  
-   - **Path:** `components/ScheduleViewer.tsx`  
-   - **Action:**  
-     - Display shift details organized by defined time periods (e.g., 5–9 AM, 9 AM–9 PM, etc.)
-     - Highlight designated supervisor assignments
+| Item                                                                                | Priority | Status        | Progress | Notes                                                                                                                                       |
+| :---------------------------------------------------------------------------------- | :------- | :------------ | :------- | :------------------------------------------------------------------------------------------------------------------------------------------ |
+| Implement Shift Display for Dispatchers                                             | High     | Not Started   | 0%       | Need to create a dedicated UI to display assigned shifts clearly.                                                                         |
+| Implement Shift Swap Requests (Dispatcher)                                        | High     | Not Started   | 0%       | Need UI and backend logic for submitting, viewing, and managing swap requests.                                                              |
+| Implement Shift Swap Approval/Rejection (Supervisor)                               | High     | Not Started   | 0%       | Need UI and backend logic for supervisors to approve/reject swap requests.                                                               |
+| Implement Manual Shift Assignment (Supervisor)                                      | High     | In Progress   | 40%      | `ScheduleManager` component exists. Needs refinement for assigning shifts, and conflict checks.                                              |
+| Implement Shift Editing (Supervisor)                                                | High     | Not Started   | 0%       | Need UI and backend logic for editing shift details.                                                                                     |
+| Implement Shift Cancellation (Supervisor)                                           | Medium   | Not Started   | 0%       | Need UI and backend logic for cancelling shifts.                                                                                         |
+| Implement Staffing Level Overview (Supervisor)                                     | High     | Completed     | 100%      | `StaffingOverview` component provides this.                                                                                              |
+| Implement Automatic Shift Flagging (Understaffed)                                 | High     | Not Started   | 0%       | Need backend logic to identify understaffed shifts based on `staffing_requirements`.                                                      |
+| Implement Supervisor Shift Designation                                              | Medium   | In Progress  | 20% | `is_supervisor_shift` field exists in the database. Needs UI for designation and logic for ensuring supervisor coverage. |
+| Implement Shift Pattern Management (Manager)                                       | High     | Not Started   | 0%       | Need UI and backend logic for creating, editing, and assigning shift patterns.                                                           |
+| Implement Shift Option Management (Manager)                                        | High     | Not Started   | 0%       | Need UI and backend logic for defining and managing shift options (start/end times, categories).                                           |
+| Implement Staffing Requirement Management (Manager)                                | High     | Not Started   | 0%       | Need UI and backend logic for defining minimum staffing levels per time block.                                                          |
+| Implement Schedule Period Management (Manager)                                      | Medium   | Not Started   | 0%       | Need UI and backend logic for creating, editing, and activating schedule periods.                                                        |
+| Implement Automatic Schedule Generation                                               | High     | Not Started   | 0%       | This is a complex feature. Requires careful planning and implementation of the scheduling algorithm.                                    |
+| Implement Validation for Shift Patterns (e.g., consecutive shifts, rest periods)   | High     | In Progress   | 10%      | Basic validation exists in `validate_shift_pattern` function. Needs to be integrated into scheduling actions.                           |
+| Implement Weekly Hours Limit Validation                                            | High     | In Progress   | 10%      | Basic validation in `validate_shift_pattern` function, needs integration into scheduling actions.                                           |
+| Implement Overtime Management                                                      | Medium   | Not Started   | 0%       | Need UI and backend logic for tracking and approving overtime.                                                                           |
+| Implement Schedule Conflict Detection                                              | High     | In Progress   | 5%       | `detect_schedule_conflicts` function exists, but needs integration into shift creation/editing.                                         |
+| Implement Supervisor Coverage Verification                                          | High     | Not Started   | 0%       | Need logic to ensure at least one supervisor is scheduled for each time block.                                                         |
+| Implement Logging for Schedule Changes                                               | Medium   | In Progress   | 60%      | Basic logging implemented with `log_schedule_changes_trigger` and `log_scheduling_event` function.                                     |
 
-4. **UI Controls for Shift Selection**  
-   - **Action:** Within `components/ScheduleViewer.tsx`, add controls (buttons or dropdowns) for:
-     - Day Shift Early
-     - Day Shift
-     - Swing Shift
-     - Graveyard Shift
+**IV. Time-Off Management**
 
-5. **Testing the Frontend**  
-   - **Action:** Run `npm run dev`  
-   - **Result:** Access `/dashboard/manager` and `/dashboard/employee` to ensure components render and interact correctly.
+| Item                                                    | Priority | Status        | Progress | Notes                                                                                                      |
+| :------------------------------------------------------ | :------- | :------------ | :------- | :--------------------------------------------------------------------------------------------------------- |
+| Implement Time-Off Request Submission (Dispatcher)      | High     | Not Started   | 0%       | Need UI and backend logic for submitting time-off requests.                                                 |
+| Implement Time-Off Request Status Tracking (Dispatcher) | High     | Not Started   | 0%       | Need UI to display the status of submitted time-off requests.                                              |
+| Implement Time-Off Request Approval/Rejection (Supervisor) | High     | In Progress   | 50%      | Basic UI in `TimeOffRequests` component.  Needs more robust logic and notifications.                       |
+| Implement Notifications for Time-Off Requests           | Medium   | Not Started   | 0%       | Need to implement email or in-app notifications for new and updated time-off requests.                    |
+| Implement Time-Off Calendar View (Supervisor)           | Medium   | Not Started   | 0%       | Need UI to display approved time-off requests in a calendar format.                                      |
+| Implement Overlap Prevention for Time-Off Requests      | High     | Not Started   | 0%       | Need backend logic to prevent overlapping time-off requests for the same employee.                         |
+| Implement Time-Off Request Cancellation                 | Medium   | Not Started   | 0%       | Need UI and backend logic to allow cancellation of pending time-off requests by the requester or supervisor. |
 
----
+**V. Staff Management**
 
-## Phase 3: Backend Development
+| Item                                        | Priority | Status        | Progress | Notes                                                                                       |
+| :------------------------------------------ | :------- | :------------ | :------- | :------------------------------------------------------------------------------------------ |
+| Implement Employee Creation (Manager)       | High     | In Progress   | 60%      | Basic form in `StaffList` component. Needs proper validation and integration with auth. |
+| Implement Employee Editing (Manager)        | High     | Not Started   | 0%       | Need UI and backend logic for editing employee information.                                  |
+| Implement Employee Deactivation (Manager)   | Medium   | Not Started   | 0%       | Need UI and backend logic for deactivating employee accounts.                             |
+| Implement Shift Pattern Assignment (Manager) | Medium   | Not Started   | 0%       | Need UI and integration with shift pattern management.                                    |
+| Implement Weekly Hours Cap Setting (Manager) | Medium   | Not Started   | 0%       | Need UI and integration with employee profiles.                                           |
+| Implement Employee Statistics Reporting     | Medium   | In Progress   | 20%      | `mv_schedule_statistics` materialized view exists. Need UI to display and filter data.   |
 
-1. **Supabase Client Initialization**  
-   - **Path:** `lib/supabaseClient.ts`  
-   - **Action:**  
-     - Initialize the Supabase client using environment variables.
-     
-2. **Scheduling Logic Implementation**  
-   - **Path:** `lib/scheduler.ts`  
-   - **Action:**  
-     - Implement functions to generate schedules for two patterns:
-       - **Pattern A:** Four consecutive 10-hour shifts.
-       - **Pattern B:** Three consecutive 12-hour shifts plus one 4-hour shift.
+**VI. Reporting & Analytics**
 
-3. **Schedule API Endpoint**  
-   - **Path:** `app/api/schedule/route.ts`  
-   - **Action:**  
-     - Create a POST endpoint to submit scheduling changes and trigger schedule regeneration.
+| Item                                                 | Priority | Status        | Progress | Notes                                                                                |
+| :--------------------------------------------------- | :------- | :------------ | :------- | :----------------------------------------------------------------------------------- |
+| Implement Staffing Level Reports                     | Medium   | Not Started   | 0%       | Need UI and backend logic to generate reports on staffing levels over time.         |
+| Implement Time-Off Usage Reports                     | Medium   | Not Started   | 0%       | Need UI and backend logic to generate reports on time-off usage.                    |
+| Implement Data Export Functionality (CSV, PDF)        | Low      | Not Started   | 0%       | Need to implement data export functionality for various reports.                   |
+| Implement KPI Dashboard for Managers                  | Low      | Not Started   | 0%       | Need UI and backend logic to display key performance indicators on a dashboard. |
+| Implement Shift Statistics Report (e.g., hours, etc.) | Medium   | In Progress   | 20%      | `mv_schedule_statistics` materialized view exists. Needs UI for report generation. |
 
-4. **Time-Off Requests API Endpoint**  
-   - **Path:** `app/api/timeoff/route.ts`  
-   - **Action:**  
-     - Build a POST endpoint to process time-off requests (create, approve, or reject).
+**VII. System Administration**
 
-5. **Overtime Approval API Endpoint**  
-   - **Path:** `app/api/overtime/route.ts`  
-   - **Action:**  
-     - Develop a POST endpoint to manage overtime requests and the approval workflow.
+| Item                                                 | Priority | Status      | Progress | Notes                                                                   |
+| :--------------------------------------------------- | :------- | :---------- | :------- | :---------------------------------------------------------------------- |
+| Implement System Settings Configuration (Manager)     | Low      | Not Started | 0%       | Need UI and backend logic for managing system settings.                  |
+| Implement System Logs Viewing (Manager)               | Low      | Not Started | 0%       | Need UI to display system logs (scheduling actions, errors, etc.).     |
+| Implement Automated Data Backup                      | High     | Not Started | 0%       | Need to set up a mechanism for regular database backups (Supabase has this). |
+| Implement Email/Notification System                  | Medium   | Not Started | 0%       | Need to integrate an email service for sending notifications.           |
 
-6. **Testing API Endpoints**  
-   - **Action:** Use Postman or `curl` (e.g., `curl -X POST http://localhost:3000/api/schedule`) to verify that all endpoints return a `200 OK` response and correctly process payloads.
+**VIII. General Improvements**
 
----
+| Item                          | Priority | Status        | Progress | Notes                                                                                                      |
+| :---------------------------- | :------- | :------------ | :------- | :--------------------------------------------------------------------------------------------------------- |
+| Improve UI/UX                 | Medium   | In Progress   | 40%      | Ongoing effort. Shadcn UI provides a good foundation.                                                    |
+| Implement Comprehensive Testing | High     | In Progress   | 20%      | Need to add unit tests, integration tests, and end-to-end tests.                                        |
+| Optimize Database Queries     | Medium   | In Progress   | 30%      | Some indexes added. Further optimization needed based on usage patterns.                                |
+| Improve Error Handling        | High     | In Progress   | 40%      | Basic error handling in place. Need more specific error messages and user feedback.                      |
+| Improve Accessibility         | Medium   | Not Started   | 0%       | Need to ensure the app meets accessibility standards (WCAG).                                             |
+| Code Refactoring              | Medium   | In Progress   | 30%      | Ongoing effort to improve code quality and maintainability.                                                |
+| Enhance Security              | High     | In Progress   | 60%      | Ongoing effort.  Leveraging Supabase Auth features. Further hardening and security audits are recommended. |
+| Documentation                 | High     | In Progress   | 50%      | README and STATUS in progress, need more detailed documentation.                                            |
 
-## Phase 4: Integration
+**IX. Immediate Focus (Next Steps)**
 
-1. **Integrate Manager Dashboard with API**  
-   - **Path:** `app/(dashboard)/ManagerDashboard/page.tsx`  
-   - **Action:**  
-     - Connect to the `/api/schedule` endpoint (using `fetch` or Axios) to update staffing information upon scheduling changes.
-   
-2. **Integrate Employee Dashboard with Supabase**  
-   - **Path:** `app/(dashboard)/EmployeeDashboard/page.tsx`  
-   - **Action:**  
-     - Fetch and update employee data (shift availability and time-off requests) through the Supabase client.
+1.  **High Priority - Authentication & Authorization:**
+    *   Complete Role-Based Access Control (RBAC) implementation. Granular checks on all relevant pages and API endpoints.
+    *   Thoroughly test session management, including refresh and expiration scenarios.
 
-3. **Dashboard Routing Configuration**  
-   - **Action:**  
-     - Define clear routing logic to separate manager and employee views. Use route groups if necessary.
+2.  **High Priority - Scheduling:**
+    *   Implement the UI for viewing and managing shift swap requests. (Dispatcher and Supervisor)
+    *   Integrate shift pattern and weekly hour validation into the shift assignment process.
+    *   Implement automatic shift flagging for understaffed shifts.
 
-4. **Final Data Synchronization Validation**  
-   - **Action:**  
-     - Test that any change made via the Manager Dashboard is immediately reflected on the Employee Dashboard.
+3.  **High Priority - Time Off:**
+    *   Implement the UI for submitting and viewing time-off requests. (Dispatcher)
 
----
+4. **High Priority - Profile Management:**
+    *    Implement UI for users to update their own profiles.
+    *    Implement UI for managers to edit all profiles.
 
-## Phase 5: Deployment
-
-1. **Configuration for Production Deployment**  
-   - **Action:**  
-     - Create a `vercel.json` (or other hosting configuration) file.
-     - Include necessary environment variables (e.g., Supabase keys).
-
-2. **Build Production Assets**  
-   - **Action:**  
-     - Run `npm run build` followed by `npm start` to confirm production readiness.
-
-3. **Deploy the Application**  
-   - **Action:**  
-     - Push code to the `main` branch.
-     - Deploy using your chosen cloud provider (e.g., Vercel).
-
-4. **Production Validation**  
-   - **Action:**  
-     - Access the production URL and perform end-to-end tests to ensure all functionalities work as intended.
-
----
-
-## Phase 6: Post-Launch Activities
-
-1. **Monitoring & Logging**  
-   - **Action:**  
-     - Integrate tools (e.g., Vercel Analytics, LogRocket) for real-time monitoring and error tracking.
-
-2. **Database Backup Setup**  
-   - **Action:**  
-     - Configure scheduled backups using Supabase's native tools or an external cron job.
-
-3. **User Training & Documentation**  
-   - **Action:**  
-     - Prepare comprehensive guides for managers and employees.
-     - Schedule training sessions to introduce the system features.
-
-4. **Simulated Critical Scenario Testing**  
-   - **Action:**  
-     - Run simulations for last-minute schedule changes, overtime approvals, and emergency notifications.
-     - Verify that all workflows (including on-call notifications) function correctly.
-
----
-
-*End of Implementation Plan*  
-Ensure you follow each phase sequentially and verify the work at every stage for a smooth project rollout.
+This detailed breakdown gives you a roadmap for development. Remember to break down these larger items into smaller, manageable tasks within your team's workflow. Good luck!

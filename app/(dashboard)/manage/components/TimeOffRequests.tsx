@@ -1,158 +1,116 @@
 'use client'
 
 import { useState } from 'react'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import type { TimeOffRequest } from '@/types/database'
-import { createClient } from '@/lib/supabase/client'
+import { updateTimeOffRequest } from '../actions/time-off'
+import { toast } from '@/components/ui/use-toast'
 
-/**
- * Props for the TimeOffRequests component.
- */
-interface TimeOffRequestsProps {
-  requests: Array<TimeOffRequest & {
-    employee: {
-      first_name: string
-      last_name: string
-    }
-  }>
+interface TimeOffRequest {
+  id: string
+  employee: {
+    id: string
+    first_name: string
+    last_name: string
+    email: string
+  }
+  start_date: string
+  end_date: string
+  reason: string
+  status: 'pending' | 'approved' | 'rejected'
 }
 
-/**
- * TimeOffRequests component displays a list of time-off requests in a table.
- * It allows the user to view detailed information about each request and take action
- * to either approve or reject the request.
- *
- * @param {TimeOffRequestsProps} props - The component props.
- * @returns {JSX.Element} A table of time-off requests with action dialogs.
- */
-export default function TimeOffRequests({ requests }: TimeOffRequestsProps) {
-  // Local state for managing the currently selected time off request.
-  const [selectedRequest, setSelectedRequest] = useState<TimeOffRequest | null>(null)
+interface TimeOffRequestsProps {
+  requests: TimeOffRequest[]
+  onStatusUpdate?: () => void
+}
 
-  // Initialize Supabase client for database operations.
-  const supabase = createClient()
+export default function TimeOffRequests({ 
+  requests,
+  onStatusUpdate 
+}: TimeOffRequestsProps) {
+  const [updatingId, setUpdatingId] = useState<string | null>(null)
 
-  /**
-   * Approve a time-off request.
-   * Updates the request status to 'approved' in the database and reloads the page upon success.
-   *
-   * @param {TimeOffRequest} request - The time-off request object to approve.
-   */
-  const handleApprove = async (request: TimeOffRequest) => {
-    const { error } = await supabase
-      .from('time_off_requests')
-      .update({ status: 'approved' })
-      .eq('id', request.id)
-
-    if (!error) {
-      // Reload the page to show updated data.
-      window.location.reload()
+  const handleStatusUpdate = async (requestId: string, status: 'approved' | 'rejected') => {
+    setUpdatingId(requestId)
+    try {
+      await updateTimeOffRequest(requestId, status)
+      toast({
+        title: 'Success',
+        description: `Request ${status} successfully`
+      })
+      onStatusUpdate?.()
+    } catch (err) {
+      console.error('Failed to update request status:', err)
+      toast({
+        title: 'Error',
+        description: `Failed to ${status} request`,
+        variant: 'destructive'
+      })
+    } finally {
+      setUpdatingId(null)
     }
   }
 
-  /**
-   * Reject a time-off request.
-   * Updates the request status to 'rejected' in the database and reloads the page upon success.
-   *
-   * @param {TimeOffRequest} request - The time-off request object to reject.
-   */
-  const handleReject = async (request: TimeOffRequest) => {
-    const { error } = await supabase
-      .from('time_off_requests')
-      .update({ status: 'rejected' })
-      .eq('id', request.id)
-
-    if (!error) {
-      // Reload the page to show updated data.
-      window.location.reload()
-    }
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric'
+    })
   }
 
   return (
-    <div>
-      {/* Table displaying the time-off requests */}
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Employee</TableHead>
-            <TableHead>Start Date</TableHead>
-            <TableHead>End Date</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {requests.map(request => (
-            <TableRow key={request.id}>
-              <TableCell>
-                {request.employee.first_name} {request.employee.last_name}
-              </TableCell>
-              <TableCell>
-                {new Date(request.start_date).toLocaleDateString()}
-              </TableCell>
-              <TableCell>
-                {new Date(request.end_date).toLocaleDateString()}
-              </TableCell>
-              <TableCell>
-                <div className="flex space-x-2">
-                  <Dialog>
-                    <DialogTrigger asChild>
+    <div className="space-y-4">
+      {requests.length === 0 ? (
+        <p className="text-sm text-gray-500">No time off requests to display.</p>
+      ) : (
+        requests.map(request => (
+          <Card key={request.id} className="p-4">
+            <div className="space-y-2">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h4 className="font-medium">
+                    {request.employee.first_name} {request.employee.last_name}
+                  </h4>
+                  <p className="text-sm text-gray-500">
+                    {formatDate(request.start_date)} - {formatDate(request.end_date)}
+                  </p>
+                </div>
+                <div className="space-x-2">
+                  {request.status === 'pending' && (
+                    <>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setSelectedRequest(request)}
+                        onClick={() => handleStatusUpdate(request.id, 'rejected')}
+                        disabled={updatingId === request.id}
                       >
-                        View
+                        Reject
                       </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Time-Off Request Details</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        {/* Display employee name */}
-                        <div>
-                          <h4 className="font-medium">Employee</h4>
-                          <p>
-                            {request.employee.first_name} {request.employee.last_name}
-                          </p>
-                        </div>
-                        {/* Display requested dates */}
-                        <div>
-                          <h4 className="font-medium">Dates</h4>
-                          <p>
-                            {new Date(request.start_date).toLocaleDateString()} - {new Date(request.end_date).toLocaleDateString()}
-                          </p>
-                        </div>
-                        {/* If a reason was provided, display it */}
-                        {request.reason && (
-                          <div>
-                            <h4 className="font-medium">Reason</h4>
-                            <p>{request.reason}</p>
-                          </div>
-                        )}
-                        {/* Action buttons for rejecting or approving the request */}
-                        <div className="flex justify-end space-x-2">
-                          <Button
-                            variant="outline"
-                            onClick={() => handleReject(request)}
-                          >
-                            Reject
-                          </Button>
-                          <Button onClick={() => handleApprove(request)}>
-                            Approve
-                          </Button>
-                        </div>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
+                      <Button
+                        size="sm"
+                        onClick={() => handleStatusUpdate(request.id, 'approved')}
+                        disabled={updatingId === request.id}
+                      >
+                        Approve
+                      </Button>
+                    </>
+                  )}
+                  {request.status !== 'pending' && (
+                    <span className={`text-sm ${
+                      request.status === 'approved' ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                    </span>
+                  )}
                 </div>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+              </div>
+              <p className="text-sm">{request.reason}</p>
+            </div>
+          </Card>
+        ))
+      )}
     </div>
   )
 }

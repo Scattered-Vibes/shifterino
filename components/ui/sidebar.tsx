@@ -1,81 +1,67 @@
-import * as React from "react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+'use client'
 
-interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
-  defaultCollapsed?: boolean
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { cn } from '@/lib/utils'
+import {
+  CalendarIcon,
+  ClockIcon,
+  UsersIcon,
+  HomeIcon,
+  UserIcon,
+} from '@heroicons/react/24/outline'
+
+const navigation = [
+  { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
+  { name: 'Schedules', href: '/schedules', icon: CalendarIcon },
+  { name: 'Time Off', href: '/time-off', icon: ClockIcon },
+  { name: 'Profile', href: '/profile', icon: UserIcon },
+  { name: 'Manage', href: '/manage', icon: UsersIcon, requiresManager: true },
+]
+
+interface SidebarProps {
+  userRole?: 'dispatcher' | 'supervisor' | 'manager'
 }
 
-const SidebarContext = React.createContext<{
-  collapsed: boolean
-  setCollapsed: (collapsed: boolean) => void
-}>({
-  collapsed: false,
-  setCollapsed: () => {},
-})
+export function Sidebar({ userRole }: SidebarProps) {
+  const pathname = usePathname()
 
-export function Sidebar({
-  defaultCollapsed = false,
-  className,
-  children,
-  ...props
-}: SidebarProps) {
-  const [collapsed, setCollapsed] = React.useState(defaultCollapsed)
-
-  return (
-    <SidebarContext.Provider value={{ collapsed, setCollapsed }}>
-      <div
-        className={cn(
-          "flex h-full flex-col border-r bg-background transition-all duration-300 overflow-hidden",
-          collapsed ? "w-16" : "w-64",
-          className
-        )}
-        {...props}
-      >
-        <div className="flex h-14 items-center justify-end border-b px-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setCollapsed(!collapsed)}
-            className="h-8 w-8"
-          >
-            {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-          </Button>
-        </div>
-        <div className="flex-1 overflow-auto">{children}</div>
-      </div>
-    </SidebarContext.Provider>
+  const filteredNavigation = navigation.filter(item => 
+    !item.requiresManager || userRole === 'manager'
   )
-}
-
-export function SidebarItem({
-  className,
-  children,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
-  const { collapsed } = React.useContext(SidebarContext)
 
   return (
-    <div
-      className={cn(
-        "flex items-center gap-4 px-3 py-2.5 cursor-pointer relative",
-        "transition-all duration-200 ease-in-out overflow-hidden",
-        "hover:bg-accent hover:text-accent-foreground",
-        collapsed ? "justify-center px-2 w-16" : "px-4 w-64",
-        className
-      )}
-      {...props}
-    >
-      {children}
+    <div className="w-64 bg-white border-r">
+      <div className="flex flex-col h-full">
+        <nav className="flex-1 space-y-1 px-2 py-4">
+          {filteredNavigation.map((item) => {
+            const isActive = pathname.startsWith(item.href)
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={cn(
+                  isActive
+                    ? 'bg-gray-100 text-gray-900'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
+                  'group flex items-center rounded-md px-2 py-2 text-sm font-medium'
+                )}
+              >
+                <item.icon
+                  className={cn(
+                    isActive
+                      ? 'text-gray-500'
+                      : 'text-gray-400 group-hover:text-gray-500',
+                    'mr-3 h-5 w-5 flex-shrink-0'
+                  )}
+                  aria-hidden="true"
+                />
+                {item.name}
+              </Link>
+            )
+          })}
+        </nav>
+      </div>
     </div>
   )
-}
-
-export function useSidebar() {
-  const context = React.useContext(SidebarContext)
-  if (!context) {
-    throw new Error("useSidebar must be used within a SidebarProvider")
-  }
-  return context
 } 

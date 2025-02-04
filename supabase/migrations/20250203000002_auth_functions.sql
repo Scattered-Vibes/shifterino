@@ -1,48 +1,7 @@
--- Enable required extensions
-CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
+-- Auth Functions Migration
+-- Contains only auth-related functions and removes duplicates
 
--- Create custom types if they don't exist
-DO $$ BEGIN
-    CREATE TYPE public.employee_role AS ENUM ('supervisor', 'dispatcher');
-EXCEPTION
-    WHEN duplicate_object THEN null;
-END $$;
-
-DO $$ BEGIN
-    CREATE TYPE public.shift_pattern AS ENUM ('pattern_a', 'pattern_b');
-EXCEPTION
-    WHEN duplicate_object THEN null;
-END $$;
-
-DO $$ BEGIN
-    CREATE TYPE public.shift_category AS ENUM ('early', 'day', 'swing', 'graveyard');
-EXCEPTION
-    WHEN duplicate_object THEN null;
-END $$;
-
--- Create profiles table for user metadata
-CREATE TABLE IF NOT EXISTS public.profiles (
-    id uuid PRIMARY KEY,
-    email text,
-    role text,
-    created_at timestamptz DEFAULT now(),
-    updated_at timestamptz DEFAULT now()
-);
-
--- Create employees table if not exists
-CREATE TABLE IF NOT EXISTS public.employees (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    auth_id uuid NOT NULL UNIQUE,
-    first_name text NOT NULL DEFAULT '',
-    last_name text NOT NULL DEFAULT '',
-    email text NOT NULL UNIQUE,
-    role employee_role NOT NULL,
-    shift_pattern shift_pattern NOT NULL,
-    preferred_shift_category shift_category,
-    weekly_hours_cap integer NOT NULL DEFAULT 40,
-    created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
+-- Note: Types and tables are already created in core_schema.sql
 
 -- Create helper functions in public schema
 CREATE OR REPLACE FUNCTION public.handle_new_user()

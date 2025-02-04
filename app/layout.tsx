@@ -4,14 +4,16 @@ import { headers } from 'next/headers'
 import { AuthProvider } from '@/components/providers/AuthProvider'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Toaster } from '@/components/ui/toaster'
+import SupabaseProvider from '@/components/providers/supabase-provider'
+import type { Metadata } from 'next'
 
 // Initialize the Inter font family with the latin subset.
 const inter = Inter({ subsets: ['latin'] })
 
 // Application metadata used by Next.js.
-export const metadata = {
-  title: 'Shifterino - 911 Dispatch Scheduling',
-  description: '24/7 scheduling system for 911 dispatch centers',
+export const metadata: Metadata = {
+  title: '911 Dispatch Scheduler',
+  description: '24/7 Scheduling System for 911 Dispatch Center',
 }
 
 async function refreshSession() {
@@ -54,22 +56,18 @@ async function refreshSession() {
  * @param {React.ReactNode} props.children - The child elements to render within the layout.
  * @returns {Promise<JSX.Element>} The HTML structure encompassing the application layout.
  */
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  await refreshSession()
-
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en">
       <body className={inter.className}>
-        <ErrorBoundary>
-          <AuthProvider>
-            {children}
-            <Toaster />
-          </AuthProvider>
-        </ErrorBoundary>
+        <SupabaseProvider>
+          {children}
+          <Toaster />
+        </SupabaseProvider>
       </body>
     </html>
   )

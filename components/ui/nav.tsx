@@ -2,23 +2,8 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { cn } from "@/lib/utils"
-import { Sidebar, SidebarItem, useSidebar } from "@/components/ui/sidebar"
-import {
-  LayoutDashboard,
-  Calendar,
-  Users,
-  Clock,
-  Settings,
-  type LucideIcon
-} from "lucide-react"
-import type { EmployeeRole } from "@/app/_types/database"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
+import { type EmployeeRole } from "@/app/_types/database"
+import { useState } from "react"
 
 interface NavProps {
   role?: EmployeeRole
@@ -27,7 +12,7 @@ interface NavProps {
 interface NavItem {
   title: string
   href: string
-  icon: LucideIcon
+  icon: string
   roles?: EmployeeRole[]
 }
 
@@ -35,82 +20,74 @@ const navItems: NavItem[] = [
   {
     title: "Dashboard",
     href: "/dashboard",
-    icon: LayoutDashboard,
+    icon: "📊",
   },
   {
     title: "Schedule",
     href: "/schedule",
-    icon: Calendar,
+    icon: "📅",
   },
   {
     title: "Manage",
     href: "/manage",
-    icon: Users,
+    icon: "👥",
     roles: ["manager", "supervisor"],
   },
   {
     title: "Time Off",
     href: "/time-off",
-    icon: Clock,
+    icon: "⏰",
   },
   {
     title: "Settings",
     href: "/settings",
-    icon: Settings,
+    icon: "⚙️",
   },
 ]
 
 export function Nav({ role }: NavProps) {
   const pathname = usePathname()
-  const { collapsed } = useSidebar()
+  const [collapsed, setCollapsed] = useState(false)
 
   return (
-    <TooltipProvider delayDuration={0}>
-      <Sidebar className="pt-4">
+    <nav className={`flex h-full flex-col border-r bg-white transition-all duration-300 ${collapsed ? 'w-16' : 'w-64'}`}>
+      <div className="flex h-14 items-center justify-end border-b px-3">
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="h-8 w-8 rounded-md hover:bg-gray-100 flex items-center justify-center"
+        >
+          {collapsed ? '→' : '←'}
+        </button>
+      </div>
+      <div className="flex-1 overflow-auto pt-4">
         {navItems.map((item) => {
           // Skip items that require specific roles if user doesn't have access
           if (item.roles && (!role || !item.roles.includes(role))) {
             return null
           }
 
-          const Icon = item.icon
-          const sidebarContent = (
-            <SidebarItem
-              className={cn(
-                "transition-all duration-200",
-                pathname === item.href && "bg-accent text-accent-foreground"
-              )}
-            >
-              <Icon size={20} className={cn(collapsed && "mx-auto")} />
-              <span 
-                className={cn(
-                  "transition-all duration-200",
-                  collapsed && "hidden w-0 scale-0 opacity-0"
-                )}
-              >
-                {item.title}
-              </span>
-            </SidebarItem>
-          )
-
           return (
             <Link key={item.href} href={item.href}>
-              {collapsed ? (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    {sidebarContent}
-                  </TooltipTrigger>
-                  <TooltipContent side="right" sideOffset={20}>
+              <div
+                className={`
+                  flex items-center gap-4 px-3 py-2.5 cursor-pointer
+                  hover:bg-gray-100 transition-colors
+                  ${pathname === item.href ? 'bg-gray-100' : ''}
+                  ${collapsed ? 'justify-center px-2' : 'px-4'}
+                `}
+                title={collapsed ? item.title : undefined}
+              >
+                <span className="text-xl">{item.icon}</span>
+                {!collapsed && (
+                  <span className="text-sm font-medium">
                     {item.title}
-                  </TooltipContent>
-                </Tooltip>
-              ) : (
-                sidebarContent
-              )}
+                  </span>
+                )}
+              </div>
             </Link>
           )
         })}
-      </Sidebar>
-    </TooltipProvider>
+      </div>
+    </nav>
   )
 } 

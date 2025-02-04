@@ -1,25 +1,25 @@
 'use client'
 
-import { Component, type ReactNode } from 'react'
+import { Component, ErrorInfo, ReactNode } from 'react'
 
 /**
  * Props interface for the ErrorBoundary component.
  *
  * @property children - The child components to render.
+ * @property fallback - The fallback component to render when an error occurs.
  */
 interface Props {
   children: ReactNode
+  fallback: ReactNode
 }
 
 /**
  * State interface for the ErrorBoundary component.
  *
  * @property hasError - Indicates whether an error has been caught.
- * @property error - The caught error, if any.
  */
 interface State {
   hasError: boolean
-  error: Error | null
 }
 
 /**
@@ -39,7 +39,7 @@ export class ErrorBoundary extends Component<Props, State> {
    */
   constructor(props: Props) {
     super(props)
-    this.state = { hasError: false, error: null }
+    this.state = { hasError: false }
   }
 
   /**
@@ -50,8 +50,8 @@ export class ErrorBoundary extends Component<Props, State> {
    * @param error - The error that was thrown.
    * @returns An object with updated state indicating an error has occurred.
    */
-  static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error }
+  static getDerivedStateFromError(_: Error): State {
+    return { hasError: true }
   }
 
   /**
@@ -60,8 +60,8 @@ export class ErrorBoundary extends Component<Props, State> {
    * @param error - The error that was caught.
    * @param errorInfo - Additional information about the error.
    */
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo)
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('Uncaught error:', error, errorInfo)
   }
 
   /**
@@ -72,25 +72,7 @@ export class ErrorBoundary extends Component<Props, State> {
    */
   render() {
     if (this.state.hasError) {
-      return (
-        <div className="flex min-h-screen flex-col items-center justify-center bg-gray-100 p-4">
-          <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-lg">
-            <h2 className="mb-4 text-2xl font-bold text-red-600">Something went wrong</h2>
-            <p className="mb-4 text-gray-600">
-              We apologize for the inconvenience. Please try refreshing the page or contact support if the problem persists.
-            </p>
-            <pre className="mb-4 max-h-40 overflow-auto rounded bg-gray-100 p-4 text-sm">
-              {this.state.error?.message}
-            </pre>
-            <button
-              onClick={() => window.location.reload()}
-              className="w-full rounded bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700"
-            >
-              Refresh Page
-            </button>
-          </div>
-        </div>
-      )
+      return this.props.fallback
     }
 
     return this.props.children
