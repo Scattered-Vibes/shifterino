@@ -45,7 +45,7 @@ export function Nav({ items }: NavProps) {
 export const dashboardNavItems = [
   {
     title: "Overview",
-    href: "/dashboard",
+    href: "/overview",
   },
   {
     title: "My Schedule",

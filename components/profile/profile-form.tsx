@@ -58,24 +58,28 @@ export function ProfileForm({ user }: ProfileFormProps) {
       return
     }
 
-    const employeeData = {
-      auth_id: user.id,
-      first_name: firstName,
-      last_name: lastName,
-      role: role,
-      email: user.email,
-      shift_pattern: shiftPattern,
-    }
-
     try {
       const supabase = createClient()
+      
+      // Use upsert operation with auth_id as the unique key
       const { error: upsertError } = await supabase
         .from('employees')
-        .upsert(employeeData)
-        .select()
-        .single()
+        .upsert({
+          auth_id: user.id,
+          first_name: firstName,
+          last_name: lastName,
+          role: role,
+          shift_pattern: shiftPattern,
+          email: user.email,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'auth_id'
+        })
 
-      if (upsertError) throw upsertError
+      if (upsertError) {
+        console.error('Error upserting employee record:', upsertError)
+        throw upsertError
+      }
 
       toast.success('Profile completed successfully')
       startTransition(() => {

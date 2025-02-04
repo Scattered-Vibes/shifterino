@@ -134,12 +134,12 @@ export async function middleware(request: NextRequest) {
           .single()
 
         if (error || !employee?.first_name || !employee?.last_name) {
-          return NextResponse.redirect(new URL('/profile/complete', request.url))
+          return NextResponse.redirect(new URL('/complete-profile', request.url))
         }
       }
 
       // Prevent accessing profile completion if profile is already complete
-      if (request.nextUrl.pathname === '/profile/complete') {
+      if (request.nextUrl.pathname === '/complete-profile') {
         const { data: employee, error } = await supabase
           .from('employees')
           .select()
