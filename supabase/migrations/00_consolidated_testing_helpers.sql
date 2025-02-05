@@ -1,10 +1,7 @@
--- 00_testing_and_helpers.sql
--- This file consolidates test helper functions and the installation of the pgTAP testing extension.
-
--- Create test_helpers schema and functions
+-- 00_consolidated_testing_helpers.sql
+-- This file consolidates all testing helper functions and the pgTAP installation.
 CREATE SCHEMA IF NOT EXISTS test_helpers;
 
--- Create clean_test_data function
 CREATE OR REPLACE FUNCTION test_helpers.clean_test_data()
 RETURNS void AS $$
 BEGIN
@@ -30,7 +27,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Create set_auth_user function to set session variables for RLS
 CREATE OR REPLACE FUNCTION test_helpers.set_auth_user(p_user_id uuid, p_role text)
 RETURNS void AS $$
 BEGIN
@@ -39,7 +35,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Create test user function
 CREATE OR REPLACE FUNCTION test_helpers.create_test_user(
     p_email text,
     p_role text,
@@ -104,5 +99,4 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Install pgTAP for testing
 CREATE EXTENSION IF NOT EXISTS pgtap; 

@@ -3,85 +3,85 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { AuthError } from '@supabase/supabase-js'
+
+type LoginState = {
+  message: string | null
+}
 
 /**
  * Server action to handle user login
  * Uses Supabase authentication with email/password
  * 
+ * @param prevState - Previous state of the login process
  * @param formData - Form data containing email and password
  * @throws {Error} If login fails or credentials are invalid
  */
-export async function login(formData: FormData) {
+export async function login(prevState: LoginState, formData: FormData) {
   const email = formData.get('email') as string
   const password = formData.get('password') as string
   const returnTo = formData.get('returnTo') as string
   
   if (!email || !password) {
-    throw new Error('Email and password are required')
+    return { message: 'Email and password are required' }
   }
   
   const supabase = createClient()
   
   try {
-    // Attempt login
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
 
     if (error) {
-      if (error.message.includes('Invalid login credentials')) {
-        throw new Error('Invalid email or password')
-      }
       console.error('Auth error:', error)
-      throw new Error('Authentication failed')
+      if (error.message.includes('Invalid login credentials')) {
+        return { message: 'Invalid email or password' }
+      }
+      return { message: 'Authentication failed. Please try again.' }
     }
 
     if (!data?.user) {
-      throw new Error('Login failed - no user data')
+      return { message: 'Login failed - no user data' }
     }
 
-    // Wait briefly for session to be established
-    await new Promise(resolve => setTimeout(resolve, 100))
-
     try {
-      // Get employee data to check if profile is complete
+      // Get employee data to check if profile is complete and role
       const { data: employee, error: employeeError } = await supabase
         .from('employees')
-        .select('id, first_name, last_name')
+        .select('id, first_name, last_name, role')
         .eq('auth_id', data.user.id)
         .single()
 
       if (employeeError) {
         console.error('Employee fetch error:', employeeError)
-        // Don't throw, just redirect to complete profile
         redirect('/complete-profile')
       }
 
       // Revalidate all pages using the root layout
       revalidatePath('/', 'layout')
 
-      // Redirect based on profile completion and return URL
+      // Redirect based on profile completion
       if (!employee?.first_name || !employee?.last_name) {
         redirect('/complete-profile')
       }
 
-      // Redirect to return URL or default route
-      redirect(returnTo || '/overview')
+      // Store role in session metadata
+      await supabase.auth.updateUser({
+        data: { role: employee.role }
+      })
+
+      // Redirect to return URL or default route based on role
+      const defaultRoute = employee.role === 'supervisor' ? '/manage' : '/overview'
+      redirect(returnTo || defaultRoute)
     } catch (dbError) {
       console.error('Database error:', dbError)
-      // If there's a database error, still allow login but redirect to complete profile
       redirect('/complete-profile')
     }
   } catch (error) {
-    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
-      throw error
-    }
-    
-    if (error instanceof Error) {
-      throw error
-    }
-    throw new Error('An unexpected error occurred during login')
+    console.error('Unexpected error during login:', error)
+    return { message: 'An unexpected error occurred. Please try again.' }
   }
 }
 
@@ -94,7 +94,10 @@ export async function signOut() {
   
   try {
     const { error } = await supabase.auth.signOut()
-    if (error) throw error
+    if (error) {
+      console.error('Sign out error:', error)
+      throw error
+    }
     
     revalidatePath('/', 'layout')
     redirect('/login')
@@ -102,6 +105,7 @@ export async function signOut() {
     if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
       throw error
     }
+    console.error('Failed to sign out:', error)
     throw new Error('Failed to sign out')
   }
 }
@@ -109,6 +113,11 @@ export async function signOut() {
 export async function signup(formData: FormData) {
   const email = formData.get('email') as string
   const password = formData.get('password') as string
+  const role = formData.get('role') as 'dispatcher' | 'supervisor'
+
+  if (!email || !password || !role) {
+    throw new Error('Email, password and role are required')
+  }
 
   const supabase = createClient()
 
@@ -119,9 +128,9 @@ export async function signup(formData: FormData) {
       options: {
         emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
         data: {
-          role: 'dispatcher', // Default role
-          first_name: '',     // Will be set in complete-profile
-          last_name: '',      // Will be set in complete-profile
+          role,
+          first_name: '',
+          last_name: '',
         }
       },
     })
@@ -133,27 +142,9 @@ export async function signup(formData: FormData) {
 
     return redirect('/auth/confirm-email')
   } catch (error) {
+    console.error('Failed to sign up:', error)
     if (error instanceof Error) {
       throw new Error(`Failed to sign up: ${error.message}`)
-    }
-    throw error
-  }
-}
-
-export async function logout() {
-  const supabase = createClient()
-
-  try {
-    const { error } = await supabase.auth.signOut()
-
-    if (error) {
-      throw error
-    }
-
-    return redirect('/login')
-  } catch (error) {
-    if (error instanceof Error) {
-      throw new Error(`Failed to sign out: ${error.message}`)
     }
     throw error
   }

@@ -1,6 +1,7 @@
--- 02_scheduling_system.sql
--- This file consolidates scheduling tables, triggers, functions, time off request modifications,
--- schedules table and its policies, session management, and employee schema updates.
+-- 02_consolidated_scheduling.sql
+-- This file consolidates the scheduling system core, scheduling policies,
+-- session management functions related to scheduling, and employee scheduling updates.
+-- Run this migration after the auth and employee setup.
 
 --------------------
 -- Section 1: Scheduling System Core
@@ -156,6 +157,7 @@ CREATE TABLE public.system_settings (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Triggers for scheduling tables to update the updated_at column.
 CREATE TRIGGER update_shift_options_updated_at
     BEFORE UPDATE ON public.shift_options
     FOR EACH ROW
@@ -189,6 +191,7 @@ CREATE TRIGGER update_system_settings_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION public.update_updated_at_column();
 
+-- Materialized view for schedule statistics.
 DROP MATERIALIZED VIEW IF EXISTS public.mv_schedule_statistics;
 CREATE MATERIALIZED VIEW public.mv_schedule_statistics AS
 SELECT 
@@ -208,12 +211,6 @@ LEFT JOIN public.shift_assignment_scores sas ON sas.employee_id = e.id
 GROUP BY e.id, e.first_name, e.last_name, e.role
 WITH DATA;
 CREATE UNIQUE INDEX idx_mv_schedule_statistics ON public.mv_schedule_statistics(employee_id);
-
--- (Additional scheduling functions and triggers are defined here.)
--- For brevity the code for functions such as calculate_consecutive_shifts,
--- calculate_weekly_hours, validate_shift_pattern, log_scheduling_event, etc.,
--- as well as triggers for logging schedule changes and enforcing business rules,
--- are included in this consolidated file.
 
 --------------------
 -- Section 2: Schedules Table & RLS Policies
@@ -285,13 +282,11 @@ GRANT ALL ON public.schedules TO service_role;
 --------------------
 -- Section 3: Time Off Request Modifications & Policies
 --------------------
--- Add the "reason" column to time_off_requests if not already present, backfill and enforce NOT NULL.
 ALTER TABLE public.time_off_requests ADD COLUMN IF NOT EXISTS reason TEXT;
 UPDATE public.time_off_requests SET reason = 'Time off request' WHERE reason IS NULL;
 ALTER TABLE public.time_off_requests ALTER COLUMN reason SET NOT NULL;
 COMMENT ON COLUMN public.time_off_requests.reason IS 'The reason for the time off request';
 
--- Remove previous policies and create comprehensive policies for time_off_requests.
 DROP POLICY IF EXISTS "View own requests" ON public.time_off_requests;
 DROP POLICY IF EXISTS "View all requests" ON public.time_off_requests;
 DROP POLICY IF EXISTS "Create requests" ON public.time_off_requests;
@@ -375,7 +370,7 @@ CREATE POLICY "Manage all requests" ON public.time_off_requests
 ALTER TABLE auth.sessions ENABLE ROW LEVEL SECURITY;
 
 CREATE OR REPLACE FUNCTION auth.cleanup_expired_sessions()
-RETURNS void
+RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = auth, public
@@ -386,8 +381,9 @@ BEGIN
     SELECT 1 
     FROM auth.users u 
     WHERE u.id = s.user_id
-    AND u.last_sign_in_at > now() - interval '30 days'
+      AND u.last_sign_in_at > now() - interval '30 days'
   );
+  RETURN NEW;
 END;
 $$;
 
@@ -412,38 +408,19 @@ BEGIN
 END;
 $$;
 
-CREATE POLICY "Users can only access their own sessions"
+CREATE TRIGGER cleanup_expired_sessions_trigger
+  AFTER INSERT OR UPDATE
   ON auth.sessions
-  FOR ALL
-  USING (auth.uid() = user_id);
-
-GRANT EXECUTE ON FUNCTION auth.cleanup_expired_sessions TO service_role;
-GRANT EXECUTE ON FUNCTION auth.validate_session TO service_role;
+  EXECUTE PROCEDURE auth.cleanup_expired_sessions();
 
 CREATE INDEX IF NOT EXISTS sessions_user_id_idx 
   ON auth.sessions(user_id);
 
-CREATE OR REPLACE FUNCTION auth.schedule_session_cleanup()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-BEGIN
-  PERFORM auth.cleanup_expired_sessions();
-  RETURN NEW;
-END;
-$$;
-
-CREATE TRIGGER cleanup_expired_sessions_trigger
-  AFTER INSERT OR UPDATE
-  ON auth.sessions
-  EXECUTE PROCEDURE auth.schedule_session_cleanup();
-
 --------------------
--- Section 5: Employee Schema Updates
+-- Section 5: Employee Scheduling Updates
 --------------------
 ALTER TABLE public.employees
-ADD COLUMN weekly_hours integer NOT NULL DEFAULT 40;
+ADD COLUMN IF NOT EXISTS weekly_hours integer NOT NULL DEFAULT 40;
 
 ALTER TABLE public.employees
 ADD CONSTRAINT weekly_hours_check CHECK (weekly_hours >= 0 AND weekly_hours <= 168);

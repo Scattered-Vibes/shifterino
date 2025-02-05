@@ -10,6 +10,14 @@ const publicRoutes = new Set([
   '/auth/reset-password',
 ])
 
+// Define routes that require supervisor role
+const supervisorRoutes = new Set([
+  '/manage',
+  '/manage/schedule',
+  '/manage/employees',
+  '/manage/time-off',
+])
+
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
   
@@ -23,6 +31,7 @@ export async function middleware(request: NextRequest) {
   
   // Check if the current path is public
   const isPublicRoute = publicRoutes.has(normalizedPath)
+  const isSupervisorRoute = supervisorRoutes.has(normalizedPath) || normalizedPath.startsWith('/manage/')
   
   // Create response early
   const response = NextResponse.next({
@@ -63,7 +72,7 @@ export async function middleware(request: NextRequest) {
       return response
     }
 
-    // Get session for protected routes only
+    // Get session for protected routes
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
     if (sessionError) {
@@ -77,7 +86,18 @@ export async function middleware(request: NextRequest) {
       return redirectToLogin(request)
     }
 
-    // Validate session in database for protected routes
+    // Check role-based access for supervisor routes
+    if (isSupervisorRoute) {
+      const userRole = session.user.user_metadata?.role
+
+      if (userRole !== 'supervisor') {
+        console.log('Access denied: Supervisor role required')
+        // Redirect to overview page if not supervisor
+        return redirectToOverview(request)
+      }
+    }
+
+    // Validate session in database
     const { data: isValid, error: validationError } = await supabase
       .rpc('validate_session', { session_id: session.access_token })
 
@@ -90,9 +110,9 @@ export async function middleware(request: NextRequest) {
     // Clean up expired sessions periodically
     if (Math.random() < 0.1) { // 10% chance to run cleanup
       try {
-        await supabase.rpc('cleanup_expired_sessions')
+        await supabase.rpc('cleanup_inactive_users')
       } catch (error) {
-        console.error('Session cleanup failed:', error)
+        console.error('User cleanup failed:', error)
       }
     }
 
@@ -112,6 +132,12 @@ function redirectToLogin(request: NextRequest) {
   if (!publicRoutes.has(request.nextUrl.pathname)) {
     url.searchParams.set('returnTo', request.nextUrl.pathname)
   }
+  return NextResponse.redirect(url)
+}
+
+function redirectToOverview(request: NextRequest) {
+  const url = request.nextUrl.clone()
+  url.pathname = '/overview'
   return NextResponse.redirect(url)
 }
 

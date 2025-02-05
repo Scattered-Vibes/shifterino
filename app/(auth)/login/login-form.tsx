@@ -4,34 +4,32 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { login } from './actions'
-import { useState } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { useFormState } from 'react-dom'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { ExclamationTriangleIcon } from '@radix-ui/react-icons'
+
+type LoginState = {
+  message: string | null
+}
+
+const initialState: LoginState = {
+  message: null
+}
 
 export default function LoginForm() {
-  const [error, setError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const [state, formAction] = useFormState(login, initialState)
   const searchParams = useSearchParams()
   const returnTo = searchParams.get('returnTo')
 
-  async function handleLogin(formData: FormData) {
-    try {
-      setIsLoading(true)
-      setError(null)
-      await login(formData)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred during login')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   return (
     <div className="mt-8 bg-white px-6 py-8 shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
-      <form action={handleLogin} className="space-y-4">
-        {error && (
-          <div className="rounded-md bg-red-50 p-4 text-sm text-red-500 text-center">
-            {error}
-          </div>
+      <form action={formAction} className="space-y-4">
+        {state?.message && (
+          <Alert variant="destructive">
+            <ExclamationTriangleIcon className="h-4 w-4" />
+            <AlertDescription>{state.message}</AlertDescription>
+          </Alert>
         )}
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
@@ -42,7 +40,6 @@ export default function LoginForm() {
             autoComplete="email"
             placeholder="Enter your email"
             required
-            disabled={isLoading}
             className="w-full"
           />
         </div>
@@ -55,7 +52,6 @@ export default function LoginForm() {
             autoComplete="current-password"
             placeholder="Enter your password"
             required
-            disabled={isLoading}
             className="w-full"
           />
         </div>
@@ -63,10 +59,8 @@ export default function LoginForm() {
         <Button 
           className="w-full" 
           type="submit"
-          disabled={isLoading}
-          aria-disabled={isLoading}
         >
-          {isLoading ? 'Signing in...' : 'Sign In'}
+          Sign In
         </Button>
       </form>
     </div>

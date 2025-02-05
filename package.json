@@ -12,7 +12,9 @@
     "db:push": "supabase db push",
     "db:test": "supabase test db",
     "supabase:start": "supabase start",
-    "supabase:stop": "supabase stop"
+    "supabase:stop": "supabase stop",
+    "generate-types": "ts-node scripts/generate-types.ts",
+    "postinstall": "npm run generate-types"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",

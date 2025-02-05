@@ -1,30 +1,41 @@
--- Fix auth schema permissions
-GRANT USAGE ON SCHEMA auth TO postgres, anon, authenticated, service_role;
-GRANT ALL ON ALL TABLES IN SCHEMA auth TO postgres;
-GRANT SELECT ON ALL TABLES IN SCHEMA auth TO anon, authenticated;
-GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA auth TO anon, authenticated;
+-- Fix auth permissions
+-- Grant necessary schema permissions
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT USAGE ON SCHEMA auth TO anon, authenticated;
 
--- Ensure auth.users has correct permissions
-GRANT SELECT, INSERT, UPDATE, DELETE ON auth.users TO postgres;
-GRANT SELECT ON auth.users TO anon, authenticated;
+-- Grant table permissions
+GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO service_role;
+GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO service_role;
 
--- Grant specific permissions to service_role
+-- Grant specific permissions to authenticated users
+GRANT SELECT, INSERT, UPDATE ON public.profiles TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.employees TO authenticated;
+
+-- Grant auth schema permissions
 GRANT ALL ON ALL TABLES IN SCHEMA auth TO service_role;
-GRANT ALL ON ALL FUNCTIONS IN SCHEMA auth TO service_role;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA auth TO service_role;
+GRANT ALL ON ALL FUNCTIONS IN SCHEMA auth TO service_role;
 
--- Reset search path for consistency
-ALTER DATABASE postgres SET search_path TO public, auth, extensions;
-ALTER ROLE authenticator SET search_path TO public, auth, extensions;
-ALTER ROLE anon SET search_path TO public, auth, extensions;
-ALTER ROLE authenticated SET search_path TO public, auth, extensions;
-ALTER ROLE service_role SET search_path TO public, auth, extensions;
+-- Fix auth.users permissions
+GRANT SELECT ON auth.users TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON auth.users TO service_role;
 
--- Ensure RLS is enabled on auth.sessions
-ALTER TABLE IF EXISTS auth.sessions ENABLE ROW LEVEL SECURITY;
+-- Ensure RLS is properly configured
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.employees ENABLE ROW LEVEL SECURITY;
 
--- Create policy for auth.sessions
-DROP POLICY IF EXISTS "Users can only access own sessions" ON auth.sessions;
-CREATE POLICY "Users can only access own sessions" ON auth.sessions
-    FOR ALL
-    USING (auth.uid() = user_id); 
+-- Drop and recreate policies with proper checks
+DROP POLICY IF EXISTS "Users can view own profile" ON public.profiles;
+CREATE POLICY "Users can view own profile" ON public.profiles
+    FOR SELECT TO authenticated
+    USING (id = auth.uid());
+
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
+CREATE POLICY "Users can update own profile" ON public.profiles
+    FOR UPDATE TO authenticated
+    USING (id = auth.uid())
+    WITH CHECK (id = auth.uid());
+
+-- Reset search_path
+ALTER DATABASE postgres SET search_path TO public, auth, extensions; 
