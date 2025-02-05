@@ -10,16 +10,18 @@ import { Component, ErrorInfo, ReactNode } from 'react'
  */
 interface Props {
   children: ReactNode
-  fallback: ReactNode
+  fallback?: ReactNode
 }
 
 /**
  * State interface for the ErrorBoundary component.
  *
  * @property hasError - Indicates whether an error has been caught.
+ * @property error - The caught error (if any).
  */
 interface State {
   hasError: boolean
+  error?: Error
 }
 
 /**
@@ -50,8 +52,8 @@ export class ErrorBoundary extends Component<Props, State> {
    * @param error - The error that was thrown.
    * @returns An object with updated state indicating an error has occurred.
    */
-  static getDerivedStateFromError(_: Error): State {
-    return { hasError: true }
+  static getDerivedStateFromError(error: Error): State {
+    return { hasError: true, error }
   }
 
   /**
@@ -72,7 +74,14 @@ export class ErrorBoundary extends Component<Props, State> {
    */
   render() {
     if (this.state.hasError) {
-      return this.props.fallback
+      return this.props.fallback || (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+          <h2 className="text-lg font-semibold text-red-800">Something went wrong</h2>
+          {this.state.error && (
+            <p className="mt-2 text-sm text-red-600">{this.state.error.message}</p>
+          )}
+        </div>
+      )
     }
 
     return this.props.children

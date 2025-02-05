@@ -1,190 +1,99 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { useSupabase } from '@/hooks/useSupabase'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { createClient } from '@/lib/supabase/client'
-import { toast } from 'sonner'
-import type { Database } from '@/types/database'
-
-type Employee = Database['public']['Tables']['employees']['Insert']
+import { toast } from '@/components/ui/use-toast'
 
 interface ProfileFormProps {
-  user: {
+  initialData: {
     id: string
-    email?: string
+    first_name: string
+    last_name: string
+    email: string
   }
 }
 
-export function ProfileForm({ user }: ProfileFormProps) {
+export function ProfileForm({ initialData }: ProfileFormProps) {
   const router = useRouter()
-  const [isLoading, setIsLoading] = useState(false)
-  const [isPending, startTransition] = useTransition()
-  const [role, setRole] = useState<Employee['role']>()
-  const [shiftPattern, setShiftPattern] = useState<'pattern_a' | 'pattern_b'>()
+  const supabase = useSupabase()
 
-  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+  const handleAuthChange = useCallback(async (event: string) => {
+    if (event === 'SIGNED_OUT') {
+      router.push('/login')
+    }
+  }, [router])
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthChange)
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [supabase.auth, handleAuthChange])
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    setIsLoading(true)
-
-    const formData = new FormData(event.currentTarget)
-    const firstName = formData.get('firstName') as string
-    const lastName = formData.get('lastName') as string
-
-    if (!role) {
-      toast.error('Please select a role')
-      setIsLoading(false)
-      return
-    }
-
-    if (!shiftPattern) {
-      toast.error('Please select a shift pattern')
-      setIsLoading(false)
-      return
-    }
-
-    if (!user.email) {
-      toast.error('User email is required')
-      setIsLoading(false)
-      return
-    }
-
+    
     try {
-      const supabase = createClient()
-      
-      // Start a transaction to update both profiles and employees
-      const { error: profileError } = await supabase
+      const { error } = await supabase
         .from('profiles')
-        .upsert({
-          id: user.id,
-          email: user.email,
-          role: role,
+        .update({
+          first_name: initialData.first_name,
+          last_name: initialData.last_name,
           updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'id'
         })
+        .eq('id', initialData.id)
 
-      if (profileError) {
-        console.error('Error updating profile:', profileError)
-        throw profileError
-      }
+      if (error) throw error
 
-      const { error: employeeError } = await supabase
-        .from('employees')
-        .upsert({
-          auth_id: user.id,
-          first_name: firstName,
-          last_name: lastName,
-          email: user.email,
-          role: role,
-          shift_pattern: shiftPattern,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'auth_id'
-        })
-
-      if (employeeError) {
-        console.error('Error updating employee record:', employeeError)
-        throw employeeError
-      }
-
-      toast.success('Profile completed successfully')
-      startTransition(() => {
-        router.replace('/overview')
+      toast({
+        title: 'Profile updated',
+        description: 'Your profile has been updated successfully.'
       })
-    } catch (err) {
-      console.error('Error completing profile:', err)
-      if (err instanceof Error) {
-        toast.error(err.message)
-      } else {
-        toast.error('Failed to complete profile')
-      }
-    } finally {
-      setIsLoading(false)
+      
+      router.refresh()
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to update profile',
+        variant: 'destructive'
+      })
     }
   }
 
   return (
-    <form onSubmit={onSubmit} className="mt-8 space-y-6">
-      <div className="space-y-4">
-        <div>
-          <Label htmlFor="firstName">First Name</Label>
-          <Input
-            id="firstName"
-            name="firstName"
-            type="text"
-            required
-            className="mt-1"
-            disabled={isLoading || isPending}
-          />
-        </div>
-        <div>
-          <Label htmlFor="lastName">Last Name</Label>
-          <Input
-            id="lastName"
-            name="lastName"
-            type="text"
-            required
-            className="mt-1"
-            disabled={isLoading || isPending}
-          />
-        </div>
-        <div>
-          <Label htmlFor="role">Role</Label>
-          <Select
-            value={role}
-            onValueChange={(value) => {
-              setRole(value as Employee['role'])
-            }}
-            disabled={isLoading || isPending}
-            required
-          >
-            <SelectTrigger className="mt-1">
-              <SelectValue placeholder="Select a role" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="dispatcher">Dispatcher</SelectItem>
-              <SelectItem value="supervisor">Supervisor</SelectItem>
-              <SelectItem value="manager">Manager</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label htmlFor="shiftPattern">Shift Pattern</Label>
-          <Select
-            value={shiftPattern}
-            onValueChange={(value) => {
-              setShiftPattern(value as 'pattern_a' | 'pattern_b')
-            }}
-            disabled={isLoading || isPending}
-            required
-          >
-            <SelectTrigger className="mt-1">
-              <SelectValue placeholder="Select a shift pattern" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="pattern_a">Pattern A (4x10)</SelectItem>
-              <SelectItem value="pattern_b">Pattern B (3x12 + 1x4)</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="first_name">First Name</Label>
+        <Input 
+          id="first_name" 
+          name="first_name" 
+          defaultValue={initialData.first_name}
+          required 
+        />
       </div>
-      <Button 
-        type="submit" 
-        className="w-full" 
-        disabled={isLoading || isPending}
-      >
-        {isLoading ? 'Completing Profile...' : isPending ? 'Redirecting...' : 'Complete Profile'}
-      </Button>
+      <div className="space-y-2">
+        <Label htmlFor="last_name">Last Name</Label>
+        <Input 
+          id="last_name" 
+          name="last_name" 
+          defaultValue={initialData.last_name}
+          required 
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="email">Email</Label>
+        <Input 
+          id="email" 
+          name="email" 
+          value={initialData.email}
+          disabled 
+        />
+      </div>
+      <Button type="submit">Update Profile</Button>
     </form>
   )
 } 

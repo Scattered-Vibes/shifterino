@@ -1,4 +1,4 @@
-import { createServerClient } from '@supabase/ssr'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { Database } from '@/types/database'
 
@@ -32,12 +32,13 @@ export function createClient() {
          *
          * @param {string} name - The name of the cookie.
          * @param {string} value - The value to assign to the cookie.
-         * @param {any} options - Additional options for cookie configuration.
+         * @param {CookieOptions} options - Additional options for cookie configuration.
          */
-        set(name: string, value: string, options: any) {
+        set(name: string, value: string, options: CookieOptions) {
           try {
             cookieStore.set({ name, value, ...options })
           } catch (error) {
+            // Handle cookie error in development
             console.error('Cookie set error:', error)
           }
         },
@@ -45,12 +46,13 @@ export function createClient() {
          * Removes a cookie by setting its value to an empty string and its maxAge to 0.
          *
          * @param {string} name - The name of the cookie to remove.
-         * @param {any} options - Options used during the removal process.
+         * @param {CookieOptions} options - Options used during the removal process.
          */
-        remove(name: string, options: any) {
+        remove(name: string, options: CookieOptions) {
           try {
-            cookieStore.delete({ name, ...options })
+            cookieStore.set({ name, value: '', ...options })
           } catch (error) {
+            // Handle cookie error in development
             console.error('Cookie remove error:', error)
           }
         },
@@ -75,7 +77,7 @@ export function createClient() {
 export function createServiceClient() {
   const cookieStore = cookies()
 
-  return createServerClient(
+  return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
@@ -96,7 +98,7 @@ export function createServiceClient() {
          * @param {string} value - The value to set for the cookie.
          * @param {CookieOptions} options - Additional options for the cookie.
          */
-        set(name: string, value: string, options: any) {
+        set(name: string, value: string, options: CookieOptions) {
           try {
             cookieStore.set({ name, value, ...options })
           } catch (error) {
@@ -109,9 +111,9 @@ export function createServiceClient() {
          * @param {string} name - The name of the cookie to remove.
          * @param {CookieOptions} options - Options used during cookie removal.
          */
-        remove(name: string, options: any) {
+        remove(name: string, options: CookieOptions) {
           try {
-            cookieStore.delete({ name, ...options })
+            cookieStore.set({ name, value: '', ...options })
           } catch (error) {
             console.error('Cookie remove error:', error)
           }

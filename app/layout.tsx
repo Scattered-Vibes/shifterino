@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import { Toaster } from '@/components/ui/toaster'
 import { createClient } from '@/lib/supabase/server'
 import { SupabaseAuthProvider } from '@/components/providers/supabase-auth-provider'
+import { Suspense } from 'react'
 import type { Metadata } from 'next'
 
 // Initialize the Inter font family with the latin subset.
@@ -49,10 +50,12 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <SupabaseAuthProvider session={session}>
-          {children}
-          <Toaster />
-        </SupabaseAuthProvider>
+        <Suspense fallback={null}>
+          <SupabaseAuthProvider session={session}>
+            {children}
+            <Toaster />
+          </SupabaseAuthProvider>
+        </Suspense>
       </body>
     </html>
   )

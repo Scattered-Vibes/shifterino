@@ -1,198 +1,100 @@
 'use client'
 
-import { useState, useTransition, useEffect } from 'react'
+import { useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { useSupabase } from '@/hooks/useSupabase'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { createClient } from '@/lib/supabase/client'
-import { toast } from 'sonner'
-
-type Employee = {
-  id: string
-  auth_id: string
-  first_name: string
-  last_name: string
-  email: string
-  role: 'dispatcher' | 'supervisor' | 'manager'
-  shift_pattern: 'pattern_a' | 'pattern_b'
-  created_at: string
-  updated_at: string
-}
+import { toast } from '@/components/ui/use-toast'
 
 interface ProfileFormProps {
-  initialData: Employee
+  initialData: {
+    id: string
+    first_name: string
+    last_name: string
+    email: string
+  }
 }
 
 export default function ProfileForm({ initialData }: ProfileFormProps) {
   const router = useRouter()
-  const [isLoading, setIsLoading] = useState(false)
-  const [isPending, startTransition] = useTransition()
-  const [role, setRole] = useState<Employee['role']>(initialData.role)
-  const [shiftPattern, setShiftPattern] = useState<'pattern_a' | 'pattern_b'>(
-    initialData.shift_pattern as 'pattern_a' | 'pattern_b'
-  )
-  const supabase = createClient()
+  const supabase = useSupabase()
 
-  // Check if user is a manager from both DB and auth
-  const [isManager, setIsManager] = useState(false)
-  
-  // Effect to check manager status
-  useEffect(() => {
-    async function checkManagerStatus() {
-      const { data: { session } } = await supabase.auth.getSession()
-      const isAuthManager = session?.user?.user_metadata?.role === 'manager'
-      const isDbManager = initialData.role === 'manager'
-      setIsManager(isAuthManager || isDbManager)
+  const handleAuthChange = useCallback(async (event: string) => {
+    if (event === 'SIGNED_OUT') {
+      router.push('/login')
     }
-    checkManagerStatus()
-  }, [initialData.role])
+  }, [router])
 
-  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthChange)
+    
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [supabase, supabase.auth, handleAuthChange])
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    setIsLoading(true)
-
-    const formData = new FormData(event.currentTarget)
-    const firstName = formData.get('first_name') as string
-    const lastName = formData.get('last_name') as string
-
+    
     try {
-      // Update employee record
-      const { error: updateError } = await supabase
-        .from('employees')
+      const { error } = await supabase
+        .from('profiles')
         .update({
-          first_name: firstName,
-          last_name: lastName,
-          role: isManager ? role : initialData.role,
-          shift_pattern: isManager ? shiftPattern : initialData.shift_pattern,
+          first_name: initialData.first_name,
+          last_name: initialData.last_name,
           updated_at: new Date().toISOString()
         })
         .eq('id', initialData.id)
 
-      if (updateError) throw updateError
+      if (error) throw error
 
-      // If user is a manager and role changed, update auth metadata
-      if (isManager && (role !== initialData.role || shiftPattern !== initialData.shift_pattern)) {
-        const { error: authError } = await supabase.auth.updateUser({
-          data: {
-            role,
-            first_name: firstName,
-            last_name: lastName
-          }
-        })
-        if (authError) throw authError
-      }
-
-      toast.success('Profile updated successfully')
-      startTransition(() => {
-        router.refresh()
+      toast({
+        title: 'Profile updated',
+        description: 'Your profile has been updated successfully.'
       })
+      
+      router.refresh()
     } catch (error) {
-      console.error('Error updating profile:', error)
-      toast.error(error instanceof Error ? error.message : 'Failed to update profile')
-    } finally {
-      setIsLoading(false)
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to update profile',
+        variant: 'destructive'
+      })
     }
   }
 
   return (
-    <form onSubmit={onSubmit} className="p-6 space-y-6">
-      <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="first_name">First Name</Label>
-            <Input
-              id="first_name"
-              name="first_name"
-              defaultValue={initialData.first_name}
-              required
-              disabled={isLoading || isPending}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="last_name">Last Name</Label>
-            <Input
-              id="last_name"
-              name="last_name"
-              defaultValue={initialData.last_name}
-              required
-              disabled={isLoading || isPending}
-            />
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            name="email"
-            type="email"
-            defaultValue={initialData.email}
-            disabled
-          />
-          <p className="text-sm text-gray-500">
-            Email cannot be changed. Contact your manager if you need to update your email.
-          </p>
-        </div>
-
-        <div className="space-y-2">
-          <Label>Role</Label>
-          <Select
-            value={role}
-            onValueChange={(value) => setRole(value as Employee['role'])}
-            disabled={!isManager || isLoading || isPending}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select a role" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="dispatcher">Dispatcher</SelectItem>
-              <SelectItem value="supervisor">Supervisor</SelectItem>
-              <SelectItem value="manager">Manager</SelectItem>
-            </SelectContent>
-          </Select>
-          {!isManager && (
-            <p className="text-sm text-gray-500">
-              Role can only be changed by managers.
-            </p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label>Shift Pattern</Label>
-          <Select
-            value={shiftPattern}
-            onValueChange={(value) => setShiftPattern(value as 'pattern_a' | 'pattern_b')}
-            disabled={!isManager || isLoading || isPending}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select a shift pattern" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="pattern_a">Pattern A (4x10)</SelectItem>
-              <SelectItem value="pattern_b">Pattern B (3x12 + 1x4)</SelectItem>
-            </SelectContent>
-          </Select>
-          {!isManager && (
-            <p className="text-sm text-gray-500">
-              Shift pattern can only be changed by managers.
-            </p>
-          )}
-        </div>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="first_name">First Name</Label>
+        <Input 
+          id="first_name" 
+          name="first_name" 
+          defaultValue={initialData.first_name}
+          required 
+        />
       </div>
-
-      <div className="flex justify-end">
-        <Button type="submit" disabled={isLoading || isPending}>
-          {isLoading ? 'Saving...' : isPending ? 'Updating...' : 'Save Changes'}
-        </Button>
+      <div className="space-y-2">
+        <Label htmlFor="last_name">Last Name</Label>
+        <Input 
+          id="last_name" 
+          name="last_name" 
+          defaultValue={initialData.last_name}
+          required 
+        />
       </div>
+      <div className="space-y-2">
+        <Label htmlFor="email">Email</Label>
+        <Input 
+          id="email" 
+          name="email" 
+          value={initialData.email}
+          disabled 
+        />
+      </div>
+      <Button type="submit">Update Profile</Button>
     </form>
   )
 } 

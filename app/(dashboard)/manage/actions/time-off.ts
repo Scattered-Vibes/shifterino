@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { requireAuth } from '@/lib/auth'
 
 interface TimeOffRequest {
   employee_id: string
@@ -15,22 +16,14 @@ export async function createTimeOffRequest(request: Omit<TimeOffRequest, 'status
   const supabase = createClient()
 
   try {
-    // Get current user for debugging
-    const { data: { user } } = await supabase.auth.getUser()
+    // Verify user authentication and get employee ID
+    const auth = await requireAuth()
     
-    // Get employee record for debugging
-    const { data: employee } = await supabase
-      .from('employees')
-      .select('id, auth_id')
-      .eq('auth_id', user?.id)
-      .single()
-    
-    console.log('Debug Info:', {
-      requestEmployeeId: request.employee_id,
-      currentUser: user?.id,
-      employeeRecord: employee,
-      requestData: request
-    })
+    // For managers/supervisors, allow creating requests for other employees
+    // For regular employees, ensure they can only create their own requests
+    if (auth.role === 'dispatcher' && request.employee_id !== auth.employeeId) {
+      throw new Error('You can only create time off requests for yourself')
+    }
 
     // Validate date format
     const startDate = new Date(request.start_date)
@@ -76,6 +69,14 @@ export async function updateTimeOffRequest(
   const supabase = createClient()
 
   try {
+    // Verify user authentication and role
+    const auth = await requireAuth()
+    
+    // Only supervisors and managers can update request status
+    if (auth.role === 'dispatcher') {
+      throw new Error('Only supervisors and managers can approve/reject requests')
+    }
+
     const { data, error } = await supabase
       .from('time_off_requests')
       .update({ status })
@@ -98,6 +99,14 @@ export async function getTimeOffRequests(employeeId?: string) {
   const supabase = createClient()
 
   try {
+    // Verify user authentication and role
+    const auth = await requireAuth()
+    
+    // For regular employees, force employeeId to be their own
+    if (auth.role === 'dispatcher') {
+      employeeId = auth.employeeId
+    }
+
     let query = supabase
       .from('time_off_requests')
       .select(`
@@ -135,6 +144,9 @@ export async function checkTimeOffConflicts(
   const supabase = createClient()
 
   try {
+    // Verify user authentication
+    await requireAuth()
+
     // Validate date format
     const start = new Date(startDate)
     const end = new Date(endDate)

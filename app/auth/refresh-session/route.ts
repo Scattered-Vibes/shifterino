@@ -1,30 +1,26 @@
 import { createClient } from '@/lib/supabase/server'
-import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
 export async function GET() {
+  const supabase = createClient()
+
   try {
-    const cookieStore = cookies()
-    const supabase = createClient()
-    
-    const { data: { user }, error } = await supabase.auth.getUser()
-    
-    if (error) {
-      console.error('Session refresh error:', error.message)
+    const { data: { session }, error } = await supabase.auth.getSession()
+
+    if (error) throw error
+
+    if (!session) {
       return NextResponse.json(
-        { error: 'Failed to refresh session' },
+        { error: 'No active session' },
         { status: 401 }
       )
     }
 
+    return NextResponse.json({ session }, { status: 200 })
+  } catch (error) {
+    console.error('Session refresh error:', error)
     return NextResponse.json(
-      { message: 'Session refreshed successfully' },
-      { status: 200 }
-    )
-  } catch (err) {
-    console.error('Unexpected error during session refresh:', err)
-    return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: error instanceof Error ? error.message : 'Failed to refresh session' },
       { status: 500 }
     )
   }

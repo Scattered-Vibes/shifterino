@@ -1,5 +1,11 @@
-import { createServerClient } from '@supabase/ssr'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { createClient } from '@/lib/supabase/server'
+import type { 
+  AuthResponse, 
+  SignInWithPasswordCredentials, 
+  SignUpWithPasswordCredentials
+} from '@supabase/supabase-js'
 
 /**
  * Helper function to clear auth cookies
@@ -39,7 +45,7 @@ export async function createServerSupabaseClient() {
             return undefined
           }
         },
-        set(name: string, value: string, options: any) {
+        set(name: string, value: string, options: CookieOptions) {
           try {
             console.log(`Auth: Setting cookie ${name}`)
             cookieStore.set({ name, value, ...options })
@@ -47,10 +53,10 @@ export async function createServerSupabaseClient() {
             console.error(`Auth: Error setting cookie ${name}:`, error)
           }
         },
-        remove(name: string, options: any) {
+        remove(name: string, options: CookieOptions) {
           try {
             console.log(`Auth: Removing cookie ${name}`)
-            cookieStore.delete(name)
+            cookieStore.set({ name, value: '', ...options })
           } catch (error) {
             console.error(`Auth: Error removing cookie ${name}:`, error)
           }
@@ -114,4 +120,37 @@ export async function getSession() {
     clearAuthCookies(cookieStore)
     return null
   }
+}
+
+export async function signInWithPassword(
+  email: string,
+  password: string,
+  options?: SignInWithPasswordCredentials['options']
+): Promise<AuthResponse> {
+  const supabase = createClient()
+  
+  return supabase.auth.signInWithPassword({
+    email,
+    password,
+    ...(options && { options })
+  })
+}
+
+export async function signUp(
+  email: string,
+  password: string,
+  options?: SignUpWithPasswordCredentials['options']
+): Promise<AuthResponse> {
+  const supabase = createClient()
+  
+  return supabase.auth.signUp({
+    email,
+    password,
+    ...(options && { options })
+  })
+}
+
+export async function signOut(): Promise<void> {
+  const supabase = createClient()
+  await supabase.auth.signOut()
 } 

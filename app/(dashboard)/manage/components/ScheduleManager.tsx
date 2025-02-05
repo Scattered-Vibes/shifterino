@@ -1,61 +1,65 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
+import type { Employee } from '@/types/database'
 import { Card } from '@/components/ui/card'
-import RealtimeSchedule from './RealtimeSchedule'
-import type { Schedule, Employee } from '@/app/_types/database'
 
-/**
- * Props for the ScheduleManager component.
- */
 interface ScheduleManagerProps {
-  currentSchedule: Schedule[]
   employees: Employee[]
 }
 
-/**
- * ScheduleManager Component
- *
- * This client-side component provides an interface to manage employee schedules.
- * It displays a calendar for selecting a date, a table of shifts for the selected date,
- * and a dialog to add new shifts to the schedule.
- *
- * @param {ScheduleManagerProps} props - Component properties including current schedules and employee list.
- * @returns React element representing the schedule management UI.
- */
-export default function ScheduleManager({ currentSchedule, employees }: ScheduleManagerProps) {
-  const [schedules, setSchedules] = useState<Schedule[]>(currentSchedule)
+export default function ScheduleManager({ employees }: ScheduleManagerProps) {
+  const [selectedEmployees, setSelectedEmployees] = useState<Employee[]>([])
 
-  const handleScheduleUpdate = (updatedSchedule: Schedule) => {
-    setSchedules(prev => 
-      prev.map(schedule => 
-        schedule.id === updatedSchedule.id ? updatedSchedule : schedule
-      )
+  const handleEmployeeSelection = useCallback((employee: Employee) => {
+    setSelectedEmployees(prev => 
+      prev.some(e => e.id === employee.id)
+        ? prev.filter(e => e.id !== employee.id)
+        : [...prev, employee]
     )
-  }
+  }, [])
 
   return (
-    <div className="space-y-4">
-      <RealtimeSchedule onScheduleUpdate={handleScheduleUpdate} />
-      
-      <div className="grid gap-4">
-        {schedules.map(schedule => (
-          <Card key={schedule.id} className="p-4">
-            <div className="flex justify-between items-center">
-              <div>
-                <h3 className="font-medium">Shift {schedule.id}</h3>
-                <p className="text-sm text-gray-500">
-                  {new Date(schedule.start_time).toLocaleString()} - 
-                  {new Date(schedule.end_time).toLocaleString()}
-                </p>
-              </div>
-              <div className="flex gap-2">
-                {/* Add edit/delete buttons here */}
-              </div>
+    <div className="space-y-6">
+      <Card className="p-4">
+        <h2 className="text-2xl font-bold mb-4">Available Employees</h2>
+        <div className="grid gap-4">
+          {employees.map(employee => (
+            <div 
+              key={employee.id}
+              className="p-4 border rounded-lg shadow-sm"
+            >
+              <p>{employee.first_name} {employee.last_name}</p>
+              <button
+                onClick={() => handleEmployeeSelection(employee)}
+                className="text-blue-500 hover:text-blue-700"
+              >
+                {selectedEmployees.some(e => e.id === employee.id) ? 'Remove' : 'Add'}
+              </button>
             </div>
-          </Card>
-        ))}
-      </div>
+          ))}
+        </div>
+      </Card>
+
+      <Card className="p-4">
+        <h2 className="text-2xl font-bold mb-4">Selected Employees</h2>
+        <div className="grid gap-4">
+          {selectedEmployees.map(employee => (
+            <div 
+              key={employee.id}
+              className="p-4 border rounded-lg shadow-sm"
+            >
+              <p>{employee.first_name} {employee.last_name}</p>
+              <button
+                onClick={() => handleEmployeeSelection(employee)}
+                className="text-red-500 hover:text-red-700"
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+        </div>
+      </Card>
     </div>
   )
 } 

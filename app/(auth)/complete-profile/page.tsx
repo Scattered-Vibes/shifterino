@@ -1,29 +1,26 @@
-import { createClient } from '@/lib/supabase/server'
-import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { ProfileForm } from '@/components/profile/profile-form'
+import { requireAuth } from '@/lib/auth'
 
 export default async function CompleteProfilePage() {
-  const cookieStore = cookies()
-  const supabase = createClient(cookieStore)
+  console.log('Complete Profile Page: Starting')
   
-  const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+  // Use requireAuth with allowIncomplete=true for this page
+  const auth = await requireAuth(true)
+  console.log('Complete Profile Page: Auth result', {
+    userId: auth.userId,
+    email: auth.email,
+    role: auth.role,
+    isNewUser: auth.isNewUser
+  })
   
-  if (sessionError || !session?.user) {
-    redirect('/login')
-  }
-  
-  // Check if profile is already complete
-  const { data: employee, error: employeeError } = await supabase
-    .from('employees')
-    .select('first_name, last_name')
-    .eq('auth_id', session.user.id)
-    .single()
-    
-  if (!employeeError && employee?.first_name && employee?.last_name) {
-    redirect('/dashboard')
+  // If user already has a complete profile, redirect to dashboard
+  if (!auth.isNewUser) {
+    console.log('Complete Profile Page: User has complete profile, redirecting to overview')
+    redirect('/overview')
   }
 
+  console.log('Complete Profile Page: Rendering profile form for new user')
   return (
     <div className="mx-auto max-w-2xl px-4">
       <div className="rounded-lg border bg-card p-8">
@@ -31,7 +28,13 @@ export default async function CompleteProfilePage() {
         <p className="text-muted-foreground mt-2">
           Please provide your information to complete your profile.
         </p>
-        <ProfileForm user={session.user} />
+        <ProfileForm 
+          user={{
+            id: auth.userId,
+            email: auth.email,
+            role: auth.role
+          }} 
+        />
       </div>
     </div>
   )

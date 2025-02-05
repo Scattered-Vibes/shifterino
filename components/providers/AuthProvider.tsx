@@ -1,65 +1,101 @@
- // Start of Selection
 'use client'
 
-import { createContext, useContext, type ReactNode } from 'react'
-import { useAuth } from '@/hooks/useAuth'
+import { createBrowserClient } from '@supabase/ssr'
+import { useRouter } from 'next/navigation'
+import { createContext, useContext, useEffect, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
-import type { Database } from '@/types/database'
 
-type Employee = Database['public']['Tables']['employees']['Row']
-
-/**
- * AuthContextType defines the structure for authentication context. It includes user and employee data,
- * loading state, error handling, and authentication actions (signIn and signOut).
- */
 interface AuthContextType {
   user: User | null
-  employee: Employee | null
-  isLoading: boolean
-  error: Error | null
-  signIn: (email: string, password: string) => Promise<void>
   signOut: () => Promise<void>
+  isLoading: boolean
 }
 
-/**
- * AuthContext provides a React context to share authentication state and actions across the application.
- */
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  signOut: async () => {},
+  isLoading: true,
+})
 
-/**
- * AuthProvider component wraps its children with the authentication context.
- * It uses the useAuth hook to supply authentication state and renders a loading spinner if auth is loading.
- *
- * @param {Object} props - The component properties.
- * @param {ReactNode} props.children - Child components that require access to the authentication context.
- * @returns {JSX.Element} The provider component wrapping the application.
- */
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const auth = useAuth()
+export function AuthProvider({
+  children,
+  initialSession,
+}: {
+  children: React.ReactNode
+  initialSession: { user: User | null } | null
+}) {
+  const router = useRouter()
+  const [user, setUser] = useState<User | null>(initialSession?.user || null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        setUser(session.user)
+      } else {
+        setUser(null)
+        router.push('/login')
+      }
+      setIsLoading(false)
+    })
+
+    // Initial session check
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null)
+      setIsLoading(false)
+    })
+
+    // Periodic session cleanup
+    const cleanup = setInterval(async () => {
+      try {
+        const response = await fetch('/api/auth/cleanup', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+        
+        if (!response.ok) {
+          throw new Error('Cleanup failed')
+        }
+      } catch (error) {
+        console.error('Failed to cleanup sessions:', error)
+      }
+    }, 1000 * 60 * 60) // Run every hour
+
+    return () => {
+      subscription.unsubscribe()
+      clearInterval(cleanup)
+    }
+  }, [router, supabase])
+
+  const signOut = async () => {
+    try {
+      await supabase.auth.signOut()
+      router.push('/login')
+    } catch (error) {
+      console.error('Error signing out:', error)
+    }
+  }
 
   return (
-    <AuthContext.Provider value={auth}>
-      {auth.isLoading ? (
-        <div className="flex h-screen w-screen items-center justify-center">
-          <div className="h-32 w-32 animate-spin rounded-full border-b-2 border-t-2 border-gray-900"></div>
-        </div>
-      ) : (
-        children
-      )}
+    <AuthContext.Provider value={{ user, signOut, isLoading }}>
+      {children}
     </AuthContext.Provider>
   )
 }
 
-/**
- * useAuthContext is a custom hook that allows components to access the authentication context.
- *
- * @returns {AuthContextType} The current authentication context.
- * @throws {Error} Throws an error if the hook is used outside an AuthProvider.
- */
-export function useAuthContext() {
+export const useAuth = () => {
   const context = useContext(AuthContext)
   if (context === undefined) {
-    throw new Error('useAuthContext must be used within an AuthProvider')
+    throw new Error('useAuth must be used within an AuthProvider')
   }
   return context
 }

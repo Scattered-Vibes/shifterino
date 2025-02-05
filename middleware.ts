@@ -18,7 +18,14 @@ export async function middleware(request: NextRequest) {
   console.log('Middleware Debug:')
   console.log('Original pathname:', pathname)
   
-  let response = NextResponse.next({
+  // Normalize the pathname
+  const normalizedPath = pathname === '/' ? pathname : pathname.toLowerCase().replace(/\/+$/, '')
+  
+  // Check if the current path is public
+  const isPublicRoute = publicRoutes.has(normalizedPath)
+  
+  // Create response early
+  const response = NextResponse.next({
     request: {
       headers: request.headers,
     },
@@ -34,16 +41,6 @@ export async function middleware(request: NextRequest) {
           return request.cookies.get(name)?.value
         },
         set(name: string, value: string, options: CookieOptions) {
-          request.cookies.set({
-            name,
-            value,
-            ...options,
-          })
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
           response.cookies.set({
             name,
             value,
@@ -51,19 +48,8 @@ export async function middleware(request: NextRequest) {
           })
         },
         remove(name: string, options: CookieOptions) {
-          request.cookies.set({
+          response.cookies.delete({
             name,
-            value: '',
-            ...options,
-          })
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
-          response.cookies.set({
-            name,
-            value: '',
             ...options,
           })
         },
@@ -72,94 +58,61 @@ export async function middleware(request: NextRequest) {
   )
 
   try {
-    // Check auth session
-    const { data: { session } } = await supabase.auth.getSession()
-    console.log('Session:', session ? 'exists' : 'null')
-    
-    // Normalize the pathname
-    const normalizedPath = pathname === '/' ? pathname : pathname.toLowerCase().replace(/\/+$/, '')
-    console.log('Normalized path:', normalizedPath)
-
-    // Check if the current path is public
-    const isPublicRoute = publicRoutes.has(normalizedPath)
-    console.log('Is public route:', isPublicRoute)
-    console.log('Public routes:', Array.from(publicRoutes))
-
-    // Always allow access to public routes when not authenticated
-    if (!session && isPublicRoute) {
-      console.log('Allowing access to public route')
+    // For public routes, don't validate session
+    if (isPublicRoute) {
       return response
     }
 
-    // If authenticated and trying to access auth pages, redirect to dashboard
-    if (session && (normalizedPath === '/login' || normalizedPath === '/signup')) {
-      console.log('Authenticated user trying to access auth page, redirecting to dashboard')
-      return NextResponse.redirect(new URL('/overview', request.url))
+    // Get session for protected routes only
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+
+    if (sessionError) {
+      console.error('Session error:', sessionError)
+      return redirectToLogin(request)
     }
 
-    // For all other routes, require authentication
+    // If no session and not a public route, redirect to login
     if (!session) {
-      console.log('Unauthenticated user trying to access protected route, redirecting to login')
-      const redirectUrl = new URL('/login', request.url)
-      // Store the original URL to redirect back after login
-      if (normalizedPath !== '/login') {
-        redirectUrl.searchParams.set('redirectedFrom', pathname)
-      }
-      return NextResponse.redirect(redirectUrl)
+      console.log('No session, redirecting to login')
+      return redirectToLogin(request)
     }
 
-    // Auth routes - if logged in, redirect to dashboard
-    if (request.nextUrl.pathname.startsWith('/auth')) {
-      if (session) {
-        return NextResponse.redirect(new URL('/overview', request.url))
-      }
-      return response
+    // Validate session in database for protected routes
+    const { data: isValid, error: validationError } = await supabase
+      .rpc('validate_session', { session_id: session.access_token })
+
+    if (validationError || !isValid) {
+      console.error('Session validation failed:', validationError)
+      await supabase.auth.signOut()
+      return redirectToLogin(request)
     }
 
-    // Protected routes - if not logged in, redirect to login
-    if (
-      request.nextUrl.pathname.startsWith('/overview') ||
-      request.nextUrl.pathname.startsWith('/profile')
-    ) {
-      if (!session) {
-        return NextResponse.redirect(new URL('/auth/login', request.url))
-      }
-
-      // Check if profile is complete when accessing dashboard
-      if (request.nextUrl.pathname.startsWith('/overview')) {
-        const { data: employee, error } = await supabase
-          .from('employees')
-          .select()
-          .eq('auth_id', session.user.id)
-          .single()
-
-        if (error || !employee?.first_name || !employee?.last_name) {
-          return NextResponse.redirect(new URL('/complete-profile', request.url))
-        }
-      }
-
-      // Prevent accessing profile completion if profile is already complete
-      if (request.nextUrl.pathname === '/complete-profile') {
-        const { data: employee, error } = await supabase
-          .from('employees')
-          .select()
-          .eq('auth_id', session.user.id)
-          .single()
-
-        if (!error && employee?.first_name && employee?.last_name) {
-          return NextResponse.redirect(new URL('/overview', request.url))
-        }
+    // Clean up expired sessions periodically
+    if (Math.random() < 0.1) { // 10% chance to run cleanup
+      try {
+        await supabase.rpc('cleanup_expired_sessions')
+      } catch (error) {
+        console.error('Session cleanup failed:', error)
       }
     }
 
-    console.log('Allowing access to protected route')
     return response
   } catch (error) {
     console.error('Middleware error:', error)
-    return NextResponse.redirect(new URL('/login', request.url))
+    return isPublicRoute ? response : redirectToLogin(request)
   } finally {
     console.log('--------------------')
   }
+}
+
+function redirectToLogin(request: NextRequest) {
+  const url = request.nextUrl.clone()
+  url.pathname = '/login'
+  // Only set returnTo if we're not already on a public route
+  if (!publicRoutes.has(request.nextUrl.pathname)) {
+    url.searchParams.set('returnTo', request.nextUrl.pathname)
+  }
+  return NextResponse.redirect(url)
 }
 
 export const config = {
