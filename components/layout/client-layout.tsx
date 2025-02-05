@@ -2,7 +2,7 @@
 
 import { Sidebar } from '@/components/ui/sidebar'
 import { Header } from '@/components/ui/header'
-import type { EmployeeRole } from '@/types/employee'
+import type { EmployeeRole } from '@/types/database'
 
 interface ClientLayoutProps {
   user: {

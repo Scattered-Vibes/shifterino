@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/client'
 import { useEffect } from 'react'
 import { toast } from '@/components/ui/use-toast'
-import type { Schedule } from '@/app/_types/database'
+import type { Schedule } from '@/types/database'
 
 interface RealtimeScheduleProps {
   onScheduleUpdate: (schedule: Schedule) => void

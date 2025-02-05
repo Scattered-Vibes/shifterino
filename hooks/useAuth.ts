@@ -159,7 +159,7 @@ export function useAuth() {
 
       if (error) throw error
 
-      router.push('/dashboard')
+      router.push('/overview')
     } catch (error) {
       console.error('Sign in failed:', error)
       setState(prev => ({

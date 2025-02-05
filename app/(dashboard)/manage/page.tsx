@@ -6,7 +6,7 @@ import TimeOffRequests from './components/TimeOffRequests'
 import ScheduleManager from './components/ScheduleManager'
 import StaffList from './components/StaffList'
 import { redirect } from 'next/navigation'
-import type { EmployeeRole } from '@/app/_types/database'
+import type { EmployeeRole } from '@/types/database'
 
 /**
  * ManagePage - Server Component for the Manager Dashboard.
@@ -44,7 +44,7 @@ export default async function ManagePage() {
   const managementRoles: EmployeeRole[] = ['manager', 'supervisor']
   // Redirect to dashboard if the user's role is not permitted for management.
   if (!currentEmployee?.role || !managementRoles.includes(currentEmployee.role)) {
-    redirect('/dashboard')
+    redirect('/overview')
   }
 
   // Fetch data for time-off requests, employee list, and schedules concurrently.

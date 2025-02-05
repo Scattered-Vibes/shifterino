@@ -33,6 +33,12 @@ export async function middleware(request: NextRequest) {
   const isPublicRoute = publicRoutes.has(normalizedPath)
   const isSupervisorRoute = supervisorRoutes.has(normalizedPath) || normalizedPath.startsWith('/manage/')
   
+  console.log('Path info:', {
+    normalizedPath,
+    isPublicRoute,
+    isSupervisorRoute
+  })
+
   // Create response early
   const response = NextResponse.next({
     request: {
@@ -69,10 +75,12 @@ export async function middleware(request: NextRequest) {
   try {
     // For public routes, don't validate session
     if (isPublicRoute) {
+      console.log('Public route - skipping auth check')
       return response
     }
 
     // Get session for protected routes
+    console.log('Checking session...')
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
     if (sessionError) {
@@ -86,6 +94,11 @@ export async function middleware(request: NextRequest) {
       return redirectToLogin(request)
     }
 
+    console.log('Session found:', {
+      userId: session.user.id,
+      role: session.user.user_metadata?.role
+    })
+
     // Check role-based access for supervisor routes
     if (isSupervisorRoute) {
       const userRole = session.user.user_metadata?.role
@@ -98,8 +111,25 @@ export async function middleware(request: NextRequest) {
     }
 
     // Validate session in database
+    const sessionId = session.access_token ? 
+      JSON.parse(
+        Buffer.from(session.access_token.split('.')[1], 'base64').toString()
+      ).session_id : null;
+
+    if (!sessionId) {
+      console.error('No session ID found in token')
+      return redirectToLogin(request)
+    }
+
+    console.log('Validating session ID:', sessionId)
+
     const { data: isValid, error: validationError } = await supabase
-      .rpc('validate_session', { session_id: session.access_token })
+      .rpc('validate_session', {
+        session_data: {
+          session_id: sessionId,
+          expires_at: session.expires_at
+        }
+      })
 
     if (validationError || !isValid) {
       console.error('Session validation failed:', validationError)
@@ -107,14 +137,7 @@ export async function middleware(request: NextRequest) {
       return redirectToLogin(request)
     }
 
-    // Clean up expired sessions periodically
-    if (Math.random() < 0.1) { // 10% chance to run cleanup
-      try {
-        await supabase.rpc('cleanup_inactive_users')
-      } catch (error) {
-        console.error('User cleanup failed:', error)
-      }
-    }
+    console.log('Session validated successfully')
 
     return response
   } catch (error) {

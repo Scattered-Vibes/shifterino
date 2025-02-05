@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import type { Schedule } from '@/app/_types/database'
+import type { Schedule } from '@/types/database'
 
 export async function updateSchedule(scheduleId: string, updates: Partial<Schedule>) {
   const supabase = createClient()

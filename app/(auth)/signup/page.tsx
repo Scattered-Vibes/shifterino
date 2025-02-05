@@ -26,7 +26,7 @@ export default async function SignUpPage() {
 
   const { data: { session } } = await supabase.auth.getSession()
   if (session) {
-    redirect('/dashboard')
+    redirect('/overview')
   }
 
   return (

@@ -3,7 +3,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
-import { AuthError } from '@supabase/supabase-js'
 
 type LoginState = {
   message: string | null
@@ -22,6 +21,8 @@ export async function login(prevState: LoginState, formData: FormData) {
   const password = formData.get('password') as string
   const returnTo = formData.get('returnTo') as string
   
+  console.log('Login attempt:', { email, returnTo })
+  
   if (!email || !password) {
     return { message: 'Email and password are required' }
   }
@@ -29,22 +30,32 @@ export async function login(prevState: LoginState, formData: FormData) {
   const supabase = createClient()
   
   try {
+    console.log('Attempting Supabase auth...')
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
 
     if (error) {
-      console.error('Auth error:', error)
+      console.error('Auth error:', error.message, error.status)
       if (error.message.includes('Invalid login credentials')) {
         return { message: 'Invalid email or password' }
+      }
+      if (error.status === 429) {
+        return { message: 'Too many login attempts. Please try again later.' }
+      }
+      if (error.status === 400) {
+        return { message: 'Invalid email format or password requirements not met' }
       }
       return { message: 'Authentication failed. Please try again.' }
     }
 
     if (!data?.user) {
-      return { message: 'Login failed - no user data' }
+      console.error('Login failed: No user data returned')
+      return { message: 'Login failed - please try again' }
     }
+
+    console.log('Auth successful, fetching employee data...')
 
     try {
       // Get employee data to check if profile is complete and role
@@ -55,15 +66,22 @@ export async function login(prevState: LoginState, formData: FormData) {
         .single()
 
       if (employeeError) {
-        console.error('Employee fetch error:', employeeError)
-        redirect('/complete-profile')
+        console.error('Employee fetch error:', employeeError.message, employeeError.code)
+        if (employeeError.code === 'PGRST116') {
+          console.log('Redirecting to complete profile...')
+          redirect('/complete-profile')
+        }
+        throw new Error(`Failed to fetch employee data: ${employeeError.message}`)
       }
+
+      console.log('Employee data fetched:', employee)
 
       // Revalidate all pages using the root layout
       revalidatePath('/', 'layout')
 
       // Redirect based on profile completion
       if (!employee?.first_name || !employee?.last_name) {
+        console.log('Profile incomplete, redirecting to complete profile...')
         redirect('/complete-profile')
       }
 
@@ -72,16 +90,31 @@ export async function login(prevState: LoginState, formData: FormData) {
         data: { role: employee.role }
       })
 
+      console.log('Role updated in session, redirecting to:', returnTo || '/overview')
+
       // Redirect to return URL or default route based on role
       const defaultRoute = employee.role === 'supervisor' ? '/manage' : '/overview'
       redirect(returnTo || defaultRoute)
     } catch (dbError) {
-      console.error('Database error:', dbError)
+      console.error('Database error:', dbError instanceof Error ? dbError.stack : dbError)
+      if (dbError instanceof Error && dbError.message.includes('Failed to fetch employee data')) {
+        return { message: 'Unable to access your profile. Please try again.' }
+      }
       redirect('/complete-profile')
     }
   } catch (error) {
-    console.error('Unexpected error during login:', error)
-    return { message: 'An unexpected error occurred. Please try again.' }
+    console.error('Unexpected error during login:', error instanceof Error ? error.stack : error)
+    
+    // Handle Next.js redirect "errors" - these are actually expected behavior
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+      throw error; // Re-throw to allow Next.js to handle the redirect
+    }
+    
+    return { 
+      message: error instanceof Error && error.message && !error.message.includes('NEXT_REDIRECT')
+        ? `Login failed: ${error.message}`
+        : 'An unexpected error occurred. Please try again.'
+    }
   }
 }
 

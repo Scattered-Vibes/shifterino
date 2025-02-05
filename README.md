@@ -172,7 +172,7 @@ Below is the updated project structure, reflecting our latest architectural impr
 
 - app/(auth)/: Contains authentication flows (login, signup, email verification, password recovery) with SSR support.
 - app/(dashboard)/: Houses protected pages, including the main dashboard, staff management, and scheduling operations.
-- app/_types/: Application-specific TypeScript definitions.
+- types/: Application-specific TypeScript definitions.
 - components/ui/: Reusable UI components built with Shadcn.
 - hooks/: Custom React hooks for shared functionality.
 - lib/supabase/: Supabase configuration that leverages @supabase/ssr for enhanced server-side authentication.

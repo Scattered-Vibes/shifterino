@@ -1,10 +1,9 @@
--- 02_consolidated_scheduling.sql
--- This file consolidates the scheduling system core, scheduling policies,
--- session management functions related to scheduling, and employee scheduling updates.
--- Run this migration after the auth and employee setup.
+-- 002_scheduling_schema.sql
+-- This migration consolidates the scheduling system tables, views, triggers,
+-- RLS policies, and employee scheduling updates.
 
 --------------------
--- Section 1: Scheduling System Core
+-- Section 1: SCHEDULING CORE TABLES
 --------------------
 CREATE TABLE public.shift_options (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -157,7 +156,7 @@ CREATE TABLE public.system_settings (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Triggers for scheduling tables to update the updated_at column.
+-- SECTION 2: TRIGGERS & MATERIALIZED VIEW
 CREATE TRIGGER update_shift_options_updated_at
     BEFORE UPDATE ON public.shift_options
     FOR EACH ROW
@@ -191,7 +190,6 @@ CREATE TRIGGER update_system_settings_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION public.update_updated_at_column();
 
--- Materialized view for schedule statistics.
 DROP MATERIALIZED VIEW IF EXISTS public.mv_schedule_statistics;
 CREATE MATERIALIZED VIEW public.mv_schedule_statistics AS
 SELECT 
@@ -213,7 +211,7 @@ WITH DATA;
 CREATE UNIQUE INDEX idx_mv_schedule_statistics ON public.mv_schedule_statistics(employee_id);
 
 --------------------
--- Section 2: Schedules Table & RLS Policies
+-- Section 3: SCHEDULES & POLICY
 --------------------
 CREATE TABLE public.schedules (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -276,149 +274,7 @@ CREATE TRIGGER set_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION public.set_updated_at();
 
-GRANT SELECT ON public.schedules TO authenticated;
-GRANT ALL ON public.schedules TO service_role;
-
---------------------
--- Section 3: Time Off Request Modifications & Policies
---------------------
-ALTER TABLE public.time_off_requests ADD COLUMN IF NOT EXISTS reason TEXT;
-UPDATE public.time_off_requests SET reason = 'Time off request' WHERE reason IS NULL;
-ALTER TABLE public.time_off_requests ALTER COLUMN reason SET NOT NULL;
-COMMENT ON COLUMN public.time_off_requests.reason IS 'The reason for the time off request';
-
-DROP POLICY IF EXISTS "View own requests" ON public.time_off_requests;
-DROP POLICY IF EXISTS "View all requests" ON public.time_off_requests;
-DROP POLICY IF EXISTS "Create requests" ON public.time_off_requests;
-DROP POLICY IF EXISTS "Update own requests" ON public.time_off_requests;
-DROP POLICY IF EXISTS "Manage all requests" ON public.time_off_requests;
-
-CREATE POLICY "View own requests" ON public.time_off_requests
-    FOR SELECT
-    USING (
-        auth.role() = 'authenticated' AND
-        employee_id IN (
-            SELECT id FROM public.employees WHERE auth_id = auth.uid()
-        )
-    );
-
-CREATE POLICY "View all requests" ON public.time_off_requests
-    FOR SELECT
-    USING (
-        EXISTS (
-            SELECT 1 FROM public.employees
-            WHERE auth_id = auth.uid()
-            AND role IN ('supervisor', 'manager')
-        )
-    );
-
-CREATE POLICY "Create requests" ON public.time_off_requests
-    FOR INSERT
-    WITH CHECK (
-        auth.role() = 'authenticated' AND
-        (
-            employee_id IN (
-                SELECT id FROM public.employees 
-                WHERE auth_id = auth.uid()
-            )
-            OR
-            EXISTS (
-                SELECT 1 FROM public.employees
-                WHERE auth_id = auth.uid()
-                AND role IN ('supervisor', 'manager')
-            )
-        )
-    );
-
-CREATE POLICY "Update own requests" ON public.time_off_requests
-    FOR UPDATE
-    USING (
-        auth.role() = 'authenticated' AND
-        employee_id IN (
-            SELECT id FROM public.employees WHERE auth_id = auth.uid()
-        ) AND
-        status = 'pending'
-    )
-    WITH CHECK (
-        auth.role() = 'authenticated' AND
-        employee_id IN (
-            SELECT id FROM public.employees WHERE auth_id = auth.uid()
-        ) AND
-        status = 'pending'
-    );
-
-CREATE POLICY "Manage all requests" ON public.time_off_requests
-    FOR UPDATE
-    USING (
-        EXISTS (
-            SELECT 1 FROM public.employees
-            WHERE auth_id = auth.uid()
-            AND role IN ('supervisor', 'manager')
-        )
-    )
-    WITH CHECK (
-        EXISTS (
-            SELECT 1 FROM public.employees
-            WHERE auth_id = auth.uid()
-            AND role IN ('supervisor', 'manager')
-        )
-    );
-
---------------------
--- Section 4: Session Management
---------------------
-ALTER TABLE auth.sessions ENABLE ROW LEVEL SECURITY;
-
-CREATE OR REPLACE FUNCTION auth.cleanup_expired_sessions()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = auth, public
-AS $$
-BEGIN
-  DELETE FROM auth.sessions s
-  WHERE NOT EXISTS (
-    SELECT 1 
-    FROM auth.users u 
-    WHERE u.id = s.user_id
-      AND u.last_sign_in_at > now() - interval '30 days'
-  );
-  RETURN NEW;
-END;
-$$;
-
-CREATE OR REPLACE FUNCTION auth.validate_session(session_id uuid)
-RETURNS boolean
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = auth, public
-AS $$
-DECLARE
-  valid boolean;
-BEGIN
-  SELECT EXISTS(
-    SELECT 1
-    FROM auth.sessions s
-    JOIN auth.users u ON u.id = s.user_id
-    WHERE s.id = session_id
-    AND u.last_sign_in_at > now() - interval '30 days'
-  ) INTO valid;
-  
-  RETURN valid;
-END;
-$$;
-
-CREATE TRIGGER cleanup_expired_sessions_trigger
-  AFTER INSERT OR UPDATE
-  ON auth.sessions
-  EXECUTE PROCEDURE auth.cleanup_expired_sessions();
-
-CREATE INDEX IF NOT EXISTS sessions_user_id_idx 
-  ON auth.sessions(user_id);
-
---------------------
--- Section 5: Employee Scheduling Updates
---------------------
+-- SECTION 4: EMPLOYEE SCHEDULING UPDATES
 ALTER TABLE public.employees
 ADD COLUMN IF NOT EXISTS weekly_hours integer NOT NULL DEFAULT 40;
 
@@ -427,4 +283,53 @@ ADD CONSTRAINT weekly_hours_check CHECK (weekly_hours >= 0 AND weekly_hours <= 1
 
 UPDATE public.employees
 SET weekly_hours = 40
-WHERE weekly_hours IS NULL; 
+WHERE weekly_hours IS NULL;
+
+-- Drop existing function if it exists
+DROP FUNCTION IF EXISTS public.validate_session(json);
+
+-- Create validate_session function for middleware with JSON parameter
+CREATE OR REPLACE FUNCTION public.validate_session(session_data json)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = auth, public
+AS $$
+DECLARE
+  session_id uuid;
+BEGIN
+  -- Extract session_id from JWT claims in session_data
+  session_id := (session_data->>'session_id')::uuid;
+  
+  -- Check if the session exists and is valid
+  -- Note: not checking expires_at since it's handled by JWT expiration
+  RETURN EXISTS (
+    SELECT 1
+    FROM auth.sessions
+    WHERE id = session_id
+  );
+END;
+$$;
+
+-- Grant execute permission to authenticated users
+GRANT EXECUTE ON FUNCTION public.validate_session(json) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.validate_session(json) TO service_role;
+
+-- Function to revoke all sessions
+CREATE OR REPLACE FUNCTION auth.revoke_all_sessions()
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = auth, public
+AS $$
+BEGIN
+  -- Delete all sessions
+  DELETE FROM auth.sessions;
+  
+  -- Optionally, you could also delete specific sessions:
+  -- DELETE FROM auth.sessions WHERE user_id = some_user_id;
+END;
+$$;
+
+-- Grant execute permission to service role
+GRANT EXECUTE ON FUNCTION auth.revoke_all_sessions() TO service_role; 

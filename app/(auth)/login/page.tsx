@@ -1,3 +1,5 @@
+"use client"
+
 /**
  * Login page component for the 911 Dispatch Center application
  * Provides email/password authentication with error handling and loading states
@@ -15,18 +17,22 @@
  * <LoginPage />
  * ```
  */
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
 import LoginForm from './login-form'
 import Link from 'next/link'
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/hooks/useAuth'
 
-export default async function LoginPage() {
-  const supabase = createClient()
+export default function LoginPage() {
+  const router = useRouter()
+  const { session, isLoading } = useAuth()
 
-  const { data: { session } } = await supabase.auth.getSession()
-  if (session) {
-    redirect('/dashboard')
-  }
+  // When a session is detected, redirect the user to /overview.
+  useEffect(() => {
+    if (!isLoading && session) {
+      router.push('/overview')
+    }
+  }, [session, isLoading, router])
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50">

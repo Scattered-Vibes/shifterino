@@ -17,6 +17,13 @@ export interface Employee {
   updated_at: string
 }
 
+export interface EmployeeWithUser extends Employee {
+  user: {
+    id: string
+    email: string
+  }
+}
+
 export interface Schedule {
   id: string
   employee_id: string

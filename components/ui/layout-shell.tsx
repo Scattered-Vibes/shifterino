@@ -1,7 +1,7 @@
 'use client'
 
 import { Nav } from '@/components/ui/nav'
-import type { EmployeeRole } from '@/app/_types/database'
+import type { EmployeeRole } from '@/types/database'
 import { signOut } from '@/app/actions'
 
 interface LayoutShellProps {
