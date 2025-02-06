@@ -1,4 +1,4 @@
-CREATE INDEX refresh_tokens_token_idx ON auth.refresh_tokens USING btree (token);
+CREATE INDEX refresh_tokens_token_idx ON auth.refresh_tokens USING btree (token); 
 
 CREATE INDEX refresh_tokens_user_id_idx ON auth.refresh_tokens USING btree (user_id);
 
