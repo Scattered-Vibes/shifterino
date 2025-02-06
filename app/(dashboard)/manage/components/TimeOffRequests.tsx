@@ -5,6 +5,8 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { updateTimeOffRequest } from '../actions/time-off'
 import { toast } from '@/components/ui/use-toast'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { createClient } from '@/lib/supabase/client'
 
 interface TimeOffRequest {
   id: string
@@ -25,10 +27,21 @@ interface TimeOffRequestsProps {
   onStatusUpdate?: () => void
 }
 
-export default function TimeOffRequests({ 
-  requests,
-  onStatusUpdate 
-}: TimeOffRequestsProps) {
+export function TimeOffRequests() {
+  const queryClient = useQueryClient()
+  const { data: requests } = useQuery({
+    queryKey: ['timeoff-requests'],
+    queryFn: async () => {
+      const supabase = createClient()
+      const { data } = await supabase
+        .from('time_off_requests')
+        .select('*')
+        .order('created_at', { ascending: false })
+      return data
+    },
+    staleTime: 1000 * 60 * 5 // 5 minutes
+  })
+
   const [updatingId, setUpdatingId] = useState<string | null>(null)
 
   const handleStatusUpdate = async (requestId: string, status: 'approved' | 'rejected') => {
@@ -39,7 +52,7 @@ export default function TimeOffRequests({
         title: 'Success',
         description: `Request ${status} successfully`
       })
-      onStatusUpdate?.()
+      queryClient.invalidateQueries(['timeoff-requests'])
     } catch (err) {
       console.error('Failed to update request status:', err)
       toast({
@@ -62,7 +75,7 @@ export default function TimeOffRequests({
 
   return (
     <div className="space-y-4">
-      {requests.length === 0 ? (
+      {requests?.length === 0 ? (
         <p className="text-sm text-gray-500">No time off requests to display.</p>
       ) : (
         requests.map(request => (

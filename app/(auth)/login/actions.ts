@@ -4,10 +4,17 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { signOut } from '@/app/(auth)/signout/actions'
+import { z } from 'zod'
 
 type LoginState = {
-  message: string | null
+  message?: string | null
+  redirect?: string
 }
+
+const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1)
+})
 
 /**
  * Server action to handle user login
@@ -17,75 +24,71 @@ type LoginState = {
  * @param formData - Form data containing email and password
  * @throws {Error} If login fails or credentials are invalid
  */
-export async function login(prevState: LoginState, formData: FormData) {
-  const email = formData.get('email') as string
-  const password = formData.get('password') as string
-  const returnTo = formData.get('returnTo') as string
-  
-  console.log('Login attempt:', { email, returnTo })
-  
-  if (!email || !password) {
-    return { message: 'Email and password are required' }
-  }
-  
-  const supabase = createClient()
+export async function login(formData: FormData): Promise<LoginState> {
+  'use server'
   
   try {
-    console.log('Attempting Supabase auth...')
-    const { error: signInError } = await supabase.auth.signInWithPassword({
+    const email = formData.get('email') as string
+    const password = formData.get('password') as string
+    const returnTo = formData.get('returnTo') as string
+
+    const supabase = createClient()
+    
+    const { data: { user }, error: signInError } = await supabase.auth.signInWithPassword({
       email,
-      password,
+      password
     })
 
     if (signInError) {
-      console.error('Auth error:', signInError.message, signInError.status)
-      if (signInError.message.includes('Invalid login credentials')) {
-        return { message: 'Invalid email or password' }
+      console.error('Login error:', signInError)
+      return {
+        message: 'Invalid login credentials'
       }
-      if (signInError.status === 429) {
-        return { message: 'Too many login attempts. Please try again later.' }
-      }
-      if (signInError.status === 400) {
-        return { message: 'Invalid email format or password requirements not met' }
-      }
-      return { message: 'Authentication failed. Please try again.' }
     }
 
-    // Verify user is authenticated
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    
-    if (userError || !user) {
-      console.error('Error verifying user after login:', userError)
-      await signOut()
-      return { message: 'Authentication failed' }
+    if (!user) {
+      return {
+        message: 'No user found'
+      }
     }
 
-    // Get employee data
+    // Get employee data to check role
     const { data: employee, error: employeeError } = await supabase
       .from('employees')
-      .select('*')
+      .select('role, first_name')
       .eq('auth_id', user.id)
       .single()
 
     if (employeeError) {
-      console.error('Error fetching employee data:', employeeError)
-      await signOut()
-      return { message: 'Failed to fetch employee data' }
+      console.error('Error fetching employee:', employeeError)
+      return {
+        message: 'Error fetching employee data'
+      }
     }
 
-    // If employee record exists but profile is incomplete
-    if (!employee.first_name || !employee.last_name) {
-      redirect('/complete-profile')
+    // Revalidate relevant paths
+    revalidatePath('/')
+    revalidatePath('/overview')
+    revalidatePath('/manage')
+
+    // Check if profile needs to be completed
+    if (!employee.first_name) {
+      return {
+        redirect: '/complete-profile'
+      }
     }
 
-    // Revalidate all pages that might show user data
-    revalidatePath('/', 'layout')
+    // Return success state with redirect
+    return {
+      message: null,
+      redirect: returnTo || (employee.role === 'supervisor' ? '/manage' : '/overview')
+    }
 
-    // Redirect based on role or return URL
-    redirect(returnTo || (employee.role === 'supervisor' ? '/manage' : '/overview'))
   } catch (error) {
     console.error('Login error:', error)
-    return { message: 'An unexpected error occurred' }
+    return {
+      message: 'An unexpected error occurred'
+    }
   }
 }
 

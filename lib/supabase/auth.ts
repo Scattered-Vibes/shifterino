@@ -87,45 +87,56 @@ export async function getSession() {
     console.log('Auth: Creating server client for session check')
     const supabase = await createServerSupabaseClient()
     
-    console.log('Auth: Fetching session')
-    const {
-      data: { session },
-      error,
-    } = await supabase.auth.getSession()
+    console.log('Auth: Validating user authentication')
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
 
-    if (error) {
-      console.error('Auth: Session error:', error)
-      throw error
+    if (userError) {
+      console.error('Auth: User validation error:', userError)
+      clearAuthCookies(cookieStore)
+      return null
     }
 
-    if (!session?.user?.id) {
-      console.log('Auth: No valid session found')
+    if (!user?.id) {
+      console.log('Auth: No valid user found')
+      clearAuthCookies(cookieStore)
+      return null
+    }
+
+    // Get session data for UI purposes
+    console.log('Auth: Fetching session data')
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession()
+
+    if (sessionError) {
+      console.error('Auth: Session error:', sessionError)
       clearAuthCookies(cookieStore)
       return null
     }
 
     // Validate session expiry
     const now = Math.floor(Date.now() / 1000)
-    if (session.expires_at && session.expires_at < now) {
+    if (session?.expires_at && session.expires_at < now) {
       console.log('Auth: Session expired')
       await signOutAction()
       return null
     }
 
     // Verify user exists in database
-    const { data: user, error: userError } = await supabase
+    const { data: employee, error: employeeError } = await supabase
       .from('employees')
       .select('id')
-      .eq('auth_id', session.user.id)
+      .eq('auth_id', user.id)
       .single()
 
-    if (userError || !user) {
+    if (employeeError || !employee) {
       console.log('Auth: User not found in database, clearing session')
       await signOutAction()
       return null
     }
 
-    console.log('Auth: Valid session found for user:', session.user.id)
+    console.log('Auth: Valid session found for user:', user.id)
     return session
   } catch (error) {
     console.error('Auth: Critical error getting session:', error)

@@ -1,11 +1,8 @@
 'use server'
 
 import { cookies } from 'next/headers'
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
-import { redirect } from 'next/navigation'
-import { revalidatePath } from 'next/cache'
+import { createServerClient } from '@supabase/ssr'
 
-// Comprehensive list of all possible auth-related cookies
 const AUTH_COOKIE_NAMES = [
   'sb-access-token',
   'sb-refresh-token',
@@ -25,25 +22,19 @@ const AUTH_COOKIE_NAMES = [
 function clearAuthCookies(cookieStore: ReturnType<typeof cookies>) {
   AUTH_COOKIE_NAMES.forEach(name => {
     try {
-      // Clear with root path
-      cookieStore.delete({
-        name,
-        path: '/',
-      })
+      // Clear cookie with root path
+      cookieStore.delete({ name, path: '/' })
 
-      // Clear with specific domain if set
+      // Clear cookie with specific domain if provided
       if (process.env.NEXT_PUBLIC_DOMAIN) {
-        cookieStore.delete({
-          name,
-          path: '/',
-          domain: process.env.NEXT_PUBLIC_DOMAIN
-        })
+        cookieStore.delete({ name, path: '/', domain: process.env.NEXT_PUBLIC_DOMAIN })
       }
 
-      // Clear without specific path/domain
+      // Additional deletion attempt without options
       cookieStore.delete(name)
-    } catch (e) {
-      console.warn(`Failed to delete cookie ${name}:`, e)
+      console.log(`Cleared cookie: ${name}`)
+    } catch (error) {
+      console.warn(`Failed to delete cookie ${name}:`, error)
     }
   })
 }
@@ -56,45 +47,18 @@ export async function signOut() {
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          cookieStore.set({ name, value, ...options })
-        },
-        remove(name: string, options: CookieOptions) {
-          cookieStore.set({ name, value: '', ...options })
-        },
-      },
-    }
+    { cookies: cookieStore }
   )
 
   try {
-    // Verify user is authenticated before signing out
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    
-    if (userError) {
-      console.error('Error verifying user before signout:', userError)
-    }
-
-    if (user) {
-      const { error: signOutError } = await supabase.auth.signOut()
-      if (signOutError) {
-        console.error('Error signing out:', signOutError)
-      }
-    }
-
-    // Clear cookies regardless of user state
+    console.log('Clearing authentication cookies')
     clearAuthCookies(cookieStore)
-    
-    // Revalidate all pages
-    revalidatePath('/', 'layout')
-  } catch (error) {
-    console.error('Error in signOut:', error)
-  }
 
-  // Always redirect to login
-  redirect('/login')
+    await supabase.auth.signOut()
+    console.log('User signed out successfully')
+    return { success: true }
+  } catch (error) {
+    console.error('Signout error:', error)
+    return { error: 'Failed to sign out' }
+  }
 }

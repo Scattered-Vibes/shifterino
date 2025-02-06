@@ -253,4 +253,45 @@ SELECT lives_ok(
 -- Clean up
 SELECT test_helpers.clean_test_data();
 SELECT * FROM finish();
-ROLLBACK; 
+ROLLBACK;
+
+DO $$
+DECLARE
+    manager_id uuid;
+    supervisor_id uuid;
+    dispatcher_id uuid;
+BEGIN
+    -- Clean up any existing test data
+    PERFORM test_helpers.clean_test_data();
+    
+    -- Create test users with unique IDs
+    SELECT auth_id INTO manager_id
+    FROM test_helpers.create_test_user('manager@test.com', 'manager', 'rls1');
+    
+    SELECT auth_id INTO supervisor_id
+    FROM test_helpers.create_test_user('supervisor@test.com', 'supervisor', 'rls2');
+    
+    SELECT auth_id INTO dispatcher_id
+    FROM test_helpers.create_test_user('dispatcher@test.com', 'dispatcher', 'rls3');
+    
+    -- Set up test data
+    INSERT INTO public.shift_options (id, name, start_time, end_time, duration_hours, category)
+    VALUES (
+        gen_random_uuid(),
+        'RLS Test Shift',
+        '09:00',
+        '17:00',
+        8,
+        'day'
+    );
+    
+    INSERT INTO public.schedule_periods (id, start_date, end_date, description, is_active)
+    VALUES (
+        gen_random_uuid(),
+        CURRENT_DATE,
+        CURRENT_DATE + INTERVAL '28 days',
+        'RLS Test Period',
+        true
+    );
+END;
+$$; 

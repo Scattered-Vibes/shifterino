@@ -51,36 +51,35 @@ export async function middleware(request: NextRequest) {
       }
     )
 
-    // First try to get the session
-    const { data: { session } } = await supabase.auth.getSession()
-
-    // If there's no session and this isn't a public route, redirect to login
-    if (!session && !publicRoutes.includes(pathname)) {
-      // For initial load or missing session, redirect to login without error
+    // First validate user authentication
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    
+    // If there's no valid user and this isn't a public route, redirect to login
+    if ((!user || userError) && !publicRoutes.includes(pathname)) {
       const redirectUrl = new URL('/login', request.url)
       redirectUrl.searchParams.set('redirectedFrom', pathname)
       return NextResponse.redirect(redirectUrl)
     }
 
-    // Only verify user if we have a session
-    if (session) {
-      const { data: { user }, error: userError } = await supabase.auth.getUser()
-      
-      if (userError) {
-        throw userError
-      }
-
+    // Handle authenticated user
+    if (user) {
       // Special handling for root path
       if (pathname === '/') {
         return NextResponse.redirect(new URL('/overview', request.url))
       }
 
-      // Verify user exists and has necessary permissions
-      if (!user) {
-        throw new Error('User not found')
+      // Verify user has necessary database records
+      const { data: employee, error: employeeError } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('auth_id', user.id)
+        .single()
+
+      if (employeeError || !employee) {
+        throw new Error('User not found in database')
       }
     } else if (pathname === '/') {
-      // If no session and at root, redirect to login
+      // If no user and at root, redirect to login
       return NextResponse.redirect(new URL('/login', request.url))
     }
 

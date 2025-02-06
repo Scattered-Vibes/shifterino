@@ -36,12 +36,12 @@ export default async function RootLayout({
 
   try {
     const supabase = createClient()
-    const { data: { session }, error } = await supabase.auth.getSession()
+    const { data: { user: authUser }, error } = await supabase.auth.getUser()
 
     if (error) {
-      console.error('Error getting initial session:', error)
-    } else if (session?.user) {
-      user = session.user
+      console.error('Error getting initial user:', error)
+    } else if (authUser) {
+      user = authUser
     }
   } catch (error) {
     console.error('Error in root layout:', error)

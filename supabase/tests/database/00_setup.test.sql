@@ -51,19 +51,24 @@ $$;
 
 -- Create or replace clean_test_data function
 CREATE OR REPLACE FUNCTION test_helpers.clean_test_data()
-RETURNS void
-LANGUAGE plpgsql
-AS $$
+RETURNS void AS $$
 BEGIN
-    -- Delete data in reverse order of dependencies
+    -- Clean up in reverse dependency order
     DELETE FROM public.shift_swap_requests;
     DELETE FROM public.time_off_requests;
+    DELETE FROM public.individual_shifts;
+    DELETE FROM public.shift_assignment_scores;
+    DELETE FROM public.scheduling_logs;
     DELETE FROM public.schedules;
     DELETE FROM public.employees;
-    DELETE FROM auth.users;
+    DELETE FROM public.profiles;
+    DELETE FROM public.shift_options;
+    DELETE FROM public.staffing_requirements;
+    DELETE FROM public.schedule_periods;
     DELETE FROM public.test_data;
+    DELETE FROM auth.users WHERE email LIKE '%@test.com';
 END;
-$$;
+$$ LANGUAGE plpgsql;
 
 -- Create or replace setup_test_data function
 CREATE OR REPLACE FUNCTION test_helpers.setup_test_data()

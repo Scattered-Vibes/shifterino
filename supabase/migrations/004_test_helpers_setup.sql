@@ -1,15 +1,12 @@
--- Drop existing functions to avoid conflicts
-DROP FUNCTION IF EXISTS test_helpers.setup_test_data();
-DROP FUNCTION IF EXISTS test_helpers.set_auth_user(text);
-DROP FUNCTION IF EXISTS test_helpers.clean_test_data();
-DROP FUNCTION IF EXISTS test_helpers.create_test_user(text, text);
-DROP FUNCTION IF EXISTS test_helpers.create_test_user(text, text, text);
-DROP FUNCTION IF EXISTS test_helpers.clean_test_user(text);
-
--- Create test schema and tables
+-- 004_test_helpers_setup.sql
+--
+-- This consolidated migration sets up the test helper environment:
+-- • Creates (if not exists) the test_helpers schema and test data table.
+-- • Defines utility functions for cleaning test data, setting auth contexts,
+--   and creating test users.
+--
 CREATE SCHEMA IF NOT EXISTS test_helpers;
 
--- Create test data table if it doesn't exist
 CREATE TABLE IF NOT EXISTS public.test_data (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     created_at timestamptz DEFAULT now(),
@@ -19,56 +16,83 @@ CREATE TABLE IF NOT EXISTS public.test_data (
     shift_option_id uuid REFERENCES public.shift_options(id)
 );
 
--- Create function to clean test data
+-- For testing: override auth.uid()
+CREATE OR REPLACE FUNCTION auth.uid()
+RETURNS uuid
+LANGUAGE sql STABLE
+AS $$
+  SELECT NULLIF(current_setting('app.current_user_id', true), '')::uuid;
+$$;
+
+-- Function: set_auth_user for testing
+CREATE OR REPLACE FUNCTION test_helpers.set_auth_user(user_id text)
+RETURNS void
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  PERFORM set_config('app.current_user_id', user_id, true);
+END;
+$$;
+
+-- Function: clean_test_data (drops test-related records)
 CREATE OR REPLACE FUNCTION test_helpers.clean_test_data()
 RETURNS void AS $$
 BEGIN
-    -- Disable triggers temporarily to avoid side effects during cleanup
     SET session_replication_role = 'replica';
-    
-    -- Delete data in reverse order of dependencies
     DELETE FROM public.shift_swap_requests;
     DELETE FROM public.shift_assignment_scores;
     DELETE FROM public.scheduling_logs;
     DELETE FROM public.individual_shifts;
     DELETE FROM public.time_off_requests;
-    
-    -- Update test_data to remove references
-    UPDATE public.test_data 
-    SET schedule_period_id = NULL, 
-        employee_id = NULL,
-        shift_option_id = NULL;
-    
     DELETE FROM public.shift_options WHERE name LIKE 'Test%';
     DELETE FROM public.schedule_periods;
-    
-    -- Update any records that reference users as created_by to NULL
     UPDATE public.employees SET created_by = NULL;
-    
-    -- Delete all employees, profiles, and users
     DELETE FROM public.employees;
     DELETE FROM public.profiles;
     DELETE FROM auth.users;
-    
-    -- Delete test data table records if they exist
     DELETE FROM public.test_data;
-    
-    -- Reset sequences if they exist
     IF EXISTS (SELECT 1 FROM information_schema.sequences WHERE sequence_schema = 'public') THEN
         ALTER SEQUENCE IF EXISTS public.employees_id_seq RESTART;
         ALTER SEQUENCE IF EXISTS public.profiles_id_seq RESTART;
         ALTER SEQUENCE IF EXISTS public.shift_options_id_seq RESTART;
         ALTER SEQUENCE IF EXISTS public.schedule_periods_id_seq RESTART;
     END IF;
-    
-    -- Re-enable triggers
     SET session_replication_role = 'origin';
-    
     RAISE NOTICE 'Test data cleanup completed successfully';
 END;
 $$ LANGUAGE plpgsql;
 
--- Create function to create test user
+-- Function: clean_test_user for a specific test user
+CREATE OR REPLACE FUNCTION test_helpers.clean_test_user(p_email text)
+RETURNS void AS $$
+DECLARE
+    v_auth_id uuid;
+    v_employee_id uuid;
+BEGIN
+    SELECT e.auth_id, e.id INTO v_auth_id, v_employee_id
+    FROM public.employees e
+    WHERE e.email = p_email;
+    IF v_auth_id IS NULL THEN
+        SELECT p.id INTO v_auth_id FROM public.profiles p WHERE p.email = p_email;
+        IF v_auth_id IS NULL THEN
+            SELECT u.id INTO v_auth_id FROM auth.users u WHERE u.email = p_email;
+        END IF;
+    END IF;
+    IF v_auth_id IS NULL THEN
+        RETURN;
+    END IF;
+    DELETE FROM public.shift_swap_requests WHERE employee_id = v_employee_id;
+    DELETE FROM public.individual_shifts WHERE employee_id = v_employee_id;
+    DELETE FROM public.time_off_requests WHERE employee_id = v_employee_id;
+    UPDATE public.test_data SET employee_id = NULL WHERE employee_id = v_employee_id;
+    UPDATE public.employees SET created_by = NULL WHERE created_by = v_auth_id;
+    DELETE FROM public.employees WHERE id = v_employee_id;
+    DELETE FROM public.profiles WHERE id = v_auth_id;
+    DELETE FROM auth.users WHERE id = v_auth_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function: create_test_user for creating new test users
 CREATE OR REPLACE FUNCTION test_helpers.create_test_user(
     p_email text,
     p_role text,
@@ -82,17 +106,12 @@ DECLARE
     v_employee_id uuid;
     v_email text;
 BEGIN
-    -- Generate unique email
     IF p_suffix = '' THEN
         v_email := p_email;
     ELSE
         v_email := replace(p_email, '@', '_' || p_suffix || '@');
     END IF;
-    
-    -- Clean up any existing test user
     PERFORM test_helpers.clean_test_user(v_email);
-    
-    -- Create new user in auth.users
     INSERT INTO auth.users (
         instance_id,
         id,
@@ -131,11 +150,9 @@ BEGIN
     )
     RETURNING id INTO v_auth_id;
     
-    -- Create profile
     INSERT INTO public.profiles (id, email, role)
     VALUES (v_auth_id, v_email, p_role);
     
-    -- Create employee record
     INSERT INTO public.employees (
         auth_id,
         first_name,
@@ -162,58 +179,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Create function to clean specific test user
-CREATE OR REPLACE FUNCTION test_helpers.clean_test_user(p_email text)
-RETURNS void AS $$
-DECLARE
-    v_auth_id uuid;
-    v_employee_id uuid;
-BEGIN
-    -- Get IDs for the user if they exist
-    SELECT e.auth_id, e.id INTO v_auth_id, v_employee_id
-    FROM public.employees e
-    WHERE e.email = p_email;
-    
-    -- Also check profiles table in case employee record is missing
-    IF v_auth_id IS NULL THEN
-        SELECT p.id INTO v_auth_id
-        FROM public.profiles p
-        WHERE p.email = p_email;
-        
-        -- Also check auth.users table in case profile is missing
-        IF v_auth_id IS NULL THEN
-            SELECT u.id INTO v_auth_id
-            FROM auth.users u
-            WHERE u.email = p_email;
-        END IF;
-    END IF;
-    
-    -- If no user found anywhere, return
-    IF v_auth_id IS NULL THEN
-        RETURN;
-    END IF;
-    
-    -- Delete in reverse order of dependencies
-    DELETE FROM public.shift_swap_requests WHERE employee_id = v_employee_id;
-    DELETE FROM public.individual_shifts WHERE employee_id = v_employee_id;
-    DELETE FROM public.time_off_requests WHERE employee_id = v_employee_id;
-    
-    -- Update test_data to remove employee reference
-    UPDATE public.test_data SET employee_id = NULL WHERE employee_id = v_employee_id;
-    
-    -- Update any records that reference this user as created_by to NULL
-    UPDATE public.employees SET created_by = NULL WHERE created_by = v_auth_id;
-    
-    -- Delete employee record
-    DELETE FROM public.employees WHERE id = v_employee_id;
-    
-    -- Delete profile and auth user
-    DELETE FROM public.profiles WHERE id = v_auth_id;
-    DELETE FROM auth.users WHERE id = v_auth_id;
-END;
-$$ LANGUAGE plpgsql;
-
--- Create setup_test_data function
+-- Function: setup_test_data to create a complete test record
 CREATE OR REPLACE FUNCTION test_helpers.setup_test_data()
 RETURNS public.test_data AS $$
 DECLARE
@@ -223,19 +189,12 @@ DECLARE
     v_employee_id uuid;
     v_shift_option_id uuid;
 BEGIN
-    -- Clean up any existing test data
     PERFORM test_helpers.clean_test_data();
-    
-    -- Create test schedule period
     INSERT INTO public.schedule_periods (start_date, end_date)
     VALUES (CURRENT_DATE, CURRENT_DATE + INTERVAL '7 days')
     RETURNING id INTO v_schedule_period_id;
-    
-    -- Create test user
     SELECT * INTO v_auth_id, v_employee_id
     FROM test_helpers.create_test_user('test@example.com', 'dispatcher');
-    
-    -- Create test shift option
     INSERT INTO public.shift_options (
         name,
         start_time,
@@ -251,8 +210,6 @@ BEGIN
         'day'
     )
     RETURNING id INTO v_shift_option_id;
-    
-    -- Create test individual shift
     INSERT INTO public.individual_shifts (
         employee_id,
         shift_option_id,
@@ -267,8 +224,6 @@ BEGIN
         CURRENT_DATE,
         'scheduled'
     );
-    
-    -- Create new test data record
     INSERT INTO public.test_data (
         schedule_period_id,
         employee_id,

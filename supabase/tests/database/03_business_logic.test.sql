@@ -161,55 +161,82 @@ SELECT is(
 );
 
 -- Test weekly hour limits
-CREATE OR REPLACE FUNCTION test_helpers.test_weekly_hours()
-RETURNS text AS $$
+DO $$
 DECLARE
-    test_data record;
-    shift_ids uuid[];
-    result boolean;
+    v_employee_id uuid;
+    v_shift_option_id uuid;
+    v_schedule_period_id uuid;
 BEGIN
-    PERFORM test_helpers.clean_test_data();
-    SELECT * INTO test_data FROM test_helpers.setup_test_data();
-    
-    BEGIN
-        -- Create 5 x 10-hour shifts (50 hours total)
-        WITH shift_inserts AS (
-            INSERT INTO public.individual_shifts (
-                employee_id,
-                shift_option_id,
-                schedule_period_id,
-                date,
-                status
-            )
-            SELECT
-                test_data.employee_id,
-                test_data.shift_option_id,
-                test_data.schedule_period_id,
-                CURRENT_DATE + (n || ' days')::interval,
-                'scheduled'
-            FROM generate_series(0, 4) n
-            RETURNING id
-        )
-        SELECT array_agg(id) INTO shift_ids FROM shift_inserts;
-        
-        -- If we get here, the insert succeeded when it should have failed
-        RETURN 'Should not allow more than 40 hours per week without override';
-    EXCEPTION WHEN OTHERS THEN
-        -- Check if the error message matches what we expect
-        IF SQLERRM LIKE 'Cannot schedule more than % hours per week without overtime approval' THEN
-            RETURN NULL;
-        ELSE
-            RETURN 'Unexpected error: ' || SQLERRM;
-        END IF;
-    END;
-END;
-$$ LANGUAGE plpgsql;
+    -- Create test employee
+    INSERT INTO auth.users (
+        id,
+        instance_id,
+        email,
+        encrypted_password,
+        email_confirmed_at,
+        raw_user_meta_data
+    ) VALUES (
+        gen_random_uuid(),
+        '00000000-0000-0000-0000-000000000000'::uuid,
+        'test.weekly@test.com',
+        crypt('test123', gen_salt('bf')),
+        NOW(),
+        jsonb_build_object('role', 'dispatcher')
+    ) RETURNING id INTO v_employee_id;
 
-SELECT is(
-    test_helpers.test_weekly_hours(),
-    NULL,
-    'Weekly hour limits should be enforced'
-);
+    -- Create test shift option
+    INSERT INTO public.shift_options (
+        id,
+        name,
+        start_time,
+        end_time,
+        duration_hours,
+        category
+    ) VALUES (
+        gen_random_uuid(),
+        'Test 10hr Shift',
+        '09:00',
+        '19:00',
+        10,
+        'day'
+    ) RETURNING id INTO v_shift_option_id;
+
+    -- Create test schedule period
+    INSERT INTO public.schedule_periods (
+        id,
+        start_date,
+        end_date,
+        description,
+        is_active
+    ) VALUES (
+        gen_random_uuid(),
+        CURRENT_DATE,
+        CURRENT_DATE + INTERVAL '28 days',
+        'Test Period',
+        true
+    ) RETURNING id INTO v_schedule_period_id;
+
+    -- Attempt to schedule more than 40 hours in a week
+    -- This should fail due to the weekly hour limit
+    INSERT INTO public.individual_shifts (
+        employee_id,
+        shift_option_id,
+        schedule_period_id,
+        date,
+        status
+    ) VALUES
+    (v_employee_id, v_shift_option_id, v_schedule_period_id, CURRENT_DATE, 'scheduled'),
+    (v_employee_id, v_shift_option_id, v_schedule_period_id, CURRENT_DATE + 1, 'scheduled'),
+    (v_employee_id, v_shift_option_id, v_schedule_period_id, CURRENT_DATE + 2, 'scheduled'),
+    (v_employee_id, v_shift_option_id, v_schedule_period_id, CURRENT_DATE + 3, 'scheduled'),
+    (v_employee_id, v_shift_option_id, v_schedule_period_id, CURRENT_DATE + 4, 'scheduled');
+
+    ASSERT FALSE, 'Should not be able to schedule more than 40 hours in a week';
+EXCEPTION
+    WHEN check_violation THEN
+        ASSERT TRUE, 'Correctly prevented scheduling more than 40 hours';
+END;
+$$;
 
 -- Test time off request validation
 CREATE OR REPLACE FUNCTION test_helpers.test_time_off_conflicts()

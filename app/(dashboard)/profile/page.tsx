@@ -15,25 +15,25 @@ export default async function ProfilePage() {
   const supabase = createClient()
 
   try {
-    // Get current session
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    // Validate user authentication
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
     
-    if (sessionError) {
-      console.error('Session error:', sessionError)
-      throw new Error('Authentication failed: ' + sessionError.message)
+    if (userError) {
+      console.error('Authentication error:', userError)
+      throw new Error('Authentication failed: ' + userError.message)
     }
 
-    if (!session) {
+    if (!user) {
       return redirect('/login')
     }
 
-    console.log('Current session role:', session.user.user_metadata.role)
+    console.log('Current user role:', user.user_metadata.role)
 
     // Get user's employee data with proper error handling
     const { data: employee, error: employeeError } = await supabase
       .from('employees')
       .select('*')
-      .eq('auth_id', session.user.id)
+      .eq('auth_id', user.id)
       .single()
 
     if (employeeError) {
@@ -51,20 +51,20 @@ export default async function ProfilePage() {
     console.log('Database role:', employee.role)
 
     // Sync role with auth metadata if it's different
-    if (session.user.user_metadata.role !== employee.role) {
+    if (user.user_metadata.role !== employee.role) {
       console.log('Role mismatch detected. Syncing...')
-      console.log('Auth role:', session.user.user_metadata.role)
+      console.log('Auth role:', user.user_metadata.role)
       console.log('DB role:', employee.role)
 
       const { data: updateData, error: updateError } = await supabase.auth.updateUser({
         data: { 
           role: employee.role,
           // Preserve other metadata
-          email: session.user.email,
-          email_verified: session.user.user_metadata.email_verified,
+          email: user.email,
+          email_verified: user.user_metadata.email_verified,
           first_name: employee.first_name,
           last_name: employee.last_name,
-          phone_verified: session.user.user_metadata.phone_verified,
+          phone_verified: user.user_metadata.phone_verified,
         }
       })
 
@@ -75,13 +75,13 @@ export default async function ProfilePage() {
         console.log('Role sync successful')
         console.log('New auth metadata:', updateData.user.user_metadata)
         
-        // Force a new session to be fetched with updated metadata
-        const { data: { session: newSession }, error: refreshError } = await supabase.auth.getSession()
+        // Validate the update was successful
+        const { data: { user: refreshedUser }, error: refreshError } = await supabase.auth.getUser()
         
         if (refreshError) {
-          console.error('Failed to refresh session:', refreshError)
-        } else if (newSession?.user.user_metadata.role !== employee.role) {
-          console.log('Session refresh needed')
+          console.error('Failed to refresh user:', refreshError)
+        } else if (refreshedUser?.user_metadata.role !== employee.role) {
+          console.log('User refresh needed')
           return redirect('/profile')
         }
       }
