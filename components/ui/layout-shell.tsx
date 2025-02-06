@@ -2,7 +2,10 @@
 
 import { Nav } from '@/components/ui/nav'
 import type { EmployeeRole } from '@/types/database'
-import { signOut } from '@/app/actions'
+import { signOut } from '@/app/(auth)/signout/actions'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
 
 interface LayoutShellProps {
   children: React.ReactNode
@@ -10,6 +13,30 @@ interface LayoutShellProps {
 }
 
 export function LayoutShell({ children, role }: LayoutShellProps) {
+  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(false)
+
+  const handleSignOut = async () => {
+    setIsLoading(true)
+    try {
+      await signOut()
+      // The server action handles the redirect
+    } catch (error) {
+      console.error('Error signing out:', error)
+      
+      // Only handle non-redirect errors
+      if (error instanceof Error && error.message !== 'NEXT_REDIRECT') {
+        if (error.message === 'SIGNOUT_FAILED') {
+          router.replace('/login?error=signout_failed')
+        } else {
+          router.replace('/login')
+        }
+      }
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <div className="flex flex-col h-screen">
       <header className="border-b bg-background z-10">
@@ -17,11 +44,14 @@ export function LayoutShell({ children, role }: LayoutShellProps) {
           <div className="flex-1">
             <h1 className="text-xl font-bold">Shifterino</h1>
           </div>
-          <form action={signOut}>
-            <button type="submit" className="text-sm font-medium hover:text-accent-foreground">
-              Sign Out
-            </button>
-          </form>
+          <Button
+            variant="ghost"
+            onClick={handleSignOut}
+            disabled={isLoading}
+            className="text-sm font-medium hover:text-accent-foreground"
+          >
+            {isLoading ? 'Signing out...' : 'Sign Out'}
+          </Button>
         </div>
       </header>
       <div className="flex flex-1 overflow-hidden">

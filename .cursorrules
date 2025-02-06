@@ -113,7 +113,7 @@ By following this structured approach, you can create an effective schedule that
 
 *   **Stack-Versioned Patterns:**
 
-    *   `app/dashboard/layout.tsx`: Implements Next.js 14 root layout for the management dashboard.
+    *   `app/layout.tsx`: Implements Next.js 14 root layout for the management dashboard.
     *   `app/schedule/page.tsx`: Hosts the scheduling interface with drag-and-drop functionality and real-time alerts.
 
 ## Tech Stack Rules
@@ -132,7 +132,7 @@ By following this structured approach, you can create an effective schedule that
 
 *   **Stack-Aligned Flow:**
 
-    *   Example: "Next.js 14 Auth Flow → `app/(auth)/login/page.tsx` uses server actions to ensure secure login and role-based access control for managers and employees."
+    *   Example: "Next.js 14 Auth Flow → `app/(auth)/login/page.tsx` uses server actions to ensure secure login and role-based access control for managers and employees."  do not use the auth folder, use the (auth) group route folder instead.  
 
 
 **Next.js App Router Mandatory Rules**
@@ -142,22 +142,11 @@ By following this structured approach, you can create an effective schedule that
 
 Route grouping in the Next.js App Router is a feature that lets you organize your file structure without affecting your URL paths. By wrapping a folder name in parentheses (for example, `(dashboard)`), Next.js treats the folder as a logical group. This means that while files inside this folder can benefit from shared layouts, metadata, or loading states, the parentheses-wrapped folder itself isn’t reflected in the URL.
 
-For example, if you structure your project like this:
-
-```
-app/
-└── (dashboard)/
-    ├── layout.tsx   // Shared layout for all routes in this group
-    ├── page.tsx     // Renders at the root URL '/'
-    └── settings/
-        └── page.tsx // Renders at '/settings'
-```
-
 The URL paths will be `/` for the top-level page and `/settings` for the settings page—even though both files are grouped under `(dashboard)`. This approach improves code organization:
 - **Separation of Concerns:** Group related routes together without influencing their URL structure.
 - **Nested Layouts:** Easily apply a common layout or loading skeleton to a set of pages.
 - **Clean URLs:** Keep URLs simple and free from extraneous directory names used for grouping.
-- **Do**: Use for auth (`(auth)`), marketing (`(marketing)`), or API versioning (`(v1)`)
+- **Do**: Use for auth (`(auth)`), marketing (`(marketing)`), or page grouping (`(dashboard)`)
 - **Don't**: Use in URL paths (groups are invisible in routes)
 
 ```json
@@ -182,7 +171,7 @@ types/             # Global type definitions
    └── auth.d.ts       # Auth session types
 ```
 ```typescript
-// app/_types/auth.d.ts
+//types/auth.d.ts
 declare interface AuthSession {
   user: {
     id: string;
@@ -196,37 +185,15 @@ declare interface AuthSession {
 ```bash
 tree -L -I 'node_modules|.next|.git' 
 ```
-
----
-
-**API Route Modernization**
-```bash
-app/
-└── api/
-    └── v1/            # Versioned API group
-        ├── users/
-        │   └── route.ts # GET/POST handlers
-        └── route.ts   # API root endpoint
-```
-```typescript
-// app/api/v1/users/route.ts
-export async function GET() {
-  return NextResponse.json({ users: [] });
-}
-```
-
 ---
 
 **Compliance Checklist**
 1. ☑ Removed `src/` directory entirely  
 2. ☑ All routes exist under `app/`  
 3. ☑ Client components isolated in `components/ui/`  
-4. ☑ Private directories use `_prefix`  
 5. ☑ Route groups use `(parentheses)`  
 6. ☑ Type definitions in `types/`  
 7. ☑ Tests colocated in `__tests__/` folders  
-8. ☑ API routes use `/app/api/[version]/route.ts`  
-
 ---
 
 **Migration Command**
@@ -255,7 +222,7 @@ supabase/ssr handles cookies and sessions for you.
 **Type Generation Command**
 ```bash
 # Required after schema changes
-npx supabase gen types typescript --project-id dvnzmtowppsbfxkwgnod > app/_types/supabase/database.ts
+npx supabase gen types typescript --project-id dvnzmtowppsbfxkwgnod > types/supabase/database.ts
 ```
 
 **Real-time Implementation**
@@ -293,19 +260,6 @@ export async function POST(req: Request) {
   // INCORRECT: Direct client storage access
   // const { data } = await supabase.storage.from('bucket').upload()
 }
-```
-
-**Environment Configuration**
-```bash
-
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
-SUPABASE_DB_PASSWORD=your_supabase_db_password
-SUPABASE_PROJECT_ID=your_supabase_project_id
-
-
 ```
 
  **Compliance Verification**

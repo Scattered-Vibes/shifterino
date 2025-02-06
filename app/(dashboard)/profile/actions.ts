@@ -7,14 +7,15 @@ export async function updateProfile(formData: FormData) {
   const supabase = createClient()
 
   try {
-    // Get current session
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-    if (sessionError) {
-      console.error('Session error:', sessionError)
+    // Get current user
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    
+    if (userError) {
+      console.error('Auth error:', userError)
       throw new Error('Authentication error')
     }
     
-    if (!session) {
+    if (!user) {
       throw new Error('Not authenticated')
     }
 
@@ -28,7 +29,7 @@ export async function updateProfile(formData: FormData) {
       throw new Error('First name and last name are required')
     }
 
-    // Update employee record with optimistic update
+    // Update employee record
     const { error: updateError } = await supabase
       .from('employees')
       .update({
@@ -36,11 +37,24 @@ export async function updateProfile(formData: FormData) {
         last_name,
         updated_at: new Date().toISOString(),
       })
-      .eq('auth_id', session.user.id)
+      .eq('auth_id', user.id)
 
     if (updateError) {
       console.error('Error updating profile:', updateError)
       throw new Error(updateError.message || 'Failed to update profile')
+    }
+
+    // Update user metadata
+    const { error: metadataError } = await supabase.auth.updateUser({
+      data: {
+        first_name,
+        last_name,
+      }
+    })
+
+    if (metadataError) {
+      console.error('Error updating user metadata:', metadataError)
+      // Don't throw here as the employee record was updated successfully
     }
 
     // Revalidate only the profile page and its components

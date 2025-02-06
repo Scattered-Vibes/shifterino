@@ -1,39 +1,29 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useTransition } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useSupabaseAuth } from '@/components/providers/supabase-auth-provider'
+import { signIn } from '@/app/(auth)/actions'
 import { toast } from 'sonner'
 
 export function LoginForm() {
-  const router = useRouter()
-  const { signInWithEmail } = useSupabaseAuth()
-  const [isLoading, setIsLoading] = useState(false)
+  const [isPending, startTransition] = useTransition()
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setIsLoading(true)
-
     const formData = new FormData(event.currentTarget)
-    const email = formData.get('email') as string
-    const password = formData.get('password') as string
 
-    try {
-      await signInWithEmail(email, password)
-      toast.success('Signed in successfully')
-      router.refresh()
-    } catch (error) {
-      if (error instanceof Error) {
-        toast.error(error.message)
-      } else {
-        toast.error('Failed to sign in')
+    startTransition(async () => {
+      try {
+        const result = await signIn(formData)
+        if (result?.error) {
+          toast.error(result.error)
+        }
+      } catch {
+        toast.error('An unexpected error occurred')
       }
-    } finally {
-      setIsLoading(false)
-    }
+    })
   }
 
   return (
@@ -46,7 +36,7 @@ export function LoginForm() {
           type="email"
           placeholder="name@example.com"
           required
-          disabled={isLoading}
+          disabled={isPending}
         />
       </div>
       <div className="space-y-2">
@@ -56,11 +46,11 @@ export function LoginForm() {
           name="password"
           type="password"
           required
-          disabled={isLoading}
+          disabled={isPending}
         />
       </div>
-      <Button type="submit" className="w-full" disabled={isLoading}>
-        {isLoading ? 'Signing in...' : 'Sign in'}
+      <Button type="submit" className="w-full" disabled={isPending}>
+        {isPending ? 'Signing in...' : 'Sign in'}
       </Button>
     </form>
   )

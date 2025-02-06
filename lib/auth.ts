@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import type { User } from '@supabase/supabase-js'
 
 export type UserRole = 'dispatcher' | 'supervisor' | 'manager'
 
@@ -16,39 +15,24 @@ export async function requireAuth(allowIncomplete = false): Promise<Authenticate
   const supabase = createClient()
 
   try {
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
     
-    if (sessionError) {
-      console.error('Session error:', sessionError)
+    if (authError || !user) {
+      console.error('Auth error:', authError)
       await handleAuthError()
     }
 
-    if (!session?.access_token) {
-      console.error('No valid session found')
-      await handleAuthError()
-    }
+    // At this point we know user is not null due to the check above
+    const authenticatedUser = user!
 
-    // At this point we know session is not null and has an access_token
-    const validSession = session!
-
-    // Validate session in database
+    // Validate user in database
     const { data: isValid, error: validationError } = await supabase
-      .rpc('validate_session', { session_id: validSession.access_token })
+      .rpc('validate_session', { session_token: authenticatedUser.id })
 
     if (validationError || !isValid) {
-      console.error('Session validation failed:', validationError)
+      console.error('User validation failed:', validationError)
       await handleAuthError()
     }
-
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    
-    if (userError || !user) {
-      console.error('User error:', userError)
-      await handleAuthError()
-    }
-
-    // Type assertion is safe here because we've checked for null above
-    const authenticatedUser = user as User
 
     const role = authenticatedUser.user_metadata?.role as UserRole
     if (!role || !['dispatcher', 'supervisor', 'manager'].includes(role)) {

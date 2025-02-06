@@ -17,43 +17,122 @@
  * <LoginPage />
  * ```
  */
-import LoginForm from './login-form'
+import { useState } from 'react'
 import Link from 'next/link'
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { useAuth } from '@/hooks/useAuth'
+import { signInWithEmail } from '@/lib/supabase/client'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Alert } from '@/components/ui/alert'
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
 
 export default function LoginPage() {
-  const router = useRouter()
-  const { session, isLoading } = useAuth()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
 
-  // When a session is detected, redirect the user to /overview.
-  useEffect(() => {
-    if (!isLoading && session) {
-      router.push('/overview')
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    
+    if (isLoading) return
+    
+    setError(null)
+    setIsLoading(true)
+
+    try {
+      const { error } = await signInWithEmail(email, password)
+      
+      if (error) {
+        throw error
+      }
+
+      // If we get here, auth was successful
+      window.location.href = '/overview'
+    } catch (error) {
+      console.error('Login error:', error)
+      setError(error instanceof Error ? error.message : 'Failed to sign in')
+    } finally {
+      setIsLoading(false)
     }
-  }, [session, isLoading, router])
+  }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50">
-      <div className="w-full max-w-md space-y-8">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold tracking-tight">
-            Sign in to your account
-          </h1>
-          <p className="mt-2 text-sm text-gray-600">
-            Or{' '}
-            <Link 
-              href="/signup" 
-              className="font-medium text-primary hover:text-primary/90"
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl font-bold">Sign in</CardTitle>
+          <CardDescription>
+            Enter your email and password to access your account
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form 
+            onSubmit={handleSubmit} 
+            className="space-y-4" 
+            method="POST"
+            action="/overview"
+          >
+            {error && (
+              <Alert variant="destructive">
+                {error}
+              </Alert>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="username"
+                placeholder="name@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                disabled={isLoading}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                disabled={isLoading}
+              />
+            </div>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isLoading}
+              aria-disabled={isLoading}
             >
-              create a new account
+              {isLoading ? 'Signing in...' : 'Sign in'}
+            </Button>
+          </form>
+        </CardContent>
+        <CardFooter className="flex flex-col space-y-2">
+          <Link 
+            href="/reset-password"
+            className="text-sm text-blue-600 hover:text-blue-500"
+          >
+            Forgot your password?
+          </Link>
+          <div className="text-sm text-gray-600">
+            Don&apos;t have an account?{' '}
+            <Link 
+              href="/signup"
+              className="text-blue-600 hover:text-blue-500"
+            >
+              Sign up
             </Link>
-          </p>
-        </div>
-
-        <LoginForm />
-      </div>
+          </div>
+        </CardFooter>
+      </Card>
     </div>
   )
 } 

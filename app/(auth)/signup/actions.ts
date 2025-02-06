@@ -23,7 +23,7 @@ export async function signup(prevState: SignupState, formData: FormData) {
       email,
       password,
       options: {
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/api/auth/callback`,
       },
     })
 
@@ -31,7 +31,7 @@ export async function signup(prevState: SignupState, formData: FormData) {
       return { message: `Failed to sign up: ${error.message}` }
     }
 
-    redirect('/auth/confirm-email')
+    redirect('/signup/check-email')
   } catch (error) {
     if (error instanceof AuthError) {
       return { message: `Failed to sign up: ${error.message}` }

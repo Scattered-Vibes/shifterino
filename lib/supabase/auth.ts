@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
+import { signOut as signOutAction } from '@/app/(auth)/signout/actions'
 import type { 
   AuthResponse, 
   SignInWithPasswordCredentials, 
@@ -12,15 +13,28 @@ import type {
  */
 function clearAuthCookies(cookieStore: ReturnType<typeof cookies>) {
   const authCookies = [
-    'sb-127-auth-token',
-    'sb-127-auth-token-code-verifier',
-    'sb-127-provider-token',
-    'sb-127-refresh-token'
+    'sb-access-token',
+    'sb-refresh-token',
+    'supabase-auth-token',
+    '__session',
+    'sb-provider-token',
+    'sb-auth-token'
   ]
 
   authCookies.forEach(name => {
     try {
       cookieStore.delete(name)
+      cookieStore.delete({
+        name,
+        path: '/'
+      })
+      if (process.env.NEXT_PUBLIC_DOMAIN) {
+        cookieStore.delete({
+          name,
+          path: '/',
+          domain: process.env.NEXT_PUBLIC_DOMAIN
+        })
+      }
     } catch (e) {
       console.error(`Failed to delete cookie ${name}:`, e)
     }
@@ -94,8 +108,7 @@ export async function getSession() {
     const now = Math.floor(Date.now() / 1000)
     if (session.expires_at && session.expires_at < now) {
       console.log('Auth: Session expired')
-      await supabase.auth.signOut()
-      clearAuthCookies(cookieStore)
+      await signOutAction()
       return null
     }
 
@@ -108,8 +121,7 @@ export async function getSession() {
 
     if (userError || !user) {
       console.log('Auth: User not found in database, clearing session')
-      await supabase.auth.signOut()
-      clearAuthCookies(cookieStore)
+      await signOutAction()
       return null
     }
 
@@ -150,7 +162,4 @@ export async function signUp(
   })
 }
 
-export async function signOut(): Promise<void> {
-  const supabase = createClient()
-  await supabase.auth.signOut()
-} 
+export { signOutAction as signOut } 

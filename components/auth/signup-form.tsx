@@ -5,12 +5,12 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useSupabaseAuth } from '@/components/providers/supabase-auth-provider'
+import { useAuth } from '@/components/providers/AuthProvider'
 import { toast } from 'sonner'
 
 export function SignUpForm() {
   const router = useRouter()
-  const { signUpWithEmail } = useSupabaseAuth()
+  const { signUpWithEmail } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -31,7 +31,7 @@ export function SignUpForm() {
     try {
       await signUpWithEmail(email, password)
       toast.success('Check your email to confirm your account')
-      router.push('/auth/login')
+      router.push('/login')
     } catch (error) {
       if (error instanceof Error) {
         toast.error(error.message)

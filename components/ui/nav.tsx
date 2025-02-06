@@ -18,8 +18,8 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   {
-    title: "Dashboard",
-    href: "/dashboard",
+    title: "Overview",
+    href: "/overview",
     icon: "📊",
   },
   {

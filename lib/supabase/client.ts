@@ -15,28 +15,8 @@
  */
 
 import { createBrowserClient } from '@supabase/ssr'
-import { Database } from '@/types/database'
+import type { Database } from '@/types/database'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
-// Ensure required environment variables are set
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing required Supabase environment variables')
-}
-
-/**
- * Creates and configures a client-side Supabase client instance
- * 
- * @returns {SupabaseClient} Configured Supabase client for client-side operations
- * @throws {Error} If environment variables are not properly configured
- * 
- * @example
- * ```ts
- * const supabase = createClient()
- * const { data, error } = await supabase.from('table').select()
- * ```
- */
 export function createClient() {
   return createBrowserClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -45,18 +25,43 @@ export function createClient() {
 }
 
 /**
- * Helper function to get the authenticated user
- * Uses getUser() instead of getSession() for better security
+ * Helper function to get the authenticated user with proper error handling
  */
 export async function getAuthenticatedUser() {
-  const supabase = createClient()
   try {
-    const { data: { user }, error } = await supabase.auth.getUser()
-    if (error) throw error
+    const supabase = createClient()
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    
+    if (userError) {
+      console.error('Error getting user:', userError)
+      return { user: null, error: userError }
+    }
+
+    if (!user) {
+      return { user: null, error: new Error('No authenticated user found') }
+    }
+
+    // Validate user if function exists
+    try {
+      const { data: isValid, error: validationError } = await supabase.rpc('validate_user', {
+        user_id: user.id
+      })
+      
+      if (validationError) {
+        console.warn('User validation error:', validationError)
+        // Continue with user if validation fails
+      } else if (!isValid) {
+        return { user: null, error: new Error('Invalid user') }
+      }
+    } catch (error) {
+      // Function might not exist, log error but continue
+      console.warn('User validation failed:', error)
+    }
+
     return { user, error: null }
   } catch (error) {
     console.error('Error getting authenticated user:', error)
-    return { user: null, error }
+    return { user: null, error: error as Error }
   }
 }
 
@@ -64,27 +69,101 @@ export async function getAuthenticatedUser() {
  * Helper function to get employee data for authenticated user
  */
 export async function getEmployeeData() {
-  const supabase = createClient()
   try {
     const { user, error: userError } = await getAuthenticatedUser()
-    if (userError) throw userError
-    if (!user) return { employee: null, error: new Error('No authenticated user') }
 
+    if (userError || !user) {
+      return { employee: null, error: userError || new Error('No authenticated user') }
+    }
+
+    const supabase = createClient()
     const { data: employee, error } = await supabase
       .from('employees')
       .select('*')
       .eq('auth_id', user.id)
       .single()
 
-    if (error) throw error
+    if (error) {
+      console.error('Error getting employee data:', error)
+      return { employee: null, error }
+    }
+
     return { employee, error: null }
   } catch (error) {
     console.error('Error getting employee data:', error)
-    return { employee: null, error }
+    return { employee: null, error: error as Error }
   }
 }
 
-// Create a default client instance
+// Create a singleton instance
 const supabase = createClient()
+export default supabase
 
-export default supabase 
+// Helper function to get the current session
+export async function getCurrentSession() {
+  const supabase = createClient()
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser()
+    if (error) throw error
+    return { user, error: null }
+  } catch (error) {
+    console.error('Error getting current session:', error)
+    return { user: null, error: error as Error }
+  }
+}
+
+// Helper function to handle sign in
+export async function signInWithEmail(email: string, password: string) {
+  const supabase = createClient()
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+    
+    if (error) throw error
+    
+    if (!data?.user) {
+      throw new Error('No user data returned')
+    }
+
+    return { data: { user: data.user }, error: null }
+  } catch (error) {
+    console.error('Error signing in:', error)
+    return { data: null, error: error as Error }
+  }
+}
+
+// Helper function to handle sign up
+export async function signUpWithEmail(email: string, password: string) {
+  const supabase = createClient()
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    })
+    if (error) throw error
+    return { data, error: null }
+  } catch (error) {
+    console.error('Error signing up:', error)
+    return { data: null, error: error as Error }
+  }
+}
+
+// Helper function to handle password reset
+export async function resetPassword(email: string) {
+  const supabase = createClient()
+  try {
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+    })
+    if (error) throw error
+    return { data, error: null }
+  } catch (error) {
+    console.error('Error resetting password:', error)
+    return { data: null, error: error as Error }
+  }
+} 

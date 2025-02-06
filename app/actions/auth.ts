@@ -1,59 +1,50 @@
-import { createServerClient, CookieOptions } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+'use server'
+
+import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 
-export async function forceSignOut() {
-  const cookieStore = cookies()
-  
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          cookieStore.set({ name, value, ...options })
-        },
-        remove(name: string, options: CookieOptions) {
-          cookieStore.delete({ name, ...options })
-        },
-      },
-    }
-  )
+export async function signIn(formData: FormData) {
+  const email = formData.get('email') as string
+  const password = formData.get('password') as string
+  const supabase = createClient()
 
   try {
-    // First revoke all sessions in the database
-    await supabase.rpc('revoke_all_sessions')
-    
-    // Then sign out the current user
-    await supabase.auth.signOut({ scope: 'global' })
-    
-    // Clear all auth cookies
-    const cookies = cookieStore.getAll()
-    cookies.forEach(cookie => {
-      if (
-        cookie.name.includes('supabase') || 
-        cookie.name.includes('sb-') ||
-        cookie.name.includes('auth')
-      ) {
-        cookieStore.delete({
-          name: cookie.name,
-          path: '/',
-          domain: 'localhost'
-        })
-      }
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password
     })
 
-    // Clear local storage if we're in the browser
-    if (typeof window !== 'undefined') {
-      window.localStorage.clear()
+    if (error) {
+      return redirect('/login?error=Invalid credentials')
     }
-  } catch (error) {
-    console.error('Force sign out error:', error)
-  }
 
-  // Always redirect to login, even if there was an error
-  redirect('/login')
+    // Verify user is authenticated
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    if (userError || !user) {
+      return redirect('/login?error=Authentication failed')
+    }
+
+    return redirect('/overview')
+  } catch (error) {
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+      throw error // Re-throw redirect errors
+    }
+    console.error('Sign in error:', error)
+    return redirect('/login?error=Unexpected error')
+  }
+}
+
+export async function signOut() {
+  const supabase = createClient()
+  
+  try {
+    await supabase.auth.signOut()
+    return redirect('/login')
+  } catch (error) {
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+      throw error // Re-throw redirect errors
+    }
+    console.error('Sign out error:', error)
+    return redirect('/login')
+  }
 } 

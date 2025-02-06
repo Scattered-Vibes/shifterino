@@ -1,9 +1,6 @@
 ---
-description:
-globs:
+description: 
+globs: *.tsx
 ---
 
-# Your rule content
-
-- You can @ files here
-- You can use markdown but dont have to
+Never use @supabase/auth-helpers-nextjs! It is now deprecated in favor of @supabase/ssr. Always use @supabase/ssr for any supabase related files. 

@@ -1,167 +1,124 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { AuthError } from '@supabase/supabase-js'
 
-// Define auth routes that should be accessible without authentication
-const publicRoutes = new Set([
-  '/login',
-  '/signup',
-  '/auth/callback',
-  '/auth/confirm',
-  '/auth/reset-password',
-])
-
-// Define routes that require supervisor role
-const supervisorRoutes = new Set([
-  '/manage',
-  '/manage/schedule',
-  '/manage/employees',
-  '/manage/time-off',
-])
+// Define public routes that don't require auth
+const publicRoutes = ['/login', '/signup', '/reset-password', '/auth-error', '/auth/callback']
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
-  
-  // Debug logging
-  console.log('--------------------')
-  console.log('Middleware Debug:')
-  console.log('Original pathname:', pathname)
-  
-  // Normalize the pathname
-  const normalizedPath = pathname === '/' ? pathname : pathname.toLowerCase().replace(/\/+$/, '')
-  
-  // Check if the current path is public
-  const isPublicRoute = publicRoutes.has(normalizedPath)
-  const isSupervisorRoute = supervisorRoutes.has(normalizedPath) || normalizedPath.startsWith('/manage/')
-  
-  console.log('Path info:', {
-    normalizedPath,
-    isPublicRoute,
-    isSupervisorRoute
-  })
 
-  // Create response early
+  // Skip auth check for public routes and static assets
+  if (
+    publicRoutes.includes(pathname) ||
+    pathname.startsWith('/_next/') ||
+    pathname.includes('.')
+  ) {
+    return NextResponse.next()
+  }
+
+  // Create a response object that we can modify
   const response = NextResponse.next({
     request: {
       headers: request.headers,
     },
   })
 
-  // Create Supabase client for auth
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          response.cookies.set({
-            name,
-            value,
-            ...options,
-          })
-        },
-        remove(name: string, options: CookieOptions) {
-          response.cookies.delete({
-            name,
-            ...options,
-          })
-        },
-      },
-    }
-  )
-
   try {
-    // For public routes, don't validate session
-    if (isPublicRoute) {
-      console.log('Public route - skipping auth check')
-      return response
-    }
-
-    // Get session for protected routes
-    console.log('Checking session...')
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-
-    if (sessionError) {
-      console.error('Session error:', sessionError)
-      return redirectToLogin(request)
-    }
-
-    // If no session and not a public route, redirect to login
-    if (!session) {
-      console.log('No session, redirecting to login')
-      return redirectToLogin(request)
-    }
-
-    console.log('Session found:', {
-      userId: session.user.id,
-      role: session.user.user_metadata?.role
-    })
-
-    // Check role-based access for supervisor routes
-    if (isSupervisorRoute) {
-      const userRole = session.user.user_metadata?.role
-
-      if (userRole !== 'supervisor') {
-        console.log('Access denied: Supervisor role required')
-        // Redirect to overview page if not supervisor
-        return redirectToOverview(request)
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return request.cookies.get(name)?.value
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            response.cookies.set({
+              name,
+              value,
+              ...options,
+            })
+          },
+          remove(name: string, options: CookieOptions) {
+            response.cookies.set({
+              name,
+              value: '',
+              ...options,
+            })
+          },
+        },
       }
+    )
+
+    // First try to get the session
+    const { data: { session } } = await supabase.auth.getSession()
+
+    // If there's no session and this isn't a public route, redirect to login
+    if (!session && !publicRoutes.includes(pathname)) {
+      // For initial load or missing session, redirect to login without error
+      const redirectUrl = new URL('/login', request.url)
+      redirectUrl.searchParams.set('redirectedFrom', pathname)
+      return NextResponse.redirect(redirectUrl)
     }
 
-    // Validate session in database
-    const sessionId = session.access_token ? 
-      JSON.parse(
-        Buffer.from(session.access_token.split('.')[1], 'base64').toString()
-      ).session_id : null;
+    // Only verify user if we have a session
+    if (session) {
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      
+      if (userError) {
+        throw userError
+      }
 
-    if (!sessionId) {
-      console.error('No session ID found in token')
-      return redirectToLogin(request)
+      // Special handling for root path
+      if (pathname === '/') {
+        return NextResponse.redirect(new URL('/overview', request.url))
+      }
+
+      // Verify user exists and has necessary permissions
+      if (!user) {
+        throw new Error('User not found')
+      }
+    } else if (pathname === '/') {
+      // If no session and at root, redirect to login
+      return NextResponse.redirect(new URL('/login', request.url))
     }
-
-    console.log('Validating session ID:', sessionId)
-
-    const { data: isValid, error: validationError } = await supabase
-      .rpc('validate_session', {
-        session_data: {
-          session_id: sessionId,
-          expires_at: session.expires_at
-        }
-      })
-
-    if (validationError || !isValid) {
-      console.error('Session validation failed:', validationError)
-      await supabase.auth.signOut()
-      return redirectToLogin(request)
-    }
-
-    console.log('Session validated successfully')
 
     return response
-  } catch (error) {
-    console.error('Middleware error:', error)
-    return isPublicRoute ? response : redirectToLogin(request)
-  } finally {
-    console.log('--------------------')
+  } catch (error: unknown) {
+    console.error('Middleware auth error:', error)
+    
+    // Don't clear cookies for session missing error on initial load
+    if (error instanceof AuthError && error.name !== 'AuthSessionMissingError') {
+      // Clear any invalid auth cookies
+      const cookiesToClear = ['sb-access-token', 'sb-refresh-token']
+      cookiesToClear.forEach(name => {
+        response.cookies.set({
+          name,
+          value: '',
+          maxAge: -1,
+          path: '/',
+        })
+      })
+    }
+    
+    // Only redirect to auth-error for non-public routes and non-session-missing errors
+    if (!publicRoutes.includes(pathname) && !(error instanceof AuthError && error.name === 'AuthSessionMissingError')) {
+      const errorUrl = new URL('/auth-error', request.url)
+      errorUrl.searchParams.set('error', 'auth_error')
+      errorUrl.searchParams.set('message', 'Please sign in again')
+      return NextResponse.redirect(errorUrl)
+    }
+    
+    // For session missing error, just redirect to login
+    if (error instanceof AuthError && error.name === 'AuthSessionMissingError' && !publicRoutes.includes(pathname)) {
+      const redirectUrl = new URL('/login', request.url)
+      redirectUrl.searchParams.set('redirectedFrom', pathname)
+      return NextResponse.redirect(redirectUrl)
+    }
+    
+    return response
   }
-}
-
-function redirectToLogin(request: NextRequest) {
-  const url = request.nextUrl.clone()
-  url.pathname = '/login'
-  // Only set returnTo if we're not already on a public route
-  if (!publicRoutes.has(request.nextUrl.pathname)) {
-    url.searchParams.set('returnTo', request.nextUrl.pathname)
-  }
-  return NextResponse.redirect(url)
-}
-
-function redirectToOverview(request: NextRequest) {
-  const url = request.nextUrl.clone()
-  url.pathname = '/overview'
-  return NextResponse.redirect(url)
 }
 
 export const config = {
@@ -172,6 +129,7 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - public folder
+     * - public files
      */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],

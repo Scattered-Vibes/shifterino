@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { signOut } from '@/app/(auth)/signout/actions'
 
 export interface AuthenticatedUser {
   id: string
@@ -24,8 +25,8 @@ export async function requireAuth(): Promise<AuthenticatedUser> {
     const userRole = user.user_metadata?.role
     if (!userRole || !['dispatcher', 'supervisor', 'manager'].includes(userRole)) {
       console.error('User has invalid or missing role in metadata')
-      await supabase.auth.signOut()
-      redirect('/login')
+      await signOut()
+      return redirect('/login')
     }
 
     // Check if user has a valid employee record
@@ -37,15 +38,15 @@ export async function requireAuth(): Promise<AuthenticatedUser> {
 
     if (employeeError || !employee?.id) {
       console.error('User not found in employees table:', employeeError)
-      await supabase.auth.signOut()
-      redirect('/login')
+      await signOut()
+      return redirect('/login')
     }
 
     // Verify role consistency
     if (employee.role !== userRole) {
       console.error('Role mismatch between auth metadata and employees')
-      await supabase.auth.signOut()
-      redirect('/login')
+      await signOut()
+      return redirect('/login')
     }
 
     return {

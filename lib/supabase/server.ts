@@ -14,9 +14,9 @@
  * @module lib/supabase/server
  */
 
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { Database } from '@/types/database'
+import type { Database } from '@/types/database'
 
 /**
  * Creates and configures a server-side Supabase client instance
@@ -38,36 +38,87 @@ export function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
-        },
-        set(name: string, value: string, options: CookieOptions) {
+        get: (name: string) => cookieStore.get(name)?.value,
+        set: (name: string, value: string, options: { expires?: Date }) => {
           try {
-            cookieStore.set({ name, value, ...options })
-          } catch {
-            // Handle cookie errors silently to avoid breaking the app
+            cookieStore.set(name, value, {
+              ...options,
+              sameSite: 'lax',
+              secure: process.env.NODE_ENV === 'production',
+              path: '/',
+              httpOnly: true,
+            })
+          } catch (error) {
+            // Handle cookie errors silently in production
+            if (process.env.NODE_ENV !== 'production') {
+              console.error('Error setting cookie:', error)
+            }
           }
         },
-        remove(name: string, options: CookieOptions) {
+        remove: (name: string, options: { path?: string }) => {
           try {
-            cookieStore.set({ name, value: '', ...options })
-          } catch {
-            // Handle cookie errors silently to avoid breaking the app
+            cookieStore.set(name, '', {
+              ...options,
+              maxAge: -1,
+              path: '/',
+            })
+          } catch (error) {
+            // Handle cookie errors silently in production
+            if (process.env.NODE_ENV !== 'production') {
+              console.error('Error removing cookie:', error)
+            }
           }
         },
       },
       auth: {
-        flowType: 'pkce',
         detectSessionInUrl: true,
         persistSession: true,
         autoRefreshToken: true,
-        debug: process.env.NODE_ENV === 'development',
-      },
-      global: {
-        headers: {
-          'X-Client-Info': 'supabase-ssr/0.0.0',
-        },
+        flowType: 'pkce',
       },
     }
   )
+}
+
+// Create a singleton instance for reuse
+const supabase = createClient()
+export default supabase
+
+// Helper function to get the current session with proper error handling
+export async function getCurrentSession() {
+  try {
+    const supabase = createClient()
+    const { data: { session }, error } = await supabase.auth.getSession()
+    
+    if (error) {
+      console.error('Error getting session:', error)
+      return { session: null, error }
+    }
+    
+    if (!session) {
+      return { 
+        session: null, 
+        error: new Error('No active session found') 
+      }
+    }
+    
+    return { session, error: null }
+  } catch (error) {
+    console.error('Unexpected error getting session:', error)
+    return { 
+      session: null, 
+      error: error instanceof Error ? error : new Error('Unknown error occurred') 
+    }
+  }
+}
+
+// Helper to get authenticated user or throw
+export async function getAuthenticatedUser() {
+  const { session, error } = await getCurrentSession()
+  
+  if (error || !session?.user) {
+    throw new Error('Not authenticated')
+  }
+  
+  return session.user
 } 
