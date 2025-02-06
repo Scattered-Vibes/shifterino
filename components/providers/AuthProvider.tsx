@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { type User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 import { signOut as signOutAction } from '@/app/(auth)/signout/actions'
+import { toast } from 'sonner'
 
 interface AuthContextType {
   user: User | null
@@ -37,28 +38,44 @@ export function AuthProvider({
   const pathname = usePathname()
   const supabase = createClient()
 
+  // Load initial user and set up subscription
   useEffect(() => {
-    // Subscribe to auth changes
+    const loadInitialUser = async () => {
+      try {
+        const { data: { user: currentUser }, error } = await supabase.auth.getUser()
+        if (error) {
+          console.error('Error getting initial user:', error)
+          setUser(null)
+        } else {
+          setUser(currentUser)
+        }
+      } catch (error) {
+        console.error('Error in AuthProvider initialization:', error)
+        setUser(null)
+      }
+    }
+
+    // Set up auth state change subscription
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       setIsLoading(true)
       try {
         if (event === 'SIGNED_IN') {
-          // Verify the user with getUser after sign in
-          const { data: { user }, error } = await supabase.auth.getUser()
-          if (error) {
-            console.error('Error verifying user after sign in:', error)
-            setUser(null)
-            return
+          if (session?.user) {
+            setUser(session.user)
+            router.refresh()
           }
-          setUser(user)
-          router.refresh()
         } else if (event === 'SIGNED_OUT') {
           setUser(null)
           router.refresh()
           if (!pathname.startsWith('/login')) {
             router.replace('/login')
+          }
+        } else if (event === 'USER_UPDATED') {
+          if (session?.user) {
+            setUser(session.user)
+            router.refresh()
           }
         }
       } catch (error) {
@@ -69,6 +86,10 @@ export function AuthProvider({
       }
     })
 
+    // Load initial user
+    loadInitialUser()
+
+    // Cleanup subscription
     return () => {
       subscription.unsubscribe()
     }
@@ -87,6 +108,7 @@ export function AuthProvider({
         setUser(null)
         
         if (error.message === 'SIGNOUT_FAILED') {
+          toast.error('Failed to sign out. Please try again.')
           router.replace('/login?error=signout_failed')
         } else {
           router.replace('/login')
@@ -105,10 +127,14 @@ export function AuthProvider({
         password,
       })
       
-      if (error) throw error
+      if (error) {
+        toast.error(error.message)
+        throw error
+      }
       
       if (data?.user) {
         setUser(data.user)
+        router.refresh()
       }
     } catch (error) {
       console.error('Error signing in:', error)
@@ -131,7 +157,11 @@ export function AuthProvider({
           }
         },
       })
-      if (error) throw error
+      if (error) {
+        toast.error(error.message)
+        throw error
+      }
+      toast.success('Please check your email to confirm your account')
     } catch (error) {
       console.error('Error signing up:', error)
       throw error
@@ -146,7 +176,11 @@ export function AuthProvider({
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${location.origin}/auth/callback?next=/reset-password`,
       })
-      if (error) throw error
+      if (error) {
+        toast.error(error.message)
+        throw error
+      }
+      toast.success('Password reset instructions sent to your email')
     } catch (error) {
       console.error('Error resetting password:', error)
       throw error

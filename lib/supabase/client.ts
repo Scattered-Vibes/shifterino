@@ -16,11 +16,12 @@
 
 import { createBrowserClient } from '@supabase/ssr'
 import type { Database } from '@/types/database'
+import { env } from '@/lib/env'
 
 export function createClient() {
   return createBrowserClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    env.NEXT_PUBLIC_SUPABASE_URL,
+    env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   )
 }
 
@@ -41,21 +42,32 @@ export async function getAuthenticatedUser() {
       return { user: null, error: new Error('No authenticated user found') }
     }
 
-    // Validate user if function exists
+    // Get the current session
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    if (sessionError) {
+      console.warn('Session error:', sessionError)
+      return { user: null, error: sessionError }
+    }
+
+    if (!session?.access_token) {
+      return { user: null, error: new Error('No valid session') }
+    }
+
+    // Validate session
     try {
-      const { data: isValid, error: validationError } = await supabase.rpc('validate_user', {
-        user_id: user.id
+      const { data: isValid, error: validationError } = await supabase.rpc('validate_session', {
+        session_token: session.access_token
       })
       
       if (validationError) {
-        console.warn('User validation error:', validationError)
+        console.warn('Session validation error:', validationError)
         // Continue with user if validation fails
       } else if (!isValid) {
-        return { user: null, error: new Error('Invalid user') }
+        return { user: null, error: new Error('Invalid session') }
       }
     } catch (error) {
       // Function might not exist, log error but continue
-      console.warn('User validation failed:', error)
+      console.warn('Session validation failed:', error)
     }
 
     return { user, error: null }

@@ -4,6 +4,7 @@ import { AuthProvider } from '@/components/providers/AuthProvider'
 import { Toaster } from '@/components/ui/toaster'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { type Metadata } from 'next'
+import { SuspenseBoundary } from '@/components/ui/loading'
 import './globals.css'
 
 // Initialize the Inter font family with the latin subset.
@@ -52,7 +53,9 @@ export default async function RootLayout({
       <body className={inter.className}>
         <AuthProvider initialUser={user}>
           <TooltipProvider>
-            {children}
+            <SuspenseBoundary>
+              {children}
+            </SuspenseBoundary>
           </TooltipProvider>
           <Toaster />
         </AuthProvider>

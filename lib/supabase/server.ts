@@ -14,53 +14,85 @@
  * @module lib/supabase/server
  */
 
-import { createServerClient } from '@supabase/ssr'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import type { Database } from '@/types/database'
+import { env } from '@/lib/env'
 
 /**
- * Creates and configures a server-side Supabase client instance
- * 
- * @returns {Promise<SupabaseClient>} Configured Supabase client for server-side operations
- * @throws {Error} If environment variables are not properly configured
- * 
- * @example
- * ```ts
- * const supabase = createClient()
- * const { data, error } = await supabase.from('table').select()
- * ```
+ * Creates a Supabase client instance for server-side operations using the public anonymous key.
+ *
+ * This function configures and returns a Supabase client that uses custom cookie management
+ * through Next.js headers. It is intended for operations where the anon key is sufficient.
+ *
+ * @returns A Supabase client instance configured with the public URL and anon key.
  */
 export function createClient() {
   const cookieStore = cookies()
 
   return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    env.NEXT_PUBLIC_SUPABASE_URL,
+    env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
       cookies: {
         get(name: string) {
           return cookieStore.get(name)?.value
         },
-        set(name: string, value: string, options: { expires?: Date }) {
-          cookieStore.set(name, value, {
-            ...options,
-            sameSite: 'lax',
-            secure: process.env.NODE_ENV === 'production',
-            path: '/',
-            httpOnly: true,
-          })
+        set(name: string, value: string, options: CookieOptions) {
+          cookieStore.set({ name, value, ...options })
         },
-        remove(name: string, options: { path?: string }) {
-          cookieStore.set(name, '', {
-            ...options,
-            maxAge: -1,
-            path: '/',
-          })
+        remove(name: string, options: CookieOptions) {
+          cookieStore.set({ name, value: '', ...options, maxAge: 0 })
+        }
+      },
+      auth: {
+        detectSessionInUrl: true,
+        persistSession: true,
+        autoRefreshToken: true,
+      },
+    }
+  )
+}
+
+/**
+ * Creates a Supabase client instance for server-side operations using the service role key.
+ *
+ * This client is meant for operations requiring elevated privileges. It uses the service role key
+ * along with standard cookie management via Next.js headers.
+ *
+ * @returns A Supabase client instance configured with the service role key.
+ */
+export function createServiceClient() {
+  const cookieStore = cookies()
+
+  return createServerClient<Database>(
+    env.NEXT_PUBLIC_SUPABASE_URL,
+    env.SUPABASE_SERVICE_ROLE_KEY,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          try {
+            cookieStore.set({ name, value, ...options })
+          } catch (error) {
+            console.error('Cookie set error:', error)
+          }
+        },
+        remove(name: string, options: CookieOptions) {
+          try {
+            cookieStore.set({ name, value: '', ...options, maxAge: 0 })
+          } catch (error) {
+            console.error('Cookie remove error:', error)
+          }
         },
       },
       auth: {
-        flowType: 'pkce',
-      }
+        detectSessionInUrl: true,
+        persistSession: true,
+        autoRefreshToken: true,
+      },
     }
   )
 }

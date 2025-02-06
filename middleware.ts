@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { AuthError } from '@supabase/supabase-js'
+import { env } from '@/lib/env'
 
 // Define public routes that don't require auth
 const publicRoutes = ['/login', '/signup', '/reset-password', '/auth-error', '/auth/callback']
@@ -26,8 +27,8 @@ export async function middleware(request: NextRequest) {
 
   try {
     const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      env.NEXT_PUBLIC_SUPABASE_URL,
+      env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
       {
         cookies: {
           get(name: string) {

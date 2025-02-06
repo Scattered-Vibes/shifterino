@@ -1,7 +1,10 @@
 'use client'
 
-import { Nav } from '@/components/ui/nav'
-import type { EmployeeRole } from '@/types/database'
+import { SideNav } from '@/components/ui/side-nav'
+import type { Database } from '@/types/database'
+
+type EmployeeRole = Database['public']['Tables']['employees']['Row']['role']
+
 import { signOut } from '@/app/(auth)/signout/actions'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -55,7 +58,7 @@ export function LayoutShell({ children, role }: LayoutShellProps) {
         </div>
       </header>
       <div className="flex flex-1 overflow-hidden">
-        <Nav role={role} />
+        <SideNav role={role} />
         <main className="flex-1 overflow-auto p-8">
           {children}
         </main>
