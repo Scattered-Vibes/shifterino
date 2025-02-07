@@ -1,13 +1,16 @@
 'use client'
 
-import { useEffect, useRef, useCallback } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { useInfiniteQuery } from '@tanstack/react-query'
-import { createClient } from '@/lib/supabase/client'
+
 import type { Database } from '@/types/database'
+import { createClient } from '@/lib/supabase/client'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 
 type Employee = Database['public']['Tables']['employees']['Row']
-type EmployeeWithSchedules = Employee & { schedules: Database['public']['Tables']['schedules']['Row'][] }
+type EmployeeWithSchedules = Employee & {
+  schedules: Database['public']['Tables']['schedules']['Row'][]
+}
 
 const ITEMS_PER_PAGE = 10
 
@@ -19,7 +22,7 @@ interface FetchEmployeesResponse {
 async function fetchStaffPage(page: number): Promise<FetchEmployeesResponse> {
   const supabase = createClient()
   const start = page * ITEMS_PER_PAGE
-  
+
   const { data, error, count } = await supabase
     .from('employees')
     .select('*, schedules(*)', { count: 'exact' })
@@ -41,45 +44,46 @@ async function fetchStaffPage(page: number): Promise<FetchEmployeesResponse> {
  * @returns {JSX.Element} The rendered component.
  */
 export function StaffList() {
-  const observerRef = useRef<IntersectionObserver>()
+  const observerRef = useRef<IntersectionObserver | null>(null)
   const loadMoreRef = useRef<HTMLDivElement>(null)
 
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    status,
-  } = useInfiniteQuery<FetchEmployeesResponse, Error>({
-    queryKey: ['staff'],
-    queryFn: ({ pageParam }) => fetchStaffPage(pageParam as number),
-    getNextPageParam: (lastPage) => lastPage.nextPage,
-    initialPageParam: 0,
-  })
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, status } =
+    useInfiniteQuery<FetchEmployeesResponse, Error>({
+      queryKey: ['staff'],
+      queryFn: ({ pageParam }) => fetchStaffPage(pageParam as number),
+      getNextPageParam: (lastPage) => lastPage.nextPage,
+      initialPageParam: 0,
+    })
 
-  const handleObserver = useCallback((entries: IntersectionObserverEntry[]) => {
-    const [target] = entries
-    if (target.isIntersecting && hasNextPage && !isFetchingNextPage) {
-      void fetchNextPage()
-    }
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage])
+  const handleObserver = useCallback(
+    (entries: IntersectionObserverEntry[]) => {
+      const target = entries[0]
+      if (!target) return
+      if (target.isIntersecting && hasNextPage && !isFetchingNextPage) {
+        void fetchNextPage()
+      }
+    },
+    [fetchNextPage, hasNextPage, isFetchingNextPage]
+  )
 
   useEffect(() => {
-    const element = loadMoreRef.current;
+    const element = loadMoreRef.current
     const cleanup = () => {
-      observerRef.current?.disconnect();
-    };
-    
-    if (!element) return cleanup;
+      if (observerRef.current) {
+        observerRef.current.disconnect()
+      }
+    }
+
+    if (!element) return cleanup
 
     observerRef.current = new IntersectionObserver(handleObserver, {
       threshold: 0.1,
-    });
+    })
 
-    observerRef.current.observe(element);
+    observerRef.current.observe(element)
 
-    return cleanup;
-  }, [handleObserver]);
+    return cleanup
+  }, [handleObserver])
 
   if (status === 'pending') {
     return <LoadingSpinner />
@@ -104,7 +108,7 @@ export function StaffList() {
                     <h3 className="text-lg font-medium">
                       {employee.first_name} {employee.last_name}
                     </h3>
-                    <p className="text-sm text-gray-500 capitalize">
+                    <p className="text-sm capitalize text-gray-500">
                       {employee.role}
                     </p>
                   </div>
@@ -122,4 +126,4 @@ export function StaffList() {
       </div>
     </div>
   )
-} 
+}

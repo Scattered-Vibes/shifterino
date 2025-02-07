@@ -1,14 +1,19 @@
-import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import TimeOffRequestForm from '../manage/components/TimeOffRequestForm'
-import TimeOffRequests from '../manage/components/TimeOffRequests'
+
+import { createClient } from '@/lib/supabase/server'
+
 import { getTimeOffRequests } from '../manage/actions/time-off'
+import TimeOffRequestForm from '../manage/components/TimeOffRequestForm'
+import { TimeOffRequestsWrapper } from './components/time-off-requests-wrapper'
 
 export default async function TimeOffPage() {
   const supabase = createClient()
 
   // Get the current user
-  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
   if (userError || !user) redirect('/login')
 
   // Get the employee record
@@ -25,22 +30,18 @@ export default async function TimeOffPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">Time Off Requests</h1>
       </div>
 
       <div className="grid gap-6">
-        <TimeOffRequestForm 
-          employeeId={employee.id} 
-        />
+        <TimeOffRequestForm employeeId={employee.id} />
 
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">Your Requests</h2>
-          <TimeOffRequests 
-            requests={requests} 
-          />
+          <TimeOffRequestsWrapper initialRequests={requests} />
         </div>
       </div>
     </div>
   )
-} 
+}

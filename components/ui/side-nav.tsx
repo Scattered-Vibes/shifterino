@@ -3,20 +3,23 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { cn } from '@/lib/utils'
 import {
-  LayoutDashboard,
   Calendar,
-  Clock,
-  Users,
-  User,
-  Cog,
-  ShieldCheck,
   ChevronLeft,
   ChevronRight,
+  Clock,
+  Home,
+  Users,
 } from 'lucide-react'
+
+import { cn } from '@/lib/utils'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+
 import { Button } from './button'
-import { Tooltip, TooltipContent, TooltipTrigger } from './tooltip'
 
 interface NavItem {
   title: string
@@ -30,11 +33,11 @@ const mainNavItems: NavItem[] = [
   {
     title: 'Overview',
     href: '/overview',
-    icon: LayoutDashboard,
+    icon: Home,
   },
   {
     title: 'Schedule',
-    href: '/schedule',
+    href: '/schedules',
     icon: Calendar,
   },
   {
@@ -50,7 +53,7 @@ const mainNavItems: NavItem[] = [
   {
     title: 'Manage',
     href: '/manage',
-    icon: ShieldCheck,
+    icon: Home,
     role: 'supervisor', // Only visible to supervisors and managers
   },
 ]
@@ -60,12 +63,12 @@ const settingsNavItems: NavItem[] = [
   {
     title: 'Profile',
     href: '/profile',
-    icon: User,
+    icon: Home,
   },
   {
     title: 'Settings',
     href: '/settings',
-    icon: Cog,
+    icon: Home,
   },
 ]
 
@@ -78,7 +81,7 @@ export function SideNav({ role = 'dispatcher' }: SideNavProps) {
   const [isCollapsed, setIsCollapsed] = useState(false)
 
   // Filter items based on role
-  const filteredMainItems = mainNavItems.filter(item => {
+  const filteredMainItems = mainNavItems.filter((item) => {
     if (!item.role) return true
     if (item.role === 'supervisor') {
       return role === 'supervisor' || role === 'manager'
@@ -88,9 +91,9 @@ export function SideNav({ role = 'dispatcher' }: SideNavProps) {
 
   const NavLink = ({ item }: { item: NavItem }) => {
     const isActive = pathname === item.href
-    
+
     return (
-      <Tooltip delayDuration={0}>
+      <Tooltip key={item.href} delayDuration={0}>
         <TooltipTrigger asChild>
           <Link
             href={item.href}
@@ -145,4 +148,4 @@ export function SideNav({ role = 'dispatcher' }: SideNavProps) {
       </div>
     </nav>
   )
-} 
+}

@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import { useEffect } from 'react'
+
 import { Button } from '@/components/ui/button'
 
 export default function GlobalError({
@@ -20,7 +21,7 @@ export default function GlobalError({
     <html>
       <body>
         <div className="flex h-screen flex-col items-center justify-center space-y-4 bg-background text-foreground">
-          <div className="text-center space-y-2">
+          <div className="space-y-2 text-center">
             <h2 className="text-2xl font-bold tracking-tight">
               Something went terribly wrong!
             </h2>
@@ -38,4 +39,4 @@ export default function GlobalError({
       </body>
     </html>
   )
-} 
+}

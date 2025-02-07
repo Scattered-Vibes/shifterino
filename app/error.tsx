@@ -1,61 +1,55 @@
 'use client'
 
-import * as React from 'react'
 import { useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { AuthError } from '@supabase/supabase-js'
+import { ExclamationTriangleIcon } from '@radix-ui/react-icons'
 
-interface ErrorBoundaryProps {
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+
+export default function GlobalError({
+  error,
+  reset,
+}: {
   error: Error & { digest?: string }
   reset: () => void
-}
-
-export default function ErrorBoundary({ error, reset }: ErrorBoundaryProps) {
+}) {
   useEffect(() => {
     // Log the error to an error reporting service
-    console.error('Global error boundary caught:', error)
-  }, [error])
-
-  const errorMessage = React.useMemo(() => {
-    if (error instanceof AuthError) {
-      switch (error.status) {
-        case 400:
-          return 'Invalid authentication request'
-        case 401:
-          return 'Your session has expired. Please sign in again.'
-        case 403:
-          return 'You do not have permission to access this resource'
-        default:
-          return 'An authentication error occurred'
-      }
-    }
-
-    // Database errors
-    if (error.message.includes('PGRST')) {
-      return 'A database error occurred. Please try again.'
-    }
-
-    // Network errors
-    if (error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
-      return 'Unable to connect to the server. Please check your internet connection.'
-    }
-
-    // Default error message
-    return error.message || 'An unexpected error occurred'
+    console.error('Global error:', error)
   }, [error])
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col items-center justify-center space-y-4">
-      <div className="text-center space-y-2">
-        <h2 className="text-2xl font-bold tracking-tight">Something went wrong!</h2>
-        <p className="text-muted-foreground">{errorMessage}</p>
-      </div>
-      <div className="flex space-x-2">
-        <Button onClick={() => reset()}>Try again</Button>
-        <Button variant="outline" onClick={() => window.location.reload()}>
-          Reload page
-        </Button>
-      </div>
-    </div>
+    <html>
+      <body>
+        <div className="flex min-h-screen flex-col items-center justify-center p-4">
+          <Alert variant="destructive" className="max-w-2xl">
+            <ExclamationTriangleIcon className="h-4 w-4" />
+            <AlertTitle>Something went wrong!</AlertTitle>
+            <AlertDescription className="mt-4 flex flex-col gap-4">
+              <p className="text-sm">
+                {error.message || 'An unexpected error occurred'}
+                {error.digest && (
+                  <span className="block text-xs text-muted-foreground">
+                    Error ID: {error.digest}
+                  </span>
+                )}
+              </p>
+              <div className="flex gap-4">
+                <Button variant="outline" size="sm" onClick={() => reset()}>
+                  Try again
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => (window.location.href = '/')}
+                >
+                  Go home
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        </div>
+      </body>
+    </html>
   )
-} 
+}

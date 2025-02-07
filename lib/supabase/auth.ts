@@ -1,12 +1,20 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
-import { cookies } from 'next/headers'
-import { createClient } from '@/lib/supabase/server'
-import { signOut as signOutAction } from '@/app/(auth)/signout/actions'
 import type { 
   AuthResponse, 
   SignInWithPasswordCredentials, 
   SignUpWithPasswordCredentials
 } from '@supabase/supabase-js'
+import { cookies } from 'next/headers'
+import { createClient } from '@/lib/supabase/server'
+
+export type UserRole = 'dispatcher' | 'supervisor' | 'manager'
+
+export interface AuthenticatedUser {
+  userId: string
+  employeeId: string
+  role: UserRole
+  email: string
+  isNewUser: boolean
+}
 
 /**
  * Helper function to clear auth cookies
@@ -41,107 +49,102 @@ function clearAuthCookies(cookieStore: ReturnType<typeof cookies>) {
   })
 }
 
-export async function createServerSupabaseClient() {
-  const cookieStore = cookies()
-
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          try {
-            const cookie = cookieStore.get(name)
-            console.log(`Auth: Getting cookie ${name}:`, cookie?.value ? 'exists' : 'not found')
-            return cookie?.value
-          } catch (error) {
-            console.error(`Auth: Error getting cookie ${name}:`, error)
-            return undefined
-          }
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          try {
-            console.log(`Auth: Setting cookie ${name}`)
-            cookieStore.set({ name, value, ...options })
-          } catch (error) {
-            console.error(`Auth: Error setting cookie ${name}:`, error)
-          }
-        },
-        remove(name: string, options: CookieOptions) {
-          try {
-            console.log(`Auth: Removing cookie ${name}`)
-            cookieStore.set({ name, value: '', ...options })
-          } catch (error) {
-            console.error(`Auth: Error removing cookie ${name}:`, error)
-          }
-        },
-      },
-    }
-  )
-}
-
-export async function getSession() {
-  const cookieStore = cookies()
+/**
+ * Gets the current user if authenticated
+ * Returns null if no user exists or if user is invalid
+ */
+export async function getUser() {
+  const supabase = createClient()
   
   try {
-    console.log('Auth: Creating server client for session check')
-    const supabase = await createServerSupabaseClient()
+    const { data: { user }, error } = await supabase.auth.getUser()
     
-    console.log('Auth: Validating user authentication')
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-
-    if (userError) {
-      console.error('Auth: User validation error:', userError)
-      clearAuthCookies(cookieStore)
+    if (error || !user) {
+      console.error('User error:', error)
       return null
     }
 
-    if (!user?.id) {
-      console.log('Auth: No valid user found')
-      clearAuthCookies(cookieStore)
-      return null
-    }
-
-    // Get session data for UI purposes
-    console.log('Auth: Fetching session data')
-    const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession()
-
-    if (sessionError) {
-      console.error('Auth: Session error:', sessionError)
-      clearAuthCookies(cookieStore)
-      return null
-    }
-
-    // Validate session expiry
-    const now = Math.floor(Date.now() / 1000)
-    if (session?.expires_at && session.expires_at < now) {
-      console.log('Auth: Session expired')
-      await signOutAction()
-      return null
-    }
-
-    // Verify user exists in database
-    const { data: employee, error: employeeError } = await supabase
-      .from('employees')
-      .select('id')
-      .eq('auth_id', user.id)
-      .single()
-
-    if (employeeError || !employee) {
-      console.log('Auth: User not found in database, clearing session')
-      await signOutAction()
-      return null
-    }
-
-    console.log('Auth: Valid session found for user:', user.id)
-    return session
+    return user
   } catch (error) {
-    console.error('Auth: Critical error getting session:', error)
-    clearAuthCookies(cookieStore)
+    console.error('Error getting user:', error)
     return null
+  }
+}
+
+/**
+ * Verifies employee data exists and matches user role
+ * Throws error if verification fails
+ */
+export async function verifyEmployee(userId: string) {
+  const supabase = createClient()
+  
+  const { data: employee, error: employeeError } = await supabase
+    .from('employees')
+    .select('id, role, first_name, last_name')
+    .eq('auth_id', userId)
+    .single()
+
+  if (employeeError || !employee) {
+    throw new Error('Employee not found')
+  }
+
+  const role = employee.role as UserRole
+  if (!['dispatcher', 'supervisor', 'manager'].includes(role)) {
+    throw new Error('Invalid role')
+  }
+
+  return {
+    employeeId: employee.id,
+    role,
+    isNewUser: !employee.first_name || !employee.last_name
+  }
+}
+
+/**
+ * Signs out the current user and clears auth cookies
+ */
+export async function signOutUser() {
+  const cookieStore = cookies()
+  const supabase = createClient()
+
+  try {
+    await supabase.auth.signOut()
+    clearAuthCookies(cookieStore)
+    return { success: true }
+  } catch (error) {
+    console.error('Signout error:', error)
+    return { error: 'Failed to sign out' }
+  }
+}
+
+/**
+ * Requires authentication and returns user data
+ * Throws if not authenticated or if employee verification fails
+ */
+export async function requireAuth(allowIncomplete = false): Promise<AuthenticatedUser> {
+  const user = await getUser()
+  
+  if (!user) {
+    throw new Error('Not authenticated')
+  }
+  
+  try {
+    const { employeeId, role, isNewUser } = await verifyEmployee(user.id)
+
+    if (isNewUser && !allowIncomplete) {
+      throw new Error('Profile incomplete')
+    }
+
+    return {
+      userId: user.id,
+      employeeId,
+      role,
+      email: user.email || '',
+      isNewUser
+    }
+  } catch (error) {
+    console.error('Error in requireAuth:', error)
+    throw error
   }
 }
 
@@ -173,4 +176,4 @@ export async function signUp(
   })
 }
 
-export { signOutAction as signOut } 
+export { signOutUser as signOut } 

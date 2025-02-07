@@ -1,46 +1,104 @@
 /**
- * Service Role Supabase Client Configuration
+ * Service-level Supabase Client
  * 
- * This module provides a Supabase client configured with service role credentials
- * for administrative and background tasks that require elevated database privileges.
- * The service role bypasses Row Level Security (RLS) policies.
- * 
- * IMPORTANT: This client should only be used server-side and never exposed to the client.
- * The service role key has full database access and must be kept secure.
- * 
- * Features:
- * - Full database access with service role credentials
- * - Bypasses RLS policies for administrative operations
- * - Stateless configuration without session management
- * - For use in server-side operations only
- * 
- * @module lib/supabase/service
+ * This module provides a Supabase client configured with the service role key
+ * for administrative operations. This should ONLY be used in server-side code
+ * that requires elevated privileges.
  */
 
 import { createClient } from '@supabase/supabase-js'
+import type { Database } from '@/types/database'
+import config from '@/lib/config.server'
+import { handleError } from '@/lib/utils/error-handler'
+
+// Type for the service client to ensure it's used correctly
+type ServiceClient = ReturnType<typeof createClient<Database>>
+
+// Service client configuration
+const serviceConfig = {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
+  },
+  global: {
+    headers: {
+      'x-client-info': 'supabase-service'
+    }
+  }
+} as const
+
+let serviceClient: ServiceClient | null = null
 
 /**
- * Creates and configures a Supabase client with service role credentials
- * 
- * @returns {SupabaseClient} Configured Supabase client with service role access
- * @throws {Error} If environment variables are not properly configured
- * 
- * @example
- * ```ts
- * // Server-side only
- * const serviceClient = createServiceClient()
- * const { data } = await serviceClient.from('table').select('*') // Bypasses RLS
- * ```
+ * Creates and returns a Supabase client with service role privileges.
+ * This should ONLY be used in server-side code that requires admin access.
  */
-export const createServiceClient = () => {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      auth: {
-        autoRefreshToken: false, // No token refresh needed for service role
-        persistSession: false    // No session persistence for stateless operations
-      }
+export function getServiceClient() {
+  if (serviceClient) return serviceClient
+
+  const { url, serviceKey } = config.supabase
+    
+  if (!url || !serviceKey) {
+    throw new Error('Missing Supabase service configuration')
+  }
+
+  serviceClient = createClient<Database>(url, serviceKey, serviceConfig)
+  return serviceClient
+}
+
+/**
+ * Helper to ensure we're using the service client with proper error handling
+ */
+export function requireServiceClient() {
+  try {
+    const client = getServiceClient()
+    if (!client) {
+      throw new Error('Service client not initialized')
     }
-  )
+    return client
+  } catch (error) {
+    throw handleError(error)
+  }
+}
+
+// Admin-only helper functions
+export const adminHelpers = {
+  async deleteUser(userId: string) {
+    try {
+      const supabase = requireServiceClient()
+      const { error } = await supabase.auth.admin.deleteUser(userId)
+      
+      if (error) throw error
+      
+      return { error: null }
+    } catch (error) {
+      return { error: handleError(error) }
+    }
+  },
+
+  async getUserById(userId: string) {
+    try {
+      const supabase = requireServiceClient()
+      const { data, error } = await supabase.auth.admin.getUserById(userId)
+      
+      if (error) throw error
+      
+      return { data, error: null }
+    } catch (error) {
+      return { data: null, error: handleError(error) }
+    }
+  },
+
+  async listUsers() {
+    try {
+      const supabase = requireServiceClient()
+      const { data, error } = await supabase.auth.admin.listUsers()
+      
+      if (error) throw error
+      
+      return { data, error: null }
+    } catch (error) {
+      return { data: null, error: handleError(error) }
+    }
+  }
 } 

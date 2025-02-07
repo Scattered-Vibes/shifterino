@@ -16,23 +16,31 @@
 
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import type { Database } from '@/types/database'
-import { env } from '@/lib/env'
+import { redirect } from 'next/navigation'
+import { type Database } from '@/types/database'
+import config from '@/lib/config.server'
 
-/**
- * Creates a Supabase client instance for server-side operations using the public anonymous key.
- *
- * This function configures and returns a Supabase client that uses custom cookie management
- * through Next.js headers. It is intended for operations where the anon key is sufficient.
- *
- * @returns A Supabase client instance configured with the public URL and anon key.
- */
+export type UserRole = 'dispatcher' | 'supervisor' | 'manager'
+
+export interface AuthenticatedUser {
+  userId: string
+  employeeId: string
+  role: UserRole
+  email: string
+  isNewUser: boolean
+}
+
 export function createClient() {
   const cookieStore = cookies()
+  const { url, anonKey } = config.supabase
+
+  if (!url || !anonKey) {
+    throw new Error('Missing Supabase configuration')
+  }
 
   return createServerClient<Database>(
-    env.NEXT_PUBLIC_SUPABASE_URL,
-    env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    url,
+    anonKey,
     {
       cookies: {
         get(name: string) {
@@ -42,32 +50,24 @@ export function createClient() {
           cookieStore.set({ name, value, ...options })
         },
         remove(name: string, options: CookieOptions) {
-          cookieStore.set({ name, value: '', ...options, maxAge: 0 })
-        }
-      },
-      auth: {
-        detectSessionInUrl: true,
-        persistSession: true,
-        autoRefreshToken: true,
+          cookieStore.delete({ name, ...options })
+        },
       },
     }
   )
 }
 
-/**
- * Creates a Supabase client instance for server-side operations using the service role key.
- *
- * This client is meant for operations requiring elevated privileges. It uses the service role key
- * along with standard cookie management via Next.js headers.
- *
- * @returns A Supabase client instance configured with the service role key.
- */
 export function createServiceClient() {
   const cookieStore = cookies()
+  const { url, serviceKey } = config.supabase
+
+  if (!url || !serviceKey) {
+    throw new Error('Missing Supabase service configuration')
+  }
 
   return createServerClient<Database>(
-    env.NEXT_PUBLIC_SUPABASE_URL,
-    env.SUPABASE_SERVICE_ROLE_KEY,
+    url,
+    serviceKey,
     {
       cookies: {
         get(name: string) {
@@ -77,80 +77,83 @@ export function createServiceClient() {
           try {
             cookieStore.set({ name, value, ...options })
           } catch (error) {
-            console.error('Cookie set error:', error)
+            console.error('Error setting cookie:', error)
           }
         },
         remove(name: string, options: CookieOptions) {
           try {
-            cookieStore.set({ name, value: '', ...options, maxAge: 0 })
+            cookieStore.delete({ name, ...options })
           } catch (error) {
-            console.error('Cookie remove error:', error)
+            console.error('Error removing cookie:', error)
           }
         },
-      },
-      auth: {
-        detectSessionInUrl: true,
-        persistSession: true,
-        autoRefreshToken: true,
       },
     }
   )
 }
 
-// Create a singleton instance for reuse
-const supabase = createClient()
-export default supabase
-
-// Helper function to get the current user with proper error handling
-export async function getCurrentUser() {
-  try {
-    const supabase = createClient()
-    const { data: { user }, error } = await supabase.auth.getUser()
-    
-    if (error) {
-      console.error('Error getting user:', error)
-      return { user: null, error }
-    }
-    
-    if (!user) {
-      return { 
-        user: null, 
-        error: new Error('No authenticated user found') 
-      }
-    }
-    
-    return { user, error: null }
-  } catch (error) {
-    console.error('Unexpected error getting user:', error)
-    return { 
-      user: null, 
-      error: error instanceof Error ? error : new Error('Unknown error occurred') 
-    }
-  }
-}
-
-// Helper to get authenticated user or throw
-export async function getAuthenticatedUser() {
-  const { user, error } = await getCurrentUser()
-  
-  if (error || !user) {
-    throw new Error('Not authenticated')
-  }
-  
+export async function getUser() {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
   return user
 }
 
-// Only use getSession when full session data is needed
-export async function getFullSession() {
-  try {
-    const supabase = createClient()
-    const { data: { session }, error } = await supabase.auth.getSession()
-    return { session, error }
-  } catch (error) {
-    console.error('Error getting full session:', error)
-    return { 
-      session: null, 
-      error: error instanceof Error ? error : new Error('Unknown error occurred') 
+export async function getSession() {
+  const supabase = createClient()
+  const { data: { session } } = await supabase.auth.getSession()
+  return session
+}
+
+async function verifyEmployee(userId: string): Promise<{
+  employeeId: string
+  role: UserRole
+  isNewUser: boolean
+}> {
+  const supabase = createClient()
+  const { data: employee, error } = await supabase
+    .from('employees')
+    .select('id, role, first_name, last_name')
+    .eq('auth_id', userId)
+    .single()
+
+  if (error || !employee) {
+    return {
+      employeeId: '',
+      role: 'dispatcher',
+      isNewUser: true
     }
   }
-} 
+
+  return {
+    employeeId: employee.id,
+    role: employee.role as UserRole,
+    isNewUser: !employee.first_name || !employee.last_name
+  }
+}
+
+export async function requireAuth(allowIncomplete = false): Promise<AuthenticatedUser> {
+  const user = await getUser()
+
+  if (!user) {
+    redirect('/login')
+  }
+
+  try {
+    const { employeeId, role, isNewUser } = await verifyEmployee(user.id)
+
+    if (isNewUser && !allowIncomplete) {
+      redirect('/complete-profile')
+    }
+
+    return {
+      userId: user.id,
+      employeeId,
+      role,
+      email: user.email || '',
+      isNewUser
+    }
+  } catch (error) {
+    console.error('Error in requireAuth:', error)
+    throw error
+  }
+}

@@ -678,17 +678,28 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_dispatcher_user: {
+        Args: {
+          user_id: string
+          email: string
+          password: string
+          role: string
+        }
+        Returns: undefined
+      }
       email: {
         Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      hash_password: {
+        Args: {
+          password: string
+        }
         Returns: string
       }
       jwt: {
         Args: Record<PropertyKey, never>
         Returns: Json
-      }
-      revoke_all_sessions: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
       }
       role: {
         Args: Record<PropertyKey, never>
@@ -938,29 +949,62 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          action_type: string
+          changed_by: string | null
+          created_at: string | null
+          id: string
+          new_values: Json | null
+          old_values: Json | null
+          record_id: string
+          table_name: string
+        }
+        Insert: {
+          action_type: string
+          changed_by?: string | null
+          created_at?: string | null
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+          record_id: string
+          table_name: string
+        }
+        Update: {
+          action_type?: string
+          changed_by?: string | null
+          created_at?: string | null
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+          record_id?: string
+          table_name?: string
+        }
+        Relationships: []
+      }
       auth_logs: {
         Row: {
+          created_at: string | null
           details: Json | null
           error_message: string | null
-          id: number
-          operation: string | null
-          timestamp: string | null
+          id: string
+          operation: string
           user_id: string | null
         }
         Insert: {
+          created_at?: string | null
           details?: Json | null
           error_message?: string | null
-          id?: number
-          operation?: string | null
-          timestamp?: string | null
+          id?: string
+          operation: string
           user_id?: string | null
         }
         Update: {
+          created_at?: string | null
           details?: Json | null
           error_message?: string | null
-          id?: number
-          operation?: string | null
-          timestamp?: string | null
+          id?: string
+          operation?: string
           user_id?: string | null
         }
         Relationships: []
@@ -1113,13 +1157,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "individual_shifts_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "mv_schedule_statistics"
-            referencedColumns: ["employee_id"]
-          },
-          {
             foreignKeyName: "individual_shifts_schedule_period_id_fkey"
             columns: ["schedule_period_id"]
             isOneToOne: false
@@ -1139,13 +1176,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "individual_shifts_supervisor_approved_by_fkey"
-            columns: ["supervisor_approved_by"]
-            isOneToOne: false
-            referencedRelation: "mv_schedule_statistics"
-            referencedColumns: ["employee_id"]
           },
         ]
       }
@@ -1306,13 +1336,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "scheduling_logs_related_employee_id_fkey"
-            columns: ["related_employee_id"]
-            isOneToOne: false
-            referencedRelation: "mv_schedule_statistics"
-            referencedColumns: ["employee_id"]
-          },
-          {
             foreignKeyName: "scheduling_logs_schedule_period_id_fkey"
             columns: ["schedule_period_id"]
             isOneToOne: false
@@ -1320,6 +1343,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      schema_versions: {
+        Row: {
+          applied_at: string | null
+          created_by: string | null
+          description: string | null
+          version: string
+        }
+        Insert: {
+          applied_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          version: string
+        }
+        Update: {
+          applied_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          version?: string
+        }
+        Relationships: []
       }
       shift_assignment_scores: {
         Row: {
@@ -1362,13 +1406,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "shift_assignment_scores_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "mv_schedule_statistics"
-            referencedColumns: ["employee_id"]
           },
           {
             foreignKeyName: "shift_assignment_scores_schedule_period_id_fkey"
@@ -1499,25 +1536,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "shift_swap_requests_requested_employee_id_fkey"
-            columns: ["requested_employee_id"]
-            isOneToOne: false
-            referencedRelation: "mv_schedule_statistics"
-            referencedColumns: ["employee_id"]
-          },
-          {
             foreignKeyName: "shift_swap_requests_requester_id_fkey"
             columns: ["requester_id"]
             isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "shift_swap_requests_requester_id_fkey"
-            columns: ["requester_id"]
-            isOneToOne: false
-            referencedRelation: "mv_schedule_statistics"
-            referencedColumns: ["employee_id"]
           },
           {
             foreignKeyName: "shift_swap_requests_shift_id_fkey"
@@ -1600,6 +1623,55 @@ export type Database = {
         }
         Relationships: []
       }
+      test_data: {
+        Row: {
+          created_at: string | null
+          employee_id: string | null
+          id: string
+          schedule_period_id: string | null
+          shift_option_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          employee_id?: string | null
+          id?: string
+          schedule_period_id?: string | null
+          shift_option_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          employee_id?: string | null
+          id?: string
+          schedule_period_id?: string | null
+          shift_option_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "test_data_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "test_data_schedule_period_id_fkey"
+            columns: ["schedule_period_id"]
+            isOneToOne: false
+            referencedRelation: "schedule_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "test_data_shift_option_id_fkey"
+            columns: ["shift_option_id"]
+            isOneToOne: false
+            referencedRelation: "shift_options"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       time_off_requests: {
         Row: {
           created_at: string
@@ -1642,37 +1714,357 @@ export type Database = {
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "time_off_requests_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "mv_schedule_statistics"
-            referencedColumns: ["employee_id"]
-          },
         ]
       }
     }
     Views: {
-      mv_schedule_statistics: {
-        Row: {
-          avg_hours_per_shift: number | null
-          avg_score: number | null
-          employee_id: string | null
-          first_name: string | null
-          last_name: string | null
-          periods_worked: number | null
-          role: Database["public"]["Enums"]["employee_role"] | null
-          total_hours: number | null
-          total_shifts: number | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
+      gbt_bit_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_bool_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_bool_fetch: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_bpchar_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_bytea_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_cash_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_cash_fetch: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_date_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_date_fetch: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_decompress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_enum_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_enum_fetch: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_float4_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_float4_fetch: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_float8_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_float8_fetch: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_inet_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_int2_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_int2_fetch: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_int4_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_int4_fetch: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_int8_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_int8_fetch: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_intv_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_intv_decompress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_intv_fetch: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_macad_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_macad_fetch: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_macad8_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_macad8_fetch: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_numeric_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_oid_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_oid_fetch: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_text_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_time_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_time_fetch: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_timetz_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_ts_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_ts_fetch: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_tstz_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_uuid_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_uuid_fetch: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_var_decompress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_var_fetch: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbtreekey_var_in: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbtreekey_var_out: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbtreekey16_in: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbtreekey16_out: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbtreekey2_in: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbtreekey2_out: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbtreekey32_in: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbtreekey32_out: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbtreekey4_in: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbtreekey4_out: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbtreekey8_in: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbtreekey8_out: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
       validate_session: {
         Args: {
           session_token: string
         }
+        Returns: boolean
+      }
+      verify_safe_migration: {
+        Args: Record<PropertyKey, never>
         Returns: boolean
       }
     }
@@ -1694,36 +2086,6 @@ export type Database = {
     }
   }
 }
-
-// Time periods for staffing requirements
-export const TIME_PERIODS = {
-  EARLY_MORNING: {
-    start: '05:00',
-    end: '09:00',
-    minStaff: 6,
-    label: 'Early Morning (5 AM - 9 AM)'
-  },
-  DAY: {
-    start: '09:00',
-    end: '21:00',
-    minStaff: 8,
-    label: 'Day (9 AM - 9 PM)'
-  },
-  EVENING: {
-    start: '21:00',
-    end: '01:00',
-    minStaff: 7,
-    label: 'Evening (9 PM - 1 AM)'
-  },
-  LATE_NIGHT: {
-    start: '01:00',
-    end: '05:00',
-    minStaff: 6,
-    label: 'Late Night (1 AM - 5 AM)'
-  }
-} as const;
-
-export type TimePeriod = keyof typeof TIME_PERIODS;
 
 type PublicSchema = Database[Extract<keyof Database, "public">]
 
@@ -1821,4 +2183,76 @@ export type CompositeTypes<
   : PublicCompositeTypeNameOrOptions extends keyof PublicSchema["CompositeTypes"]
     ? PublicSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
+
+export type EmployeeRole = 'dispatcher' | 'supervisor' | 'manager'
+
+export type ShiftPattern = 'four_ten' | 'three_twelve'
+
+export type ShiftCategory = 'day_early' | 'day' | 'swing' | 'graveyard'
+
+export type ShiftStatus = 'scheduled' | 'completed' | 'missed' | 'sick' | 'vacation'
+
+export type TimeOffStatus = 'pending' | 'approved' | 'rejected'
+
+export type LogSeverity = 'info' | 'warning' | 'error'
+
+export interface Employee {
+  id: string
+  auth_id: string
+  first_name: string
+  last_name: string
+  email: string
+  role: EmployeeRole
+  shift_pattern: ShiftPattern
+  preferred_shift_category?: ShiftCategory
+  weekly_hours_cap: number
+  max_overtime_hours: number
+  last_shift_date?: string
+  total_hours_current_week: number
+  consecutive_shifts_count: number
+  created_by?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface Schedule {
+  id: string
+  created_at: string
+  updated_at: string
+  start_date: string
+  end_date: string
+  employee_id: string
+  shift_type: ShiftCategory
+  shift_pattern: ShiftPattern
+  is_supervisor: boolean
+  status: 'draft' | 'published' | 'archived'
+  created_by: string
+  updated_by: string
+}
+
+export interface TimeOffRequest {
+  id: string
+  employee_id: string
+  start_date: string
+  end_date: string
+  status: TimeOffStatus
+  notes?: string
+  reason: string
+  created_at: string
+  updated_at: string
+}
+
+export interface StaffingRequirement {
+  id: string
+  name: string
+  time_block_start: string
+  time_block_end: string
+  min_total_staff: number
+  min_supervisors: number
+  schedule_period_id?: string
+  is_holiday: boolean
+  override_reason?: string
+  created_at: string
+  updated_at: string
+}
 

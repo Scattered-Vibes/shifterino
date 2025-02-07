@@ -1,12 +1,17 @@
 'use client'
 
-import { Sidebar } from '@/components/ui/sidebar'
+import type { Database } from '@/types/database'
 import { Header } from '@/components/ui/header'
-import type { EmployeeRole } from '@/types/database'
+import { SideNav } from '@/components/ui/side-nav'
+
+type EmployeeRole = Database['public']['Enums']['employee_role']
 
 interface ClientLayoutProps {
   user: {
-    email?: string | undefined
+    email: string
+    firstName?: string
+    lastName?: string
+    role: string
   }
   employee: {
     id: string
@@ -18,15 +23,18 @@ interface ClientLayoutProps {
 }
 
 export function ClientLayout({ user, employee, children }: ClientLayoutProps) {
+  const userWithRole = {
+    ...user,
+    role: employee.role
+  }
+
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header user={user} employee={employee} />
+    <div className="flex min-h-screen flex-col">
+      <Header user={userWithRole} />
       <div className="flex flex-1">
-        <Sidebar userRole={employee.role} />
-        <main className="flex-1 p-6 overflow-y-auto">
-          {children}
-        </main>
+        <SideNav role={employee.role} />
+        <main className="flex-1 overflow-y-auto p-6">{children}</main>
       </div>
     </div>
   )
-} 
+}

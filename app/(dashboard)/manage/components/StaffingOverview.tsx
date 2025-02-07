@@ -1,105 +1,76 @@
 'use client'
 
-import { useMemo } from 'react'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import type { Schedule } from '@/types/database'
-import { TIME_PERIODS } from '@/types/database'
+import { Progress } from '@/components/ui/progress'
 
-/**
- * Props for the StaffingOverview component.
- *
- * @interface StaffingOverviewProps
- * @property {Array<Schedule & { employee: { first_name: string, last_name: string, is_supervisor: boolean } }>} schedules 
- *  - The list of scheduled shifts including employee details.
- */
-interface StaffingOverviewProps {
-  schedules: Array<Schedule & {
-    employee: {
-      first_name: string
-      last_name: string
-      is_supervisor: boolean
-    }
-  }>
+interface Schedule {
+  id: string
+  employee_id: string
+  shift_type: string
+  is_supervisor: boolean
+  start_date: string
+  end_date: string
+  status: string
 }
 
-/**
- * StaffingOverview Component
- *
- * This client component calculates and displays staffing levels for each defined time period.
- * It uses the TIME_PERIODS configuration to determine the required staffing and compares it
- * with actual scheduled staff, including a count of supervisors per period.
- *
- * @param {StaffingOverviewProps} props - The component props containing scheduling details.
- * @returns {JSX.Element} A table representing current staffing levels and statuses.
- */
-export default function StaffingOverview({ schedules }: StaffingOverviewProps) {
-  // Memoize the staffing level calculations to avoid expensive recomputation on every render.
-  const staffingLevels = useMemo(() => {
-    // Map through each defined time period from TIME_PERIODS
-    const levels = Object.entries(TIME_PERIODS).map(([period, { start, end, min_staff }]) => {
-      // Filter schedules that fall into the current time period.
-      const staffInPeriod = schedules.filter(schedule => {
-        const scheduleStart = schedule.start_time
-        const scheduleEnd = schedule.end_time
-        // Check if the scheduled shift overlaps with the time period.
-        return (
-          (scheduleStart >= start && scheduleStart < end) ||
-          (scheduleEnd > start && scheduleEnd <= end) ||
-          (scheduleStart <= start && scheduleEnd >= end)
-        )
-      })
+interface StaffingOverviewProps {
+  schedules: Schedule[]
+}
 
-      // Identify supervisors within the filtered list.
-      const supervisors = staffInPeriod.filter(s => s.employee.is_supervisor)
+export function StaffingOverview({ schedules }: StaffingOverviewProps) {
+  // Define staffing requirements based on schema
+  const staffingRequirements = [
+    { period: '5 AM - 9 AM', required: 6, supervisors: 1 },
+    { period: '9 AM - 9 PM', required: 8, supervisors: 1 },
+    { period: '9 PM - 1 AM', required: 7, supervisors: 1 },
+    { period: '1 AM - 5 AM', required: 6, supervisors: 1 },
+  ]
 
-      // Return the staffing summary for the period.
-      return {
-        period,
-        start,
-        end,
-        min_staff,
-        current_staff: staffInPeriod.length,
-        supervisors: supervisors.length,
-        status: staffInPeriod.length >= min_staff ? 'ok' : 'understaffed'
-      }
-    })
+  // Count current staff and supervisors for each period
+  // TODO: Implement period-based filtering once we have proper shift time handling
+  const getCurrentStaffing = () => {
+    // This is a simplified version - in production, we'd need to handle:
+    // - Time zone conversions
+    // - Shift overlaps
+    // - Status checks (approved, etc)
+    const activeSchedules = schedules.filter((s) => s.status === 'published')
+    const staffCount = activeSchedules.length
+    const supervisorCount = activeSchedules.filter(
+      (s) => s.is_supervisor
+    ).length
 
-    return levels
-  }, [schedules])
+    return {
+      total: staffCount,
+      supervisors: supervisorCount,
+    }
+  }
 
-  // Render a table to display the staffing overview.
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Time Period</TableHead>
-          <TableHead>Required Staff</TableHead>
-          <TableHead>Current Staff</TableHead>
-          <TableHead>Supervisors</TableHead>
-          <TableHead>Status</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {staffingLevels.map(level => (
-          <TableRow key={level.period}>
-            <TableCell>
-              {level.start}-{level.end}
-            </TableCell>
-            <TableCell>{level.min_staff}</TableCell>
-            <TableCell>{level.current_staff}</TableCell>
-            <TableCell>{level.supervisors}</TableCell>
-            <TableCell>
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                level.status === 'ok' 
-                  ? 'bg-green-100 text-green-800' 
-                  : 'bg-red-100 text-red-800'
-              }`}>
-                {level.status === 'ok' ? 'Adequate' : 'Understaffed'}
+    <div className="space-y-4">
+      {staffingRequirements.map((req) => {
+        const current = getCurrentStaffing()
+        const staffingPercentage = Math.min(
+          (current.total / req.required) * 100,
+          100
+        )
+
+        return (
+          <div key={req.period} className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span>{req.period}</span>
+              <span className="text-muted-foreground">
+                {current.total}/{req.required} Staff ({current.supervisors}/
+                {req.supervisors} Supervisors)
               </span>
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+            </div>
+            <Progress
+              value={staffingPercentage}
+              className={
+                staffingPercentage < 100 ? 'bg-red-200' : 'bg-green-200'
+              }
+            />
+          </div>
+        )
+      })}
+    </div>
   )
-} 
+}

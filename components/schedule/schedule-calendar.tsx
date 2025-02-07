@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
+
 import { Calendar } from '@/components/ui/calendar'
 
 interface ScheduleCalendarProps {
@@ -22,8 +23,8 @@ export function ScheduleCalendar({ employeeId }: ScheduleCalendarProps) {
     // Mock shift fetching
     const fetchShifts = async () => {
       // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+
       setShifts([
         {
           date: new Date(),
@@ -50,7 +51,7 @@ export function ScheduleCalendar({ employeeId }: ScheduleCalendarProps) {
       onSelect={setDate}
       className="rounded-md border"
       modifiers={{
-        shift: shifts.map(shift => shift.date),
+        shift: shifts.map((shift) => shift.date),
       }}
       modifiersStyles={{
         shift: {
@@ -61,4 +62,4 @@ export function ScheduleCalendar({ employeeId }: ScheduleCalendarProps) {
       }}
     />
   )
-} 
+}

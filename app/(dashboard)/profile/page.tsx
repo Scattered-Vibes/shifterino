@@ -1,12 +1,14 @@
-import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+
+import { createClient } from '@/lib/supabase/server'
+
 import ProfileForm from './profile-form'
 
 export const dynamic = 'force-dynamic'
 
 /**
  * ProfilePage Component
- * 
+ *
  * Displays and allows editing of the user's profile information.
  * Includes role-based access control to ensure users can only edit their own profiles
  * unless they are managers.
@@ -16,8 +18,11 @@ export default async function ProfilePage() {
 
   try {
     // Validate user authentication
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
+
     if (userError) {
       console.error('Authentication error:', userError)
       throw new Error('Authentication failed: ' + userError.message)
@@ -56,17 +61,18 @@ export default async function ProfilePage() {
       console.log('Auth role:', user.user_metadata.role)
       console.log('DB role:', employee.role)
 
-      const { data: updateData, error: updateError } = await supabase.auth.updateUser({
-        data: { 
-          role: employee.role,
-          // Preserve other metadata
-          email: user.email,
-          email_verified: user.user_metadata.email_verified,
-          first_name: employee.first_name,
-          last_name: employee.last_name,
-          phone_verified: user.user_metadata.phone_verified,
-        }
-      })
+      const { data: updateData, error: updateError } =
+        await supabase.auth.updateUser({
+          data: {
+            role: employee.role,
+            // Preserve other metadata
+            email: user.email,
+            email_verified: user.user_metadata.email_verified,
+            first_name: employee.first_name,
+            last_name: employee.last_name,
+            phone_verified: user.user_metadata.phone_verified,
+          },
+        })
 
       if (updateError) {
         console.error('Failed to sync role:', updateError)
@@ -74,10 +80,13 @@ export default async function ProfilePage() {
       } else {
         console.log('Role sync successful')
         console.log('New auth metadata:', updateData.user.user_metadata)
-        
+
         // Validate the update was successful
-        const { data: { user: refreshedUser }, error: refreshError } = await supabase.auth.getUser()
-        
+        const {
+          data: { user: refreshedUser },
+          error: refreshError,
+        } = await supabase.auth.getUser()
+
         if (refreshError) {
           console.error('Failed to refresh user:', refreshError)
         } else if (refreshedUser?.user_metadata.role !== employee.role) {
@@ -89,8 +98,8 @@ export default async function ProfilePage() {
 
     return (
       <div className="container mx-auto py-8">
-        <div className="max-w-2xl mx-auto">
-          <h1 className="text-2xl font-bold mb-8">Profile Settings</h1>
+        <div className="mx-auto max-w-2xl">
+          <h1 className="mb-8 text-2xl font-bold">Profile Settings</h1>
           <div className="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
             <ProfileForm initialData={employee} />
           </div>
@@ -101,4 +110,4 @@ export default async function ProfilePage() {
     console.error('Profile page error:', error)
     throw error instanceof Error ? error : new Error('Failed to load profile')
   }
-} 
+}

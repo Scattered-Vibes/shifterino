@@ -4,46 +4,80 @@
 
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
+import { z } from 'zod'
 
-export async function signIn(formData: FormData) {
-  const supabase = createClient()
-  
-  const { error } = await supabase.auth.signInWithPassword({
-    email: formData.get('email') as string,
-    password: formData.get('password') as string,
-  })
+import { createClient } from '@/lib/supabase/server'
 
-  if (error) {
-    return { error: error.message }
+const LoginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+})
+
+const SignupSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+  role: z.enum(['dispatcher', 'supervisor']),
+})
+
+export async function login(formData: FormData) {
+  try {
+    const validatedFields = LoginSchema.parse({
+      email: formData.get('email'),
+      password: formData.get('password'),
+    })
+
+    const supabase = createClient()
+    const { error } = await supabase.auth.signInWithPassword({
+      email: validatedFields.email,
+      password: validatedFields.password,
+    })
+
+    if (error) {
+      return { error: error.message }
+    }
+
+    revalidatePath('/', 'layout')
+    redirect('/dashboard')
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return { error: 'Invalid email or password format' }
+    }
+    return { error: 'An unexpected error occurred' }
   }
-
-  revalidatePath('/', 'layout')
-  redirect('/dashboard')
 }
 
-export async function signUp(formData: FormData) {
-  const supabase = createClient()
-  
-  const { error } = await supabase.auth.signUp({
-    email: formData.get('email') as string,
-    password: formData.get('password') as string,
-    options: {
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
-      data: {
-        first_name: formData.get('firstName') as string,
-        last_name: formData.get('lastName') as string,
+export async function signup(formData: FormData) {
+  try {
+    const validatedFields = SignupSchema.parse({
+      email: formData.get('email'),
+      password: formData.get('password'),
+      role: formData.get('role'),
+    })
+
+    const supabase = createClient()
+    const { error } = await supabase.auth.signUp({
+      email: validatedFields.email,
+      password: validatedFields.password,
+      options: {
+        data: {
+          role: validatedFields.role,
+        },
       },
-    },
-  })
+    })
 
-  if (error) {
-    return { error: error.message }
+    if (error) {
+      return { error: error.message }
+    }
+
+    redirect('/signup/check-email')
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return { error: 'Invalid form data' }
+    }
+    return { error: 'An unexpected error occurred' }
   }
-
-  return { success: true }
 }
 
 export async function signOut() {
@@ -54,25 +88,27 @@ export async function signOut() {
 }
 
 export async function resetPassword(formData: FormData) {
-  const supabase = createClient()
-  
-  const { error } = await supabase.auth.resetPasswordForEmail(
-    formData.get('email') as string,
-    {
+  try {
+    const email = formData.get('email') as string
+    const supabase = createClient()
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/reset-password`,
+    })
+
+    if (error) {
+      return { error: error.message }
     }
-  )
 
-  if (error) {
-    return { error: error.message }
+    return { success: true }
+  } catch (error) {
+    return { error: 'An unexpected error occurred' }
   }
-
-  return { success: true }
 }
 
 export async function updatePassword(formData: FormData) {
   const supabase = createClient()
-  
+
   const { error } = await supabase.auth.updateUser({
     password: formData.get('password') as string,
   })
@@ -82,5 +118,5 @@ export async function updatePassword(formData: FormData) {
   }
 
   revalidatePath('/', 'layout')
-  redirect('/dashboard')
-} 
+  redirect('/overview')
+}

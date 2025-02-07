@@ -1,24 +1,25 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import { requireAuth } from '@/lib/auth'
 
-interface TimeOffRequest {
+import type { TimeOffRequest } from '@/types/time-off'
+import { requireAuth } from '@/lib/auth'
+import { createClient } from '@/lib/supabase/server'
+
+export type CreateTimeOffRequestInput = {
   employee_id: string
-  start_date: string // YYYY-MM-DD format
-  end_date: string // YYYY-MM-DD format
+  start_date: string
+  end_date: string
   reason: string
-  status?: 'pending' | 'approved' | 'rejected'
 }
 
-export async function createTimeOffRequest(request: Omit<TimeOffRequest, 'status'>) {
+export async function createTimeOffRequest(request: CreateTimeOffRequestInput) {
   const supabase = createClient()
 
   try {
     // Verify user authentication and get employee ID
     const auth = await requireAuth()
-    
+
     // For managers/supervisors, allow creating requests for other employees
     // For regular employees, ensure they can only create their own requests
     if (auth.role === 'dispatcher' && request.employee_id !== auth.employeeId) {
@@ -39,13 +40,26 @@ export async function createTimeOffRequest(request: Omit<TimeOffRequest, 'status
 
     const { data, error } = await supabase
       .from('time_off_requests')
-      .insert([{ 
-        ...request, 
-        status: 'pending',
-        start_date: request.start_date, // Already in YYYY-MM-DD format
-        end_date: request.end_date // Already in YYYY-MM-DD format
-      }])
-      .select()
+      .insert([
+        {
+          employee_id: request.employee_id,
+          start_date: request.start_date,
+          end_date: request.end_date,
+          reason: request.reason,
+          status: 'pending',
+        },
+      ])
+      .select(
+        `
+        *,
+        employee:employees (
+          id,
+          first_name,
+          last_name,
+          email
+        )
+      `
+      )
       .single()
 
     if (error) {
@@ -55,7 +69,7 @@ export async function createTimeOffRequest(request: Omit<TimeOffRequest, 'status
 
     revalidatePath('/time-off')
     revalidatePath('/manage')
-    return data
+    return data as TimeOffRequest
   } catch (error) {
     console.error('Error in createTimeOffRequest:', error)
     throw error
@@ -68,71 +82,44 @@ export async function updateTimeOffRequest(
 ) {
   const supabase = createClient()
 
-  try {
-    // Verify user authentication and role
-    const auth = await requireAuth()
-    
-    // Only supervisors and managers can update request status
-    if (auth.role === 'dispatcher') {
-      throw new Error('Only supervisors and managers can approve/reject requests')
-    }
+  const { error } = await supabase
+    .from('time_off_requests')
+    .update({
+      status,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', requestId)
 
-    const { data, error } = await supabase
-      .from('time_off_requests')
-      .update({ status })
-      .eq('id', requestId)
-      .select()
-      .single()
-
-    if (error) throw error
-
-    revalidatePath('/time-off')
-    revalidatePath('/manage')
-    return data
-  } catch (error) {
-    console.error('Error in updateTimeOffRequest:', error)
-    throw error
-  }
+  if (error) throw error
+  return true
 }
 
 export async function getTimeOffRequests(employeeId?: string) {
   const supabase = createClient()
 
-  try {
-    // Verify user authentication and role
-    const auth = await requireAuth()
-    
-    // For regular employees, force employeeId to be their own
-    if (auth.role === 'dispatcher') {
-      employeeId = auth.employeeId
-    }
+  let query = supabase
+    .from('time_off_requests')
+    .select(
+      `
+      *,
+      employee:employees (
+        id,
+        first_name,
+        last_name,
+        email
+      )
+    `
+    )
+    .order('created_at', { ascending: false })
 
-    let query = supabase
-      .from('time_off_requests')
-      .select(`
-        *,
-        employee:employees(
-          id,
-          first_name,
-          last_name,
-          email
-        )
-      `)
-      .order('created_at', { ascending: false })
-
-    if (employeeId) {
-      query = query.eq('employee_id', employeeId)
-    }
-
-    const { data, error } = await query
-
-    if (error) throw error
-
-    return data
-  } catch (error) {
-    console.error('Error in getTimeOffRequests:', error)
-    throw error
+  if (employeeId) {
+    query = query.eq('employee_id', employeeId)
   }
+
+  const { data, error } = await query
+
+  if (error) throw error
+  return data as TimeOffRequest[]
 }
 
 export async function checkTimeOffConflicts(
@@ -177,4 +164,4 @@ export async function checkTimeOffConflicts(
     console.error('Error in checkTimeOffConflicts:', error)
     throw error
   }
-} 
+}

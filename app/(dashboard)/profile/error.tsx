@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect } from 'react'
-import { Button } from '@/components/ui/button'
 import Link from 'next/link'
+
+import { Button } from '@/components/ui/button'
 
 export default function ProfileError({
   error,
@@ -19,8 +20,8 @@ export default function ProfileError({
   return (
     <div className="flex min-h-screen flex-col items-center justify-center">
       <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Profile Error</h1>
-        <p className="text-gray-600 mb-8">
+        <h1 className="mb-4 text-4xl font-bold">Profile Error</h1>
+        <p className="mb-8 text-gray-600">
           {error.message || 'There was an error loading your profile.'}
         </p>
         <div className="space-x-4">
@@ -32,4 +33,4 @@ export default function ProfileError({
       </div>
     </div>
   )
-} 
+}

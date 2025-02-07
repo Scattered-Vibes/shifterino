@@ -1,15 +1,21 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { DndProvider } from 'react-dnd'
-import { HTML5Backend } from 'react-dnd-html5-backend'
+import { useEffect } from 'react'
+import type {
+  EventDropArg,
+  EventInput,
+} from '@fullcalendar/core'
+import type { EventResizeStopArg } from '@fullcalendar/interaction'
+import interactionPlugin from '@fullcalendar/interaction'
 import FullCalendar from '@fullcalendar/react'
 import timeGridPlugin from '@fullcalendar/timegrid'
-import interactionPlugin from '@fullcalendar/interaction'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { DndProvider } from 'react-dnd'
+import { HTML5Backend } from 'react-dnd-html5-backend'
+
 import { createClient } from '@/lib/supabase/client'
 import { toast } from '@/components/ui/use-toast'
-import type { EventInput, EventDropArg, EventResizeDoneArg } from '@fullcalendar/core'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import type { Database } from '@/types/database'
 
 interface ShiftEvent extends EventInput {
   id: string
@@ -17,73 +23,81 @@ interface ShiftEvent extends EventInput {
   title: string
   start: string
   end: string
-  backgroundColor?: string
+  backgroundColor: string
   extendedProps: {
-    shiftType: string
+    shiftOptionId: string
     isOvertime: boolean
+    isRegularSchedule: boolean
+    status: Database['public']['Enums']['shift_status']
   }
+}
+
+const fetchShifts = async (): Promise<ShiftEvent[]> => {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('individual_shifts')
+    .select(`
+      id,
+      employee_id,
+      date,
+      shift_option_id,
+      is_overtime,
+      is_regular_schedule,
+      status,
+      shift_options!shift_option_id (
+        start_time,
+        end_time,
+        name
+      ),
+      employees!employee_id (
+        first_name,
+        last_name
+      )
+    `)
+
+  if (error) {
+    console.error('Error fetching shifts:', error)
+    return []
+  }
+
+  return data?.map((shift) => ({
+    id: shift.id,
+    employeeId: shift.employee_id,
+    title: `${shift.employees.first_name} ${shift.employees.last_name}`,
+    start: `${shift.date}T${shift.shift_options.start_time}`,
+    end: `${shift.date}T${shift.shift_options.end_time}`,
+    backgroundColor: shift.is_overtime ? '#fca5a5' : '#93c5fd',
+    extendedProps: {
+      shiftOptionId: shift.shift_option_id,
+      isOvertime: shift.is_overtime,
+      isRegularSchedule: shift.is_regular_schedule,
+      status: shift.status
+    }
+  })) || []
 }
 
 export function ScheduleManager() {
   const queryClient = useQueryClient()
   const supabase = createClient()
-  const [events, setEvents] = useState<ShiftEvent[]>([])
 
-  // Fetch shifts using React Query
-  const { data: shifts } = useQuery({
+  const { data: shifts = [] } = useQuery({
     queryKey: ['shifts'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('individual_shifts')
-        .select(`
-          id,
-          employee:employees(id, first_name, last_name),
-          start_time,
-          end_time,
-          shift_type,
-          is_overtime
-        `)
-      
-      if (error) throw error
-      
-      return data.map(shift => ({
-        id: shift.id,
-        employeeId: shift.employee.id,
-        title: `${shift.employee.first_name} ${shift.employee.last_name}`,
-        start: shift.start_time,
-        end: shift.end_time,
-        backgroundColor: shift.is_overtime ? '#FFA500' : '#4CAF50',
-        extendedProps: {
-          shiftType: shift.shift_type,
-          isOvertime: shift.is_overtime
-        }
-      }))
-    }
+    queryFn: fetchShifts,
   })
 
   useEffect(() => {
-    if (shifts) {
-      setEvents(shifts)
-    }
-  }, [shifts])
-
-  // Set up real-time updates
-  useEffect(() => {
     const channel = supabase
       .channel('shifts')
-      .on('postgres_changes', 
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'individual_shifts' 
-        }, 
-        (payload) => {
-          queryClient.invalidateQueries(['shifts'])
-          toast({
-            title: 'Schedule Updated',
-            description: 'The schedule has been updated.'
-          })
-        }
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'individual_shifts',
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['shifts'] })
+        },
       )
       .subscribe()
 
@@ -93,80 +107,85 @@ export function ScheduleManager() {
   }, [queryClient, supabase])
 
   const handleEventDrop = async (dropInfo: EventDropArg) => {
+    const { event } = dropInfo
+    const supabase = createClient()
+
+    if (!event.start) return
+
     try {
-      const { event } = dropInfo
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('individual_shifts')
         .update({
-          start_time: event.start,
-          end_time: event.end
+          date: event.start.toISOString().split('T')[0] as string,
         })
         .eq('id', event.id)
 
       if (error) throw error
 
       toast({
-        title: 'Shift Updated',
-        description: 'The shift has been successfully moved.'
+        title: 'Shift updated',
+        description: 'The shift has been successfully moved.',
       })
+
+      queryClient.invalidateQueries({ queryKey: ['shifts'] })
     } catch (error) {
-      console.error('Failed to update shift:', error)
+      console.error('Error updating shift:', error)
       toast({
         title: 'Error',
         description: 'Failed to update shift. Please try again.',
-        variant: 'destructive'
+        variant: 'destructive',
       })
-      dropInfo.revert()
     }
   }
 
-  const handleEventResize = async (resizeInfo: EventResizeDoneArg) => {
+  const handleEventResize = async (resizeInfo: EventResizeStopArg) => {
+    const { event } = resizeInfo
+    const supabase = createClient()
+
+    if (!event.start) return
+
     try {
-      const { event } = resizeInfo
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('individual_shifts')
         .update({
-          end_time: event.end
+          date: event.start.toISOString().split('T')[0] as string,
         })
         .eq('id', event.id)
 
       if (error) throw error
 
       toast({
-        title: 'Shift Updated',
-        description: 'The shift duration has been updated.'
+        title: 'Shift updated',
+        description: 'The shift duration has been successfully updated.',
       })
+
+      queryClient.invalidateQueries({ queryKey: ['shifts'] })
     } catch (error) {
-      console.error('Failed to resize shift:', error)
+      console.error('Error updating shift:', error)
       toast({
         title: 'Error',
         description: 'Failed to update shift duration. Please try again.',
-        variant: 'destructive'
+        variant: 'destructive',
       })
-      resizeInfo.revert()
     }
   }
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <div className="h-[600px]">
+      <div className="h-[calc(100vh-4rem)]">
         <FullCalendar
           plugins={[timeGridPlugin, interactionPlugin]}
           initialView="timeGridWeek"
           editable={true}
           droppable={true}
-          events={events}
+          events={shifts}
           eventDrop={handleEventDrop}
           eventResize={handleEventResize}
           slotMinTime="00:00:00"
           slotMaxTime="24:00:00"
           allDaySlot={false}
           nowIndicator={true}
-          headerToolbar={{
-            left: 'prev,next today',
-            center: 'title',
-            right: 'timeGridWeek,timeGridDay'
-          }}
+          height="100%"
         />
       </div>
     </DndProvider>

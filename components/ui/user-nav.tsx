@@ -1,7 +1,9 @@
 'use client'
 
-import { User } from '@supabase/supabase-js'
-import { useRouter } from 'next/navigation'
+import { User } from 'lucide-react'
+
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,30 +12,23 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { useAuth } from '@/components/providers/AuthProvider'
 
-interface UserNavProps {
-  user: User
-}
+export function UserNav() {
+  const { user, signOut, isLoading } = useAuth()
 
-export function UserNav({ user }: UserNavProps) {
-  const router = useRouter()
-  const { signOut } = useAuth()
-
-  const handleSignOut = async () => {
-    await signOut()
-    router.push('/login')
-  }
+  if (isLoading || !user) return null
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-          <Avatar className="h-8 w-8">
-            <AvatarFallback>
-              {user.email?.charAt(0).toUpperCase()}
+        <Button
+          variant="ghost"
+          className="relative h-8 w-8 rounded-full hover:bg-accent"
+        >
+          <Avatar className="h-8 w-8 border border-border">
+            <AvatarFallback className="bg-background">
+              <User className="h-4 w-4 text-foreground" />
             </AvatarFallback>
           </Avatar>
         </Button>
@@ -43,31 +38,18 @@ export function UserNav({ user }: UserNavProps) {
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">{user.email}</p>
             <p className="text-xs leading-none text-muted-foreground">
-              {user.email}
+              Manager
             </p>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          className="cursor-pointer"
-          onSelect={() => router.push('/profile')}
+          className="cursor-pointer text-destructive focus:text-destructive"
+          onSelect={() => signOut()}
         >
-          Profile
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          className="cursor-pointer"
-          onSelect={() => router.push('/settings')}
-        >
-          Settings
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          className="cursor-pointer text-red-600 focus:text-red-600"
-          onSelect={handleSignOut}
-        >
-          Sign out
+          Log out
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )
-} 
+}

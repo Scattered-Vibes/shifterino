@@ -1,10 +1,11 @@
-import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { createServerClient } from '@supabase/ssr'
+
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default async function OverviewPage() {
   const cookieStore = cookies()
-  
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -17,7 +18,9 @@ export default async function OverviewPage() {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
   return (
     <div className="flex-1 space-y-4 p-8 pt-6">

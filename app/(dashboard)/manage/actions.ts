@@ -1,10 +1,17 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import type { Schedule } from '@/types/database'
 
-export async function updateSchedule(scheduleId: string, updates: Partial<Schedule>) {
+import type { Database } from '@/types/database'
+import { createClient } from '@/lib/supabase/server'
+
+type ScheduleInsert = Database['public']['Tables']['schedules']['Insert']
+type ScheduleUpdate = Database['public']['Tables']['schedules']['Update']
+
+export async function updateSchedule(
+  scheduleId: string,
+  updates: ScheduleUpdate
+) {
   const supabase = createClient()
 
   const { data, error } = await supabase
@@ -20,7 +27,7 @@ export async function updateSchedule(scheduleId: string, updates: Partial<Schedu
   return data
 }
 
-export async function createScheduleEntry(scheduleData: Partial<Schedule>) {
+export async function createScheduleEntry(scheduleData: ScheduleInsert) {
   const supabase = createClient()
 
   const { data, error } = await supabase
@@ -47,4 +54,4 @@ export async function deleteSchedule(scheduleId: string) {
 
   revalidatePath('/manage')
   return true
-} 
+}

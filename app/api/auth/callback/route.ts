@@ -1,5 +1,6 @@
+import { NextResponse } from 'next/server'
+
 import { createClient } from '@/lib/supabase/server'
-import { NextResponse, type NextRequest } from 'next/server'
 
 /**
  * GET authentication callback handler.
@@ -12,7 +13,7 @@ import { NextResponse, type NextRequest } from 'next/server'
  * @param {Request} request - The incoming HTTP request object.
  * @returns {Promise<Response>} A NextResponse that redirects to the '/overview' page.
  */
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
 

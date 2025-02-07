@@ -1,31 +1,63 @@
+/**
+ * @deprecated Use @/lib/env.server.ts for server-side code or @/lib/env.public.ts for client-side code
+ */
+
+export * from './env.server'
+
 import { z } from 'zod'
 
 /**
  * Environment variable schema validation
- * This ensures all required environment variables are present and of the correct type
  */
 const envSchema = z.object({
   // Supabase Configuration
-  NEXT_PUBLIC_SUPABASE_URL: z.string().url('Invalid Supabase URL'),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1, 'Supabase anon key is required'),
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, 'Supabase service role key is required'),
+  NEXT_PUBLIC_SUPABASE_URL: z.string()
+    .min(1, 'Supabase URL is required'),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string()
+    .min(1, 'Supabase anon key is required'),
   
   // App Configuration
-  NEXT_PUBLIC_APP_URL: z.string().url('Invalid app URL').default('http://localhost:3000'),
-  NEXT_PUBLIC_SITE_URL: z.string().url('Invalid site URL').default('http://localhost:3000'),
-  NEXT_PUBLIC_DOMAIN: z.string().optional(),
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  NEXT_PUBLIC_APP_URL: z.string()
+    .default('http://localhost:3000'),
+  NEXT_PUBLIC_SITE_URL: z.string()
+    .default('http://localhost:3000'),
+  NEXT_PUBLIC_DOMAIN: z.string()
+    .optional()
+    .default(''),
 })
 
 export type Env = z.infer<typeof envSchema>
 
 /**
+ * Gets environment variables from various sources
+ * Prioritizes runtime config over process.env
+ */
+function getEnvironment() {
+  // Check if we're in the browser
+  const isBrowser = typeof window !== 'undefined'
+  
+  // In the browser, we should have the variables injected into the HTML
+  if (isBrowser) {
+    return {
+      NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+      NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+      NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+      NEXT_PUBLIC_DOMAIN: process.env.NEXT_PUBLIC_DOMAIN || '',
+    }
+  }
+
+  // On the server, we can access process.env directly
+  return process.env
+}
+
+/**
  * Validates environment variables at runtime
- * Throws an error if any required variables are missing or invalid
  */
 function validateEnv(): Env {
   try {
-    const parsed = envSchema.safeParse(process.env)
+    const env = getEnvironment()
+    const parsed = envSchema.safeParse(env)
 
     if (!parsed.success) {
       console.error(
@@ -48,9 +80,7 @@ export const env = validateEnv()
 export const {
   NEXT_PUBLIC_SUPABASE_URL,
   NEXT_PUBLIC_SUPABASE_ANON_KEY,
-  SUPABASE_SERVICE_ROLE_KEY,
   NEXT_PUBLIC_APP_URL,
   NEXT_PUBLIC_SITE_URL,
   NEXT_PUBLIC_DOMAIN,
-  NODE_ENV
 } = env 

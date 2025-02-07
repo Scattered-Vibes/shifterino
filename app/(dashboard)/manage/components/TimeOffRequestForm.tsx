@@ -1,30 +1,43 @@
 'use client'
 
 import { useState } from 'react'
-import { Calendar } from '@/components/ui/calendar'
-import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
-import { Card } from '@/components/ui/card'
-import { createTimeOffRequest, checkTimeOffConflicts } from '../actions/time-off'
 import { toast } from 'sonner'
+
+import { Button } from '@/components/ui/button'
+import { Calendar } from '@/components/ui/calendar'
+import { Card } from '@/components/ui/card'
+import { Textarea } from '@/components/ui/textarea'
+
+import {
+  checkTimeOffConflicts,
+  createTimeOffRequest,
+} from '../actions/time-off'
 
 interface TimeOffRequestFormProps {
   employeeId: string
   onRequestSubmitted?: () => void
 }
 
-export default function TimeOffRequestForm({ 
+export default function TimeOffRequestForm({
   employeeId,
-  onRequestSubmitted 
+  onRequestSubmitted,
 }: TimeOffRequestFormProps) {
-  const [startDate, setStartDate] = useState<Date>()
-  const [endDate, setEndDate] = useState<Date>()
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined)
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined)
   const [reason, setReason] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Helper function to format date to YYYY-MM-DD
-  function formatDateForDB(date: Date) {
-    return date.toISOString().split('T')[0]
+  function formatDateForDB(date: Date | undefined): string {
+    if (!date) {
+      throw new Error('Date is required')
+    }
+    const isoString = date.toISOString()
+    const [dateString] = isoString.split('T')
+    if (!dateString) {
+      throw new Error('Invalid date format')
+    }
+    return dateString
   }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -36,11 +49,15 @@ export default function TimeOffRequestForm({
 
     setIsSubmitting(true)
     try {
+      // Since we've checked for null dates above, we know these dates are defined
+      const startDateString = formatDateForDB(startDate)
+      const endDateString = formatDateForDB(endDate)
+
       // Check for conflicts using formatted dates
       const hasConflicts = await checkTimeOffConflicts(
         employeeId,
-        formatDateForDB(startDate),
-        formatDateForDB(endDate)
+        startDateString,
+        endDateString
       )
 
       if (hasConflicts) {
@@ -51,9 +68,9 @@ export default function TimeOffRequestForm({
       // Submit request with formatted dates
       await createTimeOffRequest({
         employee_id: employeeId,
-        start_date: formatDateForDB(startDate),
-        end_date: formatDateForDB(endDate),
-        reason
+        start_date: startDateString,
+        end_date: endDateString,
+        reason,
       })
 
       toast.success('Time off request submitted successfully')
@@ -62,7 +79,7 @@ export default function TimeOffRequestForm({
       setStartDate(undefined)
       setEndDate(undefined)
       setReason('')
-      
+
       // Notify parent
       onRequestSubmitted?.()
     } catch (err) {
@@ -83,7 +100,7 @@ export default function TimeOffRequestForm({
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <div className="space-y-2">
             <label className="text-sm font-medium">Start Date</label>
             <Calendar
@@ -123,4 +140,4 @@ export default function TimeOffRequestForm({
       </form>
     </Card>
   )
-} 
+}

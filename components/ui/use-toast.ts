@@ -1,10 +1,7 @@
 // Inspired by react-hot-toast library
-import * as React from "react"
+import * as React from 'react'
 
-import type {
-  ToastActionElement,
-  ToastProps,
-} from "@/components/ui/toast"
+import type { ToastActionElement, ToastProps } from '@/components/ui/toast'
 
 const TOAST_LIMIT = 1
 const TOAST_REMOVE_DELAY = 1000000
@@ -14,6 +11,8 @@ type ToasterToast = ToastProps & {
   title?: React.ReactNode
   description?: React.ReactNode
   action?: ToastActionElement
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
 type Action =
@@ -27,11 +26,11 @@ type Action =
     }
   | {
       type: 'DISMISS_TOAST'
-      toastId?: ToasterToast['id']
+      toastId: string | undefined
     }
   | {
       type: 'REMOVE_TOAST'
-      toastId?: ToasterToast['id']
+      toastId: string | undefined
     }
 
 interface State {
@@ -126,7 +125,7 @@ type Toast = Omit<ToasterToast, 'id'>
 function toast({ ...props }: Toast) {
   const id = crypto.randomUUID()
 
-  const update = (props: ToasterToast) =>
+  const update = (props: Partial<ToasterToast>) =>
     dispatch({
       type: 'UPDATE_TOAST',
       toast: { ...props, id },
@@ -141,6 +140,7 @@ function toast({ ...props }: Toast) {
       open: true,
       onOpenChange: (open) => {
         if (!open) dismiss()
+        props.onOpenChange?.(open)
       },
     },
   })
@@ -172,4 +172,4 @@ function useToast() {
   }
 }
 
-export { useToast, toast } 
+export { useToast, toast }

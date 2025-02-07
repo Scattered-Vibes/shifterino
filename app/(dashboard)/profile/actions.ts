@@ -1,20 +1,24 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+
+import { createClient } from '@/lib/supabase/server'
 
 export async function updateProfile(formData: FormData) {
   const supabase = createClient()
 
   try {
     // Get current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
+
     if (userError) {
       console.error('Auth error:', userError)
       throw new Error('Authentication error')
     }
-    
+
     if (!user) {
       throw new Error('Not authenticated')
     }
@@ -23,9 +27,12 @@ export async function updateProfile(formData: FormData) {
     const first_name = formData.get('first_name')
     const last_name = formData.get('last_name')
 
-    if (!first_name || !last_name || 
-        typeof first_name !== 'string' || 
-        typeof last_name !== 'string') {
+    if (
+      !first_name ||
+      !last_name ||
+      typeof first_name !== 'string' ||
+      typeof last_name !== 'string'
+    ) {
       throw new Error('First name and last name are required')
     }
 
@@ -49,7 +56,7 @@ export async function updateProfile(formData: FormData) {
       data: {
         first_name,
         last_name,
-      }
+      },
     })
 
     if (metadataError) {
@@ -63,4 +70,4 @@ export async function updateProfile(formData: FormData) {
     console.error('Profile update error:', error)
     throw error
   }
-} 
+}

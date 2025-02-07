@@ -1,9 +1,10 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { AlertCircle } from 'lucide-react'
+
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { useRouter } from 'next/navigation'
 
 interface DashboardErrorProps {
   title: string
@@ -11,10 +12,10 @@ interface DashboardErrorProps {
   showRetry?: boolean
 }
 
-export function DashboardError({ 
-  title, 
-  message, 
-  showRetry = true 
+export function DashboardError({
+  title,
+  message,
+  showRetry = true,
 }: DashboardErrorProps) {
   const router = useRouter()
 
@@ -25,17 +26,14 @@ export function DashboardError({
         <AlertTitle>{title}</AlertTitle>
         <AlertDescription>{message}</AlertDescription>
       </Alert>
-      
+
       {showRetry && (
-        <div className="flex justify-center mt-4">
-          <Button 
-            variant="outline" 
-            onClick={() => router.refresh()}
-          >
+        <div className="mt-4 flex justify-center">
+          <Button variant="outline" onClick={() => router.refresh()}>
             Try Again
           </Button>
         </div>
       )}
     </div>
   )
-} 
+}

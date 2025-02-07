@@ -1,53 +1,88 @@
-import { createClient } from '@/lib/supabase/server'
+import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
-export async function GET() {
-  const supabase = createClient()
+import { createClient } from '@/lib/supabase/server'
 
+export async function GET() {
   try {
-    const { data: { user }, error } = await supabase.auth.getUser()
+    const cookieStore = cookies()
+    const supabase = createClient()
+
+    const {
+      data: { session },
+      error,
+    } = await supabase.auth.getSession()
 
     if (error) {
-      console.error('Auth error:', error)
+      console.error('Session refresh error:', error)
       return NextResponse.json(
-        { error: error.message },
+        { error: 'Failed to refresh session' },
         { status: 401 }
       )
     }
 
-    if (!user) {
+    if (!session) {
+      return NextResponse.json({ error: 'No active session' }, { status: 401 })
+    }
+
+    // Get new session with refreshed tokens
+    const { data: refreshData, error: refreshError } =
+      await supabase.auth.refreshSession()
+
+    if (refreshError) {
+      console.error('Token refresh error:', refreshError)
       return NextResponse.json(
-        { error: 'No authenticated user' },
+        { error: 'Failed to refresh tokens' },
         { status: 401 }
       )
     }
 
-    // Get employee data for the authenticated user
-    const { data: employee, error: employeeError } = await supabase
-      .from('employees')
-      .select('*')
-      .eq('auth_id', user.id)
-      .single()
+    const { session: newSession } = refreshData
 
-    if (employeeError) {
-      console.error('Employee data error:', employeeError)
+    if (!newSession) {
       return NextResponse.json(
-        { error: 'Failed to fetch employee data' },
-        { status: 500 }
+        { error: 'Failed to create new session' },
+        { status: 401 }
       )
     }
 
-    return NextResponse.json({ 
-      user,
-      employee
-    }, { 
-      status: 200 
+    // Update session cookie
+    cookieStore.set('sb-access-token', newSession.access_token, {
+      path: '/',
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      httpOnly: true,
+    })
+
+    cookieStore.set('sb-refresh-token', newSession.refresh_token, {
+      path: '/',
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      httpOnly: true,
+    })
+
+    return NextResponse.json({
+      user: newSession.user,
+      expires_at: newSession.expires_at,
     })
   } catch (error) {
-    console.error('Auth refresh error:', error)
+    console.error('Unexpected error during session refresh:', error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to refresh authentication' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }
-} 
+}
+
+// Only allow GET requests
+export async function POST() {
+  return NextResponse.json({ error: 'Method not allowed' }, { status: 405 })
+}
+
+export async function PUT() {
+  return NextResponse.json({ error: 'Method not allowed' }, { status: 405 })
+}
+
+export async function DELETE() {
+  return NextResponse.json({ error: 'Method not allowed' }, { status: 405 })
+}

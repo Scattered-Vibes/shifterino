@@ -1,15 +1,20 @@
 'use client'
 
-import { createClient } from '@/lib/supabase/client'
 import { useEffect } from 'react'
+
+import type { Database } from '@/types/database'
+import { createClient } from '@/lib/supabase/client'
 import { toast } from '@/components/ui/use-toast'
-import type { Schedule } from '@/types/database'
+
+type Schedule = Database['public']['Tables']['schedules']['Row']
 
 interface RealtimeScheduleProps {
   onScheduleUpdate: (schedule: Schedule) => void
 }
 
-export default function RealtimeSchedule({ onScheduleUpdate }: RealtimeScheduleProps) {
+export default function RealtimeSchedule({
+  onScheduleUpdate,
+}: RealtimeScheduleProps) {
   useEffect(() => {
     const supabase = createClient()
 
@@ -20,13 +25,13 @@ export default function RealtimeSchedule({ onScheduleUpdate }: RealtimeScheduleP
         {
           event: '*',
           schema: 'public',
-          table: 'schedules'
+          table: 'schedules',
         },
         (payload) => {
           console.log('Change received!', payload)
           toast({
             title: 'Schedule Updated',
-            description: 'The schedule has been modified.'
+            description: 'The schedule has been modified.',
           })
           // Type cast the payload to our Schedule type
           const schedule = payload.new as Schedule
@@ -41,4 +46,4 @@ export default function RealtimeSchedule({ onScheduleUpdate }: RealtimeScheduleP
   }, [onScheduleUpdate])
 
   return null // This is a non-visual component
-} 
+}
