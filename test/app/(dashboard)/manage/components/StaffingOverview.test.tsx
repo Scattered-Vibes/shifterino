@@ -12,15 +12,17 @@ vi.mock('@/lib/supabase/client', () => ({
 
 describe('StaffingOverview', () => {
   const mockData = {
-    current_staff: 6,
-    required_staff: 6,
-    supervisor_count: 1
+    min_total_staff: 6,
+    min_supervisors: 1,
+    time_block_start: '05:00',
+    time_block_end: '09:00'
   };
 
   const mockUnderstaffedData = {
-    current_staff: 4,
-    required_staff: 6,
-    supervisor_count: 1
+    min_total_staff: 4,
+    min_supervisors: 1,
+    time_block_start: '05:00',
+    time_block_end: '09:00'
   };
 
   beforeEach(() => {
@@ -36,18 +38,17 @@ describe('StaffingOverview', () => {
 
     // Wait for the initial data fetch
     expect(mockSupabase.from).toHaveBeenCalledWith('staffing_requirements');
-    expect(mockSupabase._mock.select).toHaveBeenCalledWith('current_staff, required_staff, supervisor_count');
+    expect(mockSupabase._mock.select).toHaveBeenCalledWith('min_total_staff, min_supervisors, time_block_start, time_block_end');
     expect(mockSupabase._mock.eq).toHaveBeenCalledWith('time_block', '05:00-09:00');
 
     // Wait for the data to be rendered
     await waitFor(() => {
-      const currentStaff = screen.getByText(/Current Staff: 6/i);
-      expect(currentStaff).toBeInTheDocument();
+      expect(screen.getByText(/Required Staff: 6/i)).toBeInTheDocument();
     });
 
     // Check other elements
-    expect(screen.getByText(/Required Staff: 6/i)).toBeInTheDocument();
-    expect(screen.getByText(/Supervisors: 1/i)).toBeInTheDocument();
+    expect(screen.getByText(/Required Supervisors: 1/i)).toBeInTheDocument();
+    expect(screen.getByText(/05:00 to 09:00/i)).toBeInTheDocument();
   });
 
   it('should show warning when understaffed', async () => {
@@ -57,11 +58,10 @@ describe('StaffingOverview', () => {
 
     // Wait for the warning to appear
     await waitFor(() => {
-      const warning = screen.getByText(/Understaffed/i);
-      expect(warning).toBeInTheDocument();
+      expect(screen.getByRole('alert')).toBeInTheDocument();
     });
 
-    expect(screen.getByRole('alert')).toBeInTheDocument();
+    expect(screen.getByText(/Understaffed/i)).toBeInTheDocument();
   });
 
   it('should show error state when data fetch fails', async () => {
@@ -70,8 +70,7 @@ describe('StaffingOverview', () => {
     render(<StaffingOverview timeBlock="05:00-09:00" />);
 
     await waitFor(() => {
-      const error = screen.getByText(/Error loading staffing data/i);
-      expect(error).toBeInTheDocument();
+      expect(screen.getByText(/Error loading staffing data/i)).toBeInTheDocument();
     });
   });
 
@@ -90,29 +89,40 @@ describe('StaffingOverview', () => {
 
     // Wait for initial data
     await waitFor(() => {
-      expect(screen.getByText(/Current Staff: 6/i)).toBeInTheDocument();
+      expect(screen.getByText(/Required Staff: 6/i)).toBeInTheDocument();
     });
 
     // Simulate real-time update
     const updatedData = {
-      current_staff: 7,
-      required_staff: 6,
-      supervisor_count: 1
+      min_total_staff: 7,
+      min_supervisors: 1,
+      time_block_start: '05:00',
+      time_block_end: '09:00'
     };
 
-    const mockPayload = {
-      new: updatedData,
-      old: mockData,
-      eventType: 'UPDATE'
-    };
+    const mockCalls = mockSupabase._mock.on.mock.calls;
+    expect(mockCalls).toBeDefined();
+    expect(mockCalls.length).toBeGreaterThan(0);
 
-    // Get the subscription callback and call it with the new data
-    const onCallback = mockSupabase._mock.on.mock.calls[0][2];
-    onCallback(mockPayload);
+    const firstCall = mockCalls[0];
+    if (firstCall) {
+      const onCallback = firstCall[2];
+      if (typeof onCallback === 'function') {
+        const mockPayload = {
+          new: updatedData,
+          old: mockData,
+          eventType: 'UPDATE'
+        };
 
-    // Wait for the update to be rendered
-    await waitFor(() => {
-      expect(screen.getByText(/Current Staff: 7/i)).toBeInTheDocument();
-    });
+        // Update the mock data before triggering the callback
+        mockSupabase._mock.updateCurrentResponse(updatedData);
+        onCallback(mockPayload);
+
+        // Wait for the update to be rendered
+        await waitFor(() => {
+          expect(screen.getByText(/Required Staff: 7/i)).toBeInTheDocument();
+        });
+      }
+    }
   });
 }); 

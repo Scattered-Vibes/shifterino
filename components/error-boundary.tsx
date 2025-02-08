@@ -6,9 +6,11 @@ import { ExclamationTriangleIcon } from '@radix-ui/react-icons'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 
+type ErrorHandler = (error: Error) => void;
+
 interface Props {
   children: ReactNode
-  onErrorCapture?: (error: Error) => void
+  onErrorCapture: ErrorHandler | undefined
 }
 
 interface State {
@@ -17,6 +19,10 @@ interface State {
 }
 
 export class ErrorBoundary extends Component<Props, State> {
+  static defaultProps = {
+    onErrorCapture: undefined,
+  };
+
   constructor(props: Props) {
     super(props)
     this.state = { hasError: false, error: null }
@@ -65,7 +71,9 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 }
 
-interface ErrorBoundaryWrapperProps extends Props {
+interface ErrorBoundaryWrapperProps {
+  children: ReactNode
+  onErrorCapture?: ErrorHandler
   className?: string
 }
 

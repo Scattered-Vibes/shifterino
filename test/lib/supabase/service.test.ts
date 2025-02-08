@@ -36,8 +36,8 @@ describe('Supabase Service', () => {
     it('should update shift details', async () => {
       const shiftId = '123';
       const updateData = {
-        status: 'scheduled' as const,
-        notes: 'Updated shift'
+        actual_start_time: '2024-01-01T09:00:00Z',
+        actual_end_time: '2024-01-01T17:00:00Z'
       };
 
       await updateShift(shiftId, updateData);
@@ -54,9 +54,7 @@ describe('Supabase Service', () => {
         employee_id: '123',
         start_date: '2024-01-01',
         end_date: '2024-01-02',
-        reason: 'Vacation',
-        notes: 'Vacation request',
-        status: 'pending' as const
+        reason: 'Vacation'
       };
 
       await createTimeOffRequest(request);

@@ -37,11 +37,20 @@ export default async function ManagePage() {
     redirect('/login')
   }
 
-  // Fetch schedules for staffing overview
-  const { data: schedules } = await supabase
-    .from('schedules')
-    .select('*')
-    .eq('status', 'published')
+  // Get current time block
+  const now = new Date()
+  const hour = now.getHours()
+  let timeBlock: string
+
+  if (hour >= 5 && hour < 9) {
+    timeBlock = '05:00-09:00'
+  } else if (hour >= 9 && hour < 21) {
+    timeBlock = '09:00-21:00'
+  } else if (hour >= 21 || hour < 1) {
+    timeBlock = '21:00-01:00'
+  } else {
+    timeBlock = '01:00-05:00'
+  }
 
   // Fetch time off requests
   const { data: timeOffRequests } = await supabase
@@ -65,7 +74,7 @@ export default async function ManagePage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card className="p-4">
           <h2 className="mb-4 text-lg font-semibold">Staffing Overview</h2>
-          <StaffingOverview schedules={schedules || []} />
+          <StaffingOverview timeBlock={timeBlock} />
         </Card>
 
         <Card className="p-4">

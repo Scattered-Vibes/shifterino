@@ -7,27 +7,11 @@
  */
 
 import { createClient } from '@/lib/supabase/server'
-import type { Database } from '@/types/supabase/database'
 import config from '@/lib/config.server'
 import { handleError } from '@/lib/utils/error-handler'
+import { SupabaseClient } from '@supabase/supabase-js'
 
-// Type for the service client to ensure it's used correctly
-type ServiceClient = ReturnType<typeof createClient<Database>>
-
-// Service client configuration
-const serviceConfig = {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
-  },
-  global: {
-    headers: {
-      'x-client-info': 'supabase-service'
-    }
-  }
-} as const
-
-let serviceClient: ServiceClient | null = null
+let serviceClient: SupabaseClient | null = null
 
 /**
  * Creates and returns a Supabase client with service role privileges.
@@ -42,7 +26,7 @@ export function getServiceClient() {
     throw new Error('Missing Supabase service configuration')
   }
 
-  serviceClient = createClient<Database>(url, serviceKey, serviceConfig)
+  serviceClient = createClient()
   return serviceClient
 }
 
@@ -102,10 +86,6 @@ export const adminHelpers = {
     }
   }
 }
-
-type Tables = Database['public']['Tables'];
-type IndividualShift = Tables['individual_shifts']['Row'];
-type TimeOffRequest = Tables['time_off_requests']['Row'];
 
 type ShiftUpdateData = {
   actual_start_time?: string | null;

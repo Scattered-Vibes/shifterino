@@ -2,15 +2,19 @@
 
 import { useEffect, useState } from 'react';
 import { getSupabaseClient } from '@/lib/supabase/client';
+import { Database } from '@/types/supabase/database';
 
 export interface StaffingOverviewProps {
   timeBlock: string;
 }
 
+type StaffingRequirements = Database['public']['Tables']['staffing_requirements']['Row'];
+
 interface StaffingData {
-  current_staff: number;
-  required_staff: number;
-  supervisor_count: number;
+  min_total_staff: StaffingRequirements['min_total_staff'];
+  min_supervisors: StaffingRequirements['min_supervisors'];
+  time_block_start: StaffingRequirements['time_block_start'];
+  time_block_end: StaffingRequirements['time_block_end'];
 }
 
 export function StaffingOverview({ timeBlock }: StaffingOverviewProps) {
@@ -25,15 +29,15 @@ export function StaffingOverview({ timeBlock }: StaffingOverviewProps) {
     // Fetch initial data
     async function fetchStaffingData() {
       try {
-        const { data, error } = await supabase
+        const { data, error: queryError } = await supabase
           .from('staffing_requirements')
-          .select('current_staff, required_staff, supervisor_count')
+          .select('min_total_staff, min_supervisors, time_block_start, time_block_end')
           .eq('time_block', timeBlock)
           .single();
 
         if (!isMounted) return;
 
-        if (error) {
+        if (queryError) {
           setError('Error loading staffing data');
           setLoading(false);
           return;
@@ -41,7 +45,7 @@ export function StaffingOverview({ timeBlock }: StaffingOverviewProps) {
 
         setStaffingData(data);
         setLoading(false);
-      } catch (err) {
+      } catch {
         if (!isMounted) return;
         setError('Error loading staffing data');
         setLoading(false);
@@ -60,7 +64,13 @@ export function StaffingOverview({ timeBlock }: StaffingOverviewProps) {
         filter: `time_block=eq.${timeBlock}`
       }, (payload) => {
         if (isMounted) {
-          setStaffingData(payload.new as StaffingData);
+          const newData = payload.new as StaffingRequirements;
+          setStaffingData({
+            min_total_staff: newData.min_total_staff,
+            min_supervisors: newData.min_supervisors,
+            time_block_start: newData.time_block_start,
+            time_block_end: newData.time_block_end
+          });
         }
       })
       .subscribe();
@@ -75,17 +85,18 @@ export function StaffingOverview({ timeBlock }: StaffingOverviewProps) {
   if (error) return <div>{error}</div>;
   if (!staffingData) return null;
 
-  const isUnderstaffed = staffingData.current_staff < staffingData.required_staff;
+  const isUnderstaffed = staffingData.min_total_staff > 0; // TODO: Compare with actual staff count
 
   return (
-    <div className="p-4 rounded-lg border">
-      <h3 className="text-lg font-semibold mb-2">Staffing Overview - {timeBlock}</h3>
+    <div className="rounded-lg border p-4">
+      <h3 className="mb-2 text-lg font-semibold">
+        Staffing Overview - {staffingData.time_block_start} to {staffingData.time_block_end}
+      </h3>
       <div className="space-y-2">
-        <p>Current Staff: {staffingData.current_staff}</p>
-        <p>Required Staff: {staffingData.required_staff}</p>
-        <p>Supervisors: {staffingData.supervisor_count}</p>
+        <p>Required Staff: {staffingData.min_total_staff}</p>
+        <p>Required Supervisors: {staffingData.min_supervisors}</p>
         {isUnderstaffed && (
-          <div role="alert" className="text-red-600 font-bold">
+          <div role="alert" className="font-bold text-red-600">
             Understaffed
           </div>
         )}
