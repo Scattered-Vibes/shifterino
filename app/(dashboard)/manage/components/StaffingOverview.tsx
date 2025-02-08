@@ -1,76 +1,95 @@
 'use client'
 
-import { Progress } from '@/components/ui/progress'
+import { useEffect, useState } from 'react';
+import { getSupabaseClient } from '@/lib/supabase/client';
 
-interface Schedule {
-  id: string
-  employee_id: string
-  shift_type: string
-  is_supervisor: boolean
-  start_date: string
-  end_date: string
-  status: string
+export interface StaffingOverviewProps {
+  timeBlock: string;
 }
 
-interface StaffingOverviewProps {
-  schedules: Schedule[]
+interface StaffingData {
+  current_staff: number;
+  required_staff: number;
+  supervisor_count: number;
 }
 
-export function StaffingOverview({ schedules }: StaffingOverviewProps) {
-  // Define staffing requirements based on schema
-  const staffingRequirements = [
-    { period: '5 AM - 9 AM', required: 6, supervisors: 1 },
-    { period: '9 AM - 9 PM', required: 8, supervisors: 1 },
-    { period: '9 PM - 1 AM', required: 7, supervisors: 1 },
-    { period: '1 AM - 5 AM', required: 6, supervisors: 1 },
-  ]
+export function StaffingOverview({ timeBlock }: StaffingOverviewProps) {
+  const [staffingData, setStaffingData] = useState<StaffingData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Count current staff and supervisors for each period
-  // TODO: Implement period-based filtering once we have proper shift time handling
-  const getCurrentStaffing = () => {
-    // This is a simplified version - in production, we'd need to handle:
-    // - Time zone conversions
-    // - Shift overlaps
-    // - Status checks (approved, etc)
-    const activeSchedules = schedules.filter((s) => s.status === 'published')
-    const staffCount = activeSchedules.length
-    const supervisorCount = activeSchedules.filter(
-      (s) => s.is_supervisor
-    ).length
+  useEffect(() => {
+    let isMounted = true;
+    const supabase = getSupabaseClient();
+    
+    // Fetch initial data
+    async function fetchStaffingData() {
+      try {
+        const { data, error } = await supabase
+          .from('staffing_requirements')
+          .select('current_staff, required_staff, supervisor_count')
+          .eq('time_block', timeBlock)
+          .single();
 
-    return {
-      total: staffCount,
-      supervisors: supervisorCount,
+        if (!isMounted) return;
+
+        if (error) {
+          setError('Error loading staffing data');
+          setLoading(false);
+          return;
+        }
+
+        setStaffingData(data);
+        setLoading(false);
+      } catch (err) {
+        if (!isMounted) return;
+        setError('Error loading staffing data');
+        setLoading(false);
+      }
     }
-  }
+
+    fetchStaffingData();
+
+    // Subscribe to real-time updates
+    const channel = supabase
+      .channel('staffing-updates')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'staffing_requirements',
+        filter: `time_block=eq.${timeBlock}`
+      }, (payload) => {
+        if (isMounted) {
+          setStaffingData(payload.new as StaffingData);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      isMounted = false;
+      supabase.removeChannel(channel);
+    };
+  }, [timeBlock]);
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>{error}</div>;
+  if (!staffingData) return null;
+
+  const isUnderstaffed = staffingData.current_staff < staffingData.required_staff;
 
   return (
-    <div className="space-y-4">
-      {staffingRequirements.map((req) => {
-        const current = getCurrentStaffing()
-        const staffingPercentage = Math.min(
-          (current.total / req.required) * 100,
-          100
-        )
-
-        return (
-          <div key={req.period} className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>{req.period}</span>
-              <span className="text-muted-foreground">
-                {current.total}/{req.required} Staff ({current.supervisors}/
-                {req.supervisors} Supervisors)
-              </span>
-            </div>
-            <Progress
-              value={staffingPercentage}
-              className={
-                staffingPercentage < 100 ? 'bg-red-200' : 'bg-green-200'
-              }
-            />
+    <div className="p-4 rounded-lg border">
+      <h3 className="text-lg font-semibold mb-2">Staffing Overview - {timeBlock}</h3>
+      <div className="space-y-2">
+        <p>Current Staff: {staffingData.current_staff}</p>
+        <p>Required Staff: {staffingData.required_staff}</p>
+        <p>Supervisors: {staffingData.supervisor_count}</p>
+        {isUnderstaffed && (
+          <div role="alert" className="text-red-600 font-bold">
+            Understaffed
           </div>
-        )
-      })}
+        )}
+      </div>
     </div>
-  )
+  );
 }

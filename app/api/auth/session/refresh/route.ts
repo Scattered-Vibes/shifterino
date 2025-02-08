@@ -8,6 +8,8 @@ export async function GET() {
     const cookieStore = cookies()
     const supabase = createClient()
 
+    // Note: We use getSession here (instead of getUser) because we specifically need
+    // the session tokens for refreshing. This is one of the few legitimate uses of getSession.
     const {
       data: { session },
       error,

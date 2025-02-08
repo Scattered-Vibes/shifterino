@@ -7,12 +7,6 @@ import { SideNav } from '@/components/ui/side-nav'
 type EmployeeRole = Database['public']['Enums']['employee_role']
 
 interface ClientLayoutProps {
-  user: {
-    email: string
-    firstName?: string
-    lastName?: string
-    role: string
-  }
   employee: {
     id: string
     first_name: string
@@ -22,15 +16,10 @@ interface ClientLayoutProps {
   children: React.ReactNode
 }
 
-export function ClientLayout({ user, employee, children }: ClientLayoutProps) {
-  const userWithRole = {
-    ...user,
-    role: employee.role
-  }
-
+export function ClientLayout({ employee, children }: ClientLayoutProps) {
   return (
     <div className="flex min-h-screen flex-col">
-      <Header user={userWithRole} />
+      <Header />
       <div className="flex flex-1">
         <SideNav role={employee.role} />
         <main className="flex-1 overflow-y-auto p-6">{children}</main>

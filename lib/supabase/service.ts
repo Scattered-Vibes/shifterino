@@ -6,8 +6,8 @@
  * that requires elevated privileges.
  */
 
-import { createClient } from '@supabase/supabase-js'
-import type { Database } from '@/types/database'
+import { createClient } from '@/lib/supabase/server'
+import type { Database } from '@/types/supabase/database'
 import config from '@/lib/config.server'
 import { handleError } from '@/lib/utils/error-handler'
 
@@ -101,4 +101,51 @@ export const adminHelpers = {
       return { data: null, error: handleError(error) }
     }
   }
+}
+
+type Tables = Database['public']['Tables'];
+type IndividualShift = Tables['individual_shifts']['Row'];
+type TimeOffRequest = Tables['time_off_requests']['Row'];
+
+type ShiftUpdateData = {
+  actual_start_time?: string | null;
+  actual_end_time?: string | null;
+};
+
+type TimeOffRequestData = {
+  employee_id: string;
+  start_date: string;
+  end_date: string;
+  reason: string;
+};
+
+export async function getEmployeeSchedule(
+  employeeId: string,
+  startDate: string,
+  endDate: string
+) {
+  const supabase = createClient();
+  return supabase
+    .from('individual_shifts')
+    .select('*')
+    .eq('employee_id', employeeId)
+    .gte('date', startDate)
+    .lte('date', endDate);
+}
+
+export async function updateShift(id: string, data: ShiftUpdateData) {
+  const supabase = createClient();
+  return supabase
+    .from('individual_shifts')
+    .update(data)
+    .eq('id', id)
+    .single();
+}
+
+export async function createTimeOffRequest(data: TimeOffRequestData) {
+  const supabase = createClient();
+  return supabase
+    .from('time_off_requests')
+    .insert([data])
+    .single();
 } 

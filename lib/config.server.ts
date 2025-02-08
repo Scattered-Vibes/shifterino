@@ -6,9 +6,9 @@
  */
 
 const requiredEnvVars = {
-  supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
-  supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-  supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+  NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
 } as const;
 
 // Validate all required env vars are present
@@ -20,9 +20,9 @@ Object.entries(requiredEnvVars).forEach(([key, value]) => {
 
 const config = {
   supabase: {
-    url: requiredEnvVars.supabaseUrl,
-    anonKey: requiredEnvVars.supabaseAnonKey,
-    serviceKey: requiredEnvVars.supabaseServiceKey,
+    url: requiredEnvVars.NEXT_PUBLIC_SUPABASE_URL,
+    anonKey: requiredEnvVars.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    serviceKey: requiredEnvVars.SUPABASE_SERVICE_ROLE_KEY,
   },
   app: {
     url: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',

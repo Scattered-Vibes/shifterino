@@ -1,8 +1,8 @@
 import { z } from 'zod'
 
 export const loginSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters')
+  email: z.string().email(),
+  password: z.string().min(6),
 })
 
 export const signupSchema = z.object({
@@ -28,20 +28,18 @@ export const profileSchema = z.object({
 })
 
 export const timeOffRequestSchema = z.object({
-  start_date: z.date({
-    required_error: 'Start date is required'
-  }),
-  end_date: z.date({
-    required_error: 'End date is required'
-  }),
-  reason: z.string().min(1, 'Reason is required'),
-  notes: z.string().optional()
-}).refine(data => {
-  return data.end_date >= data.start_date
+  employee_id: z.string(),
+  start_date: z.string().datetime(),
+  end_date: z.string().datetime(),
+  reason: z.string().min(1),
+}).refine((data) => {
+  const start = new Date(data.start_date);
+  const end = new Date(data.end_date);
+  return end >= start;
 }, {
-  message: 'End date must be after start date',
-  path: ['end_date']
-})
+  message: "End date must be after start date",
+  path: ["end_date"],
+});
 
 export const scheduleSchema = z.object({
   employee_id: z.string().uuid(),
@@ -56,6 +54,14 @@ export const scheduleSchema = z.object({
   message: 'End date must be after start date',
   path: ['end_date']
 })
+
+export const employeeSchema = z.object({
+  first_name: z.string().min(1),
+  last_name: z.string().min(1),
+  email: z.string().email(),
+  role: z.enum(['dispatcher', 'supervisor', 'manager']),
+  weeklyHours: z.number().min(0).max(40),
+});
 
 // Types
 export type LoginInput = z.infer<typeof loginSchema>

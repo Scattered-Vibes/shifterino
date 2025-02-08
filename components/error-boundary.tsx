@@ -1,49 +1,39 @@
 'use client'
 
-import * as React from 'react'
+import { Component, type ReactNode } from 'react'
 import { ExclamationTriangleIcon } from '@radix-ui/react-icons'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 
-interface ErrorBoundaryProps {
-  children: React.ReactNode
-  fallback?: React.ReactNode
+interface Props {
+  children: ReactNode
+  onErrorCapture?: (error: Error) => void
 }
 
-interface ErrorBoundaryState {
+interface State {
   hasError: boolean
   error: Error | null
 }
 
-export class ErrorBoundary extends React.Component<
-  ErrorBoundaryProps,
-  ErrorBoundaryState
-> {
-  constructor(props: ErrorBoundaryProps) {
+export class ErrorBoundary extends Component<Props, State> {
+  constructor(props: Props) {
     super(props)
     this.state = { hasError: false, error: null }
   }
 
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+  static getDerivedStateFromError(error: Error) {
     return { hasError: true, error }
   }
 
-  override componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    // Log the error to an error reporting service
-    console.error('Error caught by boundary:', error, errorInfo)
-  }
-
-  private handleReset = () => {
-    this.setState({ hasError: false, error: null })
+  override componentDidCatch(error: Error) {
+    if (this.props.onErrorCapture) {
+      this.props.onErrorCapture(error)
+    }
   }
 
   override render() {
     if (this.state.hasError) {
-      if (this.props.fallback) {
-        return this.props.fallback
-      }
-
       return (
         <div className="flex flex-col items-center justify-center space-y-4">
           <Alert variant="destructive" className="w-full max-w-2xl">
@@ -51,14 +41,18 @@ export class ErrorBoundary extends React.Component<
             <AlertTitle>Something went wrong</AlertTitle>
             <AlertDescription className="mt-2 flex flex-col gap-4">
               <p className="text-sm text-muted-foreground">
-                {this.state.error?.message || 'An unexpected error occurred'}
+                {this.state.error?.message}
               </p>
-              {process.env.NODE_ENV === 'development' && this.state.error && (
+              {process.env.NODE_ENV === 'development' && (
                 <pre className="mt-2 rounded-md bg-slate-950 p-4 text-sm text-white">
-                  <code>{this.state.error.message}</code>
+                  <code>{this.state.error?.message}</code>
                 </pre>
               )}
-              <Button variant="outline" size="sm" onClick={this.handleReset}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => this.setState({ hasError: false, error: null })}
+              >
                 Try again
               </Button>
             </AlertDescription>
@@ -71,15 +65,18 @@ export class ErrorBoundary extends React.Component<
   }
 }
 
-// Functional wrapper with better TypeScript support
+interface ErrorBoundaryWrapperProps extends Props {
+  className?: string
+}
+
 export function ErrorBoundaryWrapper({
   children,
-  fallback,
+  onErrorCapture,
   className = '',
-}: ErrorBoundaryProps & { className?: string }) {
+}: ErrorBoundaryWrapperProps) {
   return (
     <div className={className}>
-      <ErrorBoundary fallback={fallback}>{children}</ErrorBoundary>
+      <ErrorBoundary onErrorCapture={onErrorCapture}>{children}</ErrorBoundary>
     </div>
   )
 }

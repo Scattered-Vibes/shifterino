@@ -6,18 +6,22 @@ import tsconfigPaths from 'vite-tsconfig-paths'
 export default defineConfig({
   plugins: [react(), tsconfigPaths()],
   test: {
-    environment: 'jsdom',
-    globals: true,
-    setupFiles: ['./vitest.setup.ts'],
+    environment: 'happy-dom',
+    setupFiles: ['./test/setup.ts'],
     include: ['**/*.test.{ts,tsx}'],
-    exclude: ['node_modules', '.next', 'supabase'],
+    exclude: ['**/node_modules/**', '**/dist/**', '**/cypress/**', '**/.{idea,git,cache,output,temp}/**'],
+    globals: true,
     coverage: {
+      provider: 'v8',
       reporter: ['text', 'json', 'html'],
       exclude: [
-        'node_modules/',
-        'vitest.config.ts',
-        'vitest.setup.ts',
-      ],
-    },
-  },
-}) 
+        'node_modules/**',
+        'test/setup.ts',
+        '**/*.d.ts',
+        '**/*.config.ts',
+        '**/types/**',
+        'coverage/**'
+      ]
+    }
+  }
+})

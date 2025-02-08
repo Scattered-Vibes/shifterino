@@ -41,7 +41,7 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  const { data: { session } } = await supabase.auth.getSession()
+  const { data: { user }, error } = await supabase.auth.getUser()
 
   // Get the pathname
   const { pathname } = request.nextUrl
@@ -49,14 +49,14 @@ export async function middleware(request: NextRequest) {
   // Handle public routes
   if (publicRoutes.some(route => pathname.startsWith(route))) {
     // Redirect to dashboard if already authenticated
-    if (session) {
+    if (user) {
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
     return response
   }
 
   // Check authentication for protected routes
-  if (!session) {
+  if (!user || error) {
     // Get the return URL for post-login redirect
     const returnTo = encodeURIComponent(pathname)
     return NextResponse.redirect(new URL(`/login?returnTo=${returnTo}`, request.url))
@@ -64,13 +64,13 @@ export async function middleware(request: NextRequest) {
 
   // Check profile completion for routes that require it
   if (profileRequiredRoutes.some(route => pathname.startsWith(route))) {
-    const { data: profile, error } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from('employees')
       .select('id, first_name, last_name')
-      .eq('auth_id', session.user.id)
+      .eq('auth_id', user.id)
       .single()
 
-    if (error || !profile?.first_name || !profile?.last_name) {
+    if (profileError || !profile?.first_name || !profile?.last_name) {
       return NextResponse.redirect(new URL('/complete-profile', request.url))
     }
   }

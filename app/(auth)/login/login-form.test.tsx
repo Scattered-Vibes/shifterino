@@ -1,12 +1,28 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
-
+import { describe, expect, it, vi } from 'vitest'
+import { Providers } from '@/test/utils/test-providers'
 import { LoginForm } from './login-form'
 
+// Mock useSearchParams
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    refresh: vi.fn(),
+  }),
+  useSearchParams: () => ({
+    get: vi.fn().mockReturnValue(null),
+  }),
+}));
+
 describe('LoginForm', () => {
+  const renderWithProviders = (ui: React.ReactElement) => {
+    return render(ui, { wrapper: Providers });
+  };
+
   it('renders login form', () => {
-    render(<LoginForm />)
+    renderWithProviders(<LoginForm />);
 
     expect(screen.getByRole('textbox', { name: /email/i })).toBeInTheDocument()
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument()
@@ -15,7 +31,7 @@ describe('LoginForm', () => {
 
   it('handles form submission', async () => {
     const user = userEvent.setup()
-    render(<LoginForm />)
+    renderWithProviders(<LoginForm />);
 
     const emailInput = screen.getByRole('textbox', { name: /email/i })
     const passwordInput = screen.getByLabelText(/password/i)
