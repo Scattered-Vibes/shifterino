@@ -1,5 +1,4 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
 interface RateLimitConfig {
@@ -18,19 +17,23 @@ const configs: Record<string, RateLimitConfig> = {
   },
 }
 
-// In-memory store for development
-const memoryStore = new Map<string, { count: number; resetTime: number }>()
+interface RateLimitStore {
+  count: number
+  resetTime: number
+}
 
-/**
- * Clean up expired entries from memory store
- */
-function cleanupMemoryStore() {
+const RATE_LIMIT_WINDOW = 60 * 1000 // 1 minute
+const MAX_REQUESTS = 100 // Maximum requests per window
+
+const memoryStore = new Map<string, RateLimitStore>()
+
+function cleanupStore() {
   const now = Date.now()
-  for (const [key, value] of memoryStore.entries()) {
-    if (value.resetTime <= now) {
+  Array.from(memoryStore.entries()).forEach(([key, value]) => {
+    if (now >= value.resetTime) {
       memoryStore.delete(key)
     }
-  }
+  })
 }
 
 /**
@@ -101,24 +104,36 @@ async function rateLimitSupabase(
  */
 function rateLimitMemory(key: string, config: RateLimitConfig): boolean {
   const now = Date.now()
-  cleanupMemoryStore()
+  cleanupStore()
 
-  const windowKey = `${key}:${Math.floor(now / config.windowMs)}`
-  const current = memoryStore.get(windowKey)
+  const current = memoryStore.get(key)
 
   if (!current) {
-    memoryStore.set(windowKey, {
+    memoryStore.set(key, {
       count: 1,
       resetTime: now + config.windowMs,
     })
     return true
   }
 
-  if (current.count >= config.maxRequests) {
+  if (now > current.resetTime) {
+    memoryStore.set(key, {
+      count: 1,
+      resetTime: now + config.windowMs,
+    })
+    return true
+  }
+
+  const newCount = current.count + 1
+  if (newCount > config.maxRequests) {
     return false
   }
 
-  current.count++
+  memoryStore.set(key, {
+    count: newCount,
+    resetTime: current.resetTime,
+  })
+
   return true
 }
 
@@ -127,24 +142,48 @@ function rateLimitMemory(key: string, config: RateLimitConfig): boolean {
  */
 export async function rateLimit(
   request: NextRequest,
-  configKey: keyof typeof configs = 'api'
-) {
-  const ip = request.ip || 'unknown'
-  const key = `${configKey}:${ip}`
-  const config = configs[configKey]
+  response: NextResponse
+): Promise<NextResponse | null> {
+  const ip = request.ip ?? 'anonymous'
+  const now = Date.now()
 
-  if (!config) {
-    console.error(`Unknown rate limit config: ${configKey}`)
-    return true // Allow request if config not found
+  // Clean up expired entries
+  cleanupStore()
+
+  const currentLimit = memoryStore.get(ip)
+
+  if (!currentLimit) {
+    memoryStore.set(ip, {
+      count: 1,
+      resetTime: now + RATE_LIMIT_WINDOW,
+    })
+    return null
   }
 
-  // Use Supabase in production, memory store in development
-  if (process.env.NODE_ENV === 'production') {
-    const supabase = createClient()
-    return rateLimitSupabase(key, config, supabase)
+  if (now > currentLimit.resetTime) {
+    memoryStore.set(ip, {
+      count: 1,
+      resetTime: now + RATE_LIMIT_WINDOW,
+    })
+    return null
   }
 
-  return rateLimitMemory(key, config)
+  const newCount = currentLimit.count + 1
+  if (newCount > MAX_REQUESTS) {
+    return new NextResponse('Too Many Requests', {
+      status: 429,
+      headers: {
+        'Retry-After': `${Math.ceil((currentLimit.resetTime - now) / 1000)}`,
+      },
+    })
+  }
+
+  memoryStore.set(ip, {
+    count: newCount,
+    resetTime: currentLimit.resetTime,
+  })
+
+  return null
 }
 
 /**

@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
-
-import { createClient } from '@/lib/supabase/server'
+import { cookies } from 'next/headers'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 
 /**
  * Home Page Component
@@ -13,38 +13,29 @@ import { createClient } from '@/lib/supabase/server'
  * or a redirection to the dashboard if the user is authenticated.
  */
 export default async function RootPage() {
-  const supabase = createClient()
-
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser()
-
-  if (error) {
-    console.error('Auth error:', error)
-    redirect('/login')
-  }
-
-  if (user) {
-    // Get employee data to check if profile is complete
-    const { data: employee, error: employeeError } = await supabase
-      .from('employees')
-      .select('first_name, last_name, role')
-      .eq('auth_id', user.id)
-      .single()
-
-    if (employeeError) {
-      console.error('Error fetching employee data:', employeeError)
-      redirect('/login')
+  const cookieStore = cookies()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          cookieStore.set({ name, value, ...options })
+        },
+        remove(name: string) {
+          cookieStore.delete(name)
+        },
+      },
     }
+  )
 
-    // Redirect to complete profile if needed
-    if (!employee?.first_name || !employee?.last_name) {
-      redirect('/complete-profile')
-    }
+  const { data: { session } } = await supabase.auth.getSession()
 
-    // Redirect based on role
-    redirect(employee.role === 'supervisor' ? '/manage' : '/overview')
+  if (session) {
+    redirect('/overview')
   }
 
   redirect('/login')

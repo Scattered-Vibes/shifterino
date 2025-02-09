@@ -2,22 +2,13 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 // Routes that don't require authentication
-const publicRoutes = [
-  '/login',
-  '/signup',
-  '/reset-password',
-  '/auth/callback'
-]
+const publicRoutes = ['/login', '/signup', '/reset-password', '/auth/callback']
 
-// Routes that require a complete profile
-const profileRequiredRoutes = [
-  '/dashboard',
-  '/schedules',
-  '/time-off'
-]
+// Routes that require authentication
+const protectedRoutes = ['/overview', '/schedule', '/profile', '/time-off']
 
 export async function middleware(request: NextRequest) {
-  const response = NextResponse.next({
+  let response = NextResponse.next({
     request: {
       headers: request.headers,
     },
@@ -32,45 +23,51 @@ export async function middleware(request: NextRequest) {
           return request.cookies.get(name)?.value
         },
         set(name: string, value: string, options: CookieOptions) {
-          response.cookies.set({ name, value, ...options })
+          response.cookies.set({
+            name,
+            value,
+            ...options,
+          })
         },
         remove(name: string, options: CookieOptions) {
-          response.cookies.delete({ name, ...options })
+          response.cookies.set({
+            name,
+            value: '',
+            ...options,
+          })
         },
       },
     }
   )
 
-  const { data: { user }, error } = await supabase.auth.getUser()
+  await supabase.auth.getSession()
 
-  // Get the pathname
   const { pathname } = request.nextUrl
 
-  // Handle public routes
-  if (publicRoutes.some(route => pathname.startsWith(route))) {
-    // Redirect to dashboard if already authenticated
-    if (user) {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
+  // Handle public routes - redirect to overview if authenticated
+  if (publicRoutes.includes(pathname)) {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session) {
+      return NextResponse.redirect(new URL('/overview', request.url))
     }
     return response
   }
 
-  // Check authentication for protected routes
-  if (!user || error) {
-    // Get the return URL for post-login redirect
-    const returnTo = encodeURIComponent(pathname)
-    return NextResponse.redirect(new URL(`/login?returnTo=${returnTo}`, request.url))
-  }
+  // Handle protected routes - redirect to login if not authenticated
+  if (protectedRoutes.some(route => pathname.startsWith(route))) {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
 
-  // Check profile completion for routes that require it
-  if (profileRequiredRoutes.some(route => pathname.startsWith(route))) {
-    const { data: profile, error: profileError } = await supabase
+    // Check if user has completed profile
+    const { data: employee } = await supabase
       .from('employees')
-      .select('id, first_name, last_name')
-      .eq('auth_id', user.id)
+      .select('id')
+      .eq('auth_id', session.user.id)
       .single()
 
-    if (profileError || !profile?.first_name || !profile?.last_name) {
+    if (!employee) {
       return NextResponse.redirect(new URL('/complete-profile', request.url))
     }
   }
@@ -78,7 +75,6 @@ export async function middleware(request: NextRequest) {
   return response
 }
 
-// Configure which routes use this middleware
 export const config = {
   matcher: [
     /*
@@ -88,6 +84,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public folder
      */
-    '/((?!_next/static|_next/image|favicon.ico|public/).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 } 

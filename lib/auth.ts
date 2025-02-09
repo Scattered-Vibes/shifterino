@@ -1,8 +1,10 @@
 export * from './auth/client'
 export * from './auth/server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createServerClient } from '@supabase/ssr'
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
+import type { Database } from '@/types/database'
 
 export type UserRole = 'dispatcher' | 'supervisor' | 'manager'
 
@@ -23,11 +25,22 @@ export async function requireAuthOrRedirect(allowIncomplete = false): Promise<Au
  * Signs out the current user and clears all auth cookies
  */
 export async function signOut() {
-  const supabase = createClient()
+  const cookieStore = cookies()
+  const supabase = createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value
+        },
+      },
+    }
+  )
+
   const { error } = await supabase.auth.signOut()
   if (error) {
-    console.error("SignOut error:", error)
-    throw new Error('SIGNOUT_FAILED')
+    console.error('Error:', error)
   }
 }
 
@@ -38,7 +51,17 @@ export async function signInWithEmail(email: string, password: string): Promise<
   data?: { user: { id: string; email: string | null } };
   error?: AuthError;
 }> {
-  const supabase = createClient()
+  const supabase = createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookies().get(name)?.value
+        },
+      },
+    }
+  )
   const { data: authData, error } = await supabase.auth.signInWithPassword({
     email,
     password,
@@ -62,7 +85,17 @@ export async function signInWithEmail(email: string, password: string): Promise<
  * Signs up a new user with email and password
  */
 export async function signUpWithEmail(email: string, password: string) {
-  const supabase = createClient()
+  const supabase = createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookies().get(name)?.value
+        },
+      },
+    }
+  )
   
   try {
     const { data, error } = await supabase.auth.signUp({
@@ -86,30 +119,26 @@ export async function signUpWithEmail(email: string, password: string) {
  * Gets the current session if it exists
  */
 export async function getSession() {
-  const supabase = createClient()
-  
+  const cookieStore = cookies()
+  const supabase = createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value
+        },
+      },
+    }
+  )
+
   try {
-    const { data: { session }, error } = await supabase.auth.getSession()
-    
-    if (error) {
-      console.error('Session error:', error)
-      return null
-    }
-
-    if (!session?.user) {
-      return null
-    }
-
-    // Verify session is still valid
-    const now = Math.floor(Date.now() / 1000)
-    if (session.expires_at && session.expires_at < now) {
-      await signOut()
-      return null
-    }
-
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
     return session
   } catch (error) {
-    console.error('Error getting session:', error)
+    console.error('Error:', error)
     return null
   }
 }
@@ -118,7 +147,17 @@ export async function getSession() {
  * Resets password for a user
  */
 export async function resetPassword(email: string) {
-  const supabase = createClient()
+  const supabase = createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookies().get(name)?.value
+        },
+      },
+    }
+  )
   
   try {
     const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -135,7 +174,17 @@ export async function resetPassword(email: string) {
 }
 
 async function getUser() {
-  const supabase = createClient()
+  const supabase = createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookies().get(name)?.value
+        },
+      },
+    }
+  )
   const { data: { user } } = await supabase.auth.getUser()
   return user
 }
@@ -145,7 +194,17 @@ async function verifyEmployee(userId: string): Promise<{
   role: UserRole;
   isNewUser: boolean;
 }> {
-  const supabase = createClient()
+  const supabase = createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookies().get(name)?.value
+        },
+      },
+    }
+  )
   const { data: employee, error } = await supabase
     .from('employees')
     .select('id, role')

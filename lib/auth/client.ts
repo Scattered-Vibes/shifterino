@@ -8,12 +8,19 @@ export function createClient() {
 }
 
 export async function signOut() {
-  const supabase = createClient()
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
   const { error } = await supabase.auth.signOut()
+  
   if (error) {
-    console.error("SignOut error:", error)
-    throw new Error('SIGNOUT_FAILED')
+    throw error
   }
+
+  // The redirect to /login will be handled by the middleware
+  window.location.href = '/login'
 }
 
 export async function signInWithEmail(email: string, password: string) {

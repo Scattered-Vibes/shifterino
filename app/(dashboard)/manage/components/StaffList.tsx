@@ -2,14 +2,14 @@
 
 import { useCallback, useEffect, useRef } from 'react'
 import { useInfiniteQuery } from '@tanstack/react-query'
-
 import type { Database } from '@/types/database'
 import { createClient } from '@/lib/supabase/client'
-import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { Loading } from '@/components/ui/loading'
 
 type Employee = Database['public']['Tables']['employees']['Row']
+type Schedule = Database['public']['Tables']['schedules']['Row']
 type EmployeeWithSchedules = Employee & {
-  schedules: Database['public']['Tables']['schedules']['Row'][]
+  schedules: Schedule[]
 }
 
 const ITEMS_PER_PAGE = 10
@@ -47,7 +47,7 @@ export function StaffList() {
   const observerRef = useRef<IntersectionObserver | null>(null)
   const loadMoreRef = useRef<HTMLDivElement>(null)
 
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, status } =
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, error } =
     useInfiniteQuery<FetchEmployeesResponse, Error>({
       queryKey: ['staff'],
       queryFn: ({ pageParam }) => fetchStaffPage(pageParam as number),
@@ -85,18 +85,22 @@ export function StaffList() {
     return cleanup
   }, [handleObserver])
 
-  if (status === 'pending') {
-    return <LoadingSpinner />
+  if (isLoading) {
+    return <Loading text="Loading staff..." />
   }
 
-  if (status === 'error') {
-    return <div>Error loading staff list</div>
+  if (error) {
+    return <div>Error loading staff</div>
+  }
+
+  if (!data?.pages[0]?.data.length) {
+    return <div>No staff found</div>
   }
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-4">
-        {data?.pages.map((page, pageIndex) => (
+        {data.pages.map((page, pageIndex) => (
           <div key={pageIndex}>
             {page.data.map((employee) => (
               <div
@@ -113,7 +117,7 @@ export function StaffList() {
                     </p>
                   </div>
                   <div className="text-sm text-gray-500">
-                    {employee.shift_pattern}
+                    {employee.schedules.length} shifts scheduled
                   </div>
                 </div>
               </div>
@@ -122,7 +126,7 @@ export function StaffList() {
         ))}
       </div>
       <div ref={loadMoreRef} className="h-10">
-        {isFetchingNextPage && <LoadingSpinner />}
+        {isFetchingNextPage && <Loading text="Loading more staff..." />}
       </div>
     </div>
   )

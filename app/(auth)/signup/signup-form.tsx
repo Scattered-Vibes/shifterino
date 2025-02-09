@@ -1,126 +1,128 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { toast } from 'sonner'
-
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { signupSchema, type SignupInput } from '@/lib/validations/schemas'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-
-import { signup } from '../actions'
+import { useToast } from '@/components/ui/use-toast'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { signup } from './actions'
 
 export function SignupForm() {
-  const [isLoading, setIsLoading] = useState(false)
-  const router = useRouter()
+  const { toast } = useToast()
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    setValue,
+    watch,
+  } = useForm<SignupInput>({
+    resolver: zodResolver(signupSchema),
+  })
 
-  async function handleSubmit(formData: FormData) {
-    setIsLoading(true)
+  // Watch the role field for validation
+  const role = watch('role')
 
+  async function onSubmit(data: SignupInput): Promise<void> {
     try {
-      const result = await signup(formData)
-
+      const result = await signup(data)
+      
       if (result?.error) {
-        toast.error(result.error)
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: result.error,
+        })
         return
       }
 
-      // Redirect will happen in server action
-      toast.success('Account created successfully! Please check your email.')
+      toast({
+        title: 'Success',
+        description: 'Your account has been created. Please check your email to verify your account.',
+      })
+      
+      // Redirect will be handled by the server action
     } catch {
-      toast.error('An unexpected error occurred')
-    } finally {
-      setIsLoading(false)
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'An unexpected error occurred. Please try again.',
+      })
     }
   }
 
   return (
-    <div className="grid gap-6">
-      <form action={handleSubmit}>
-        <div className="grid gap-4">
-          <div className="grid gap-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              placeholder="name@example.com"
-              required
-              disabled={isLoading}
-              autoComplete="email"
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              name="password"
-              type="password"
-              required
-              disabled={isLoading}
-              autoComplete="new-password"
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label>Role</Label>
-            <RadioGroup name="role" defaultValue="dispatcher" required>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem
-                  value="dispatcher"
-                  id="dispatcher"
-                  disabled={isLoading}
-                />
-                <Label htmlFor="dispatcher">Dispatcher</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem
-                  value="supervisor"
-                  id="supervisor"
-                  disabled={isLoading}
-                />
-                <Label htmlFor="supervisor">Supervisor</Label>
-              </div>
-            </RadioGroup>
-          </div>
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? (
-              <div className="flex items-center gap-2">
-                <svg
-                  className="h-4 w-4 animate-spin"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
-                Creating account...
-              </div>
-            ) : (
-              'Create Account'
-            )}
-          </Button>
-        </div>
-      </form>
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <div className="space-y-2">
+        <Input
+          id="email"
+          type="email"
+          placeholder="name@example.com"
+          {...register('email')}
+          disabled={isSubmitting}
+          aria-describedby="email-error"
+        />
+        {errors.email && (
+          <p id="email-error" className="text-sm text-red-500">
+            {errors.email.message}
+          </p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Input
+          id="password"
+          type="password"
+          placeholder="••••••••"
+          {...register('password')}
+          disabled={isSubmitting}
+          aria-describedby="password-error"
+        />
+        {errors.password && (
+          <p id="password-error" className="text-sm text-red-500">
+            {errors.password.message}
+          </p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Select
+          onValueChange={(value) => setValue('role', value as SignupInput['role'])}
+          defaultValue={role}
+        >
+          <SelectTrigger
+            className="w-full"
+            aria-describedby="role-error"
+          >
+            <SelectValue placeholder="Select your role" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="dispatcher">Dispatcher</SelectItem>
+            <SelectItem value="supervisor">Supervisor</SelectItem>
+            <SelectItem value="manager">Manager</SelectItem>
+          </SelectContent>
+        </Select>
+        {errors.role && (
+          <p id="role-error" className="text-sm text-red-500">
+            {errors.role.message}
+          </p>
+        )}
+      </div>
+
       <Button
-        variant="link"
-        className="px-0 font-normal"
-        onClick={() => router.push('/login')}
+        type="submit"
+        className="w-full"
+        disabled={isSubmitting}
       >
-        Already have an account? Sign in
+        {isSubmitting ? 'Creating account...' : 'Create account'}
       </Button>
-    </div>
+    </form>
   )
 }

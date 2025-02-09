@@ -1,8 +1,8 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import { Providers } from '@/test/utils/test-providers'
 import { LoginForm } from './login-form'
+import { Providers } from '@/test/utils/test-utils'
 
 // Mock useSearchParams
 vi.mock('next/navigation', () => ({
@@ -17,21 +17,38 @@ vi.mock('next/navigation', () => ({
 }));
 
 describe('LoginForm', () => {
-  const renderWithProviders = (ui: React.ReactElement) => {
-    return render(ui, { wrapper: Providers });
-  };
-
   it('renders login form', () => {
-    renderWithProviders(<LoginForm />);
-
+    render(<LoginForm />, { wrapper: Providers })
+    
     expect(screen.getByRole('textbox', { name: /email/i })).toBeInTheDocument()
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument()
   })
 
+  it('shows validation errors for empty fields', async () => {
+    render(<LoginForm />, { wrapper: Providers })
+    
+    fireEvent.click(screen.getByRole('button', { name: /sign in/i }))
+    
+    expect(await screen.findByText(/email is required/i)).toBeInTheDocument()
+    expect(await screen.findByText(/password must be at least 8 characters/i)).toBeInTheDocument()
+  })
+
+  it('shows validation error for invalid email', async () => {
+    render(<LoginForm />, { wrapper: Providers })
+    
+    fireEvent.change(screen.getByRole('textbox', { name: /email/i }), {
+      target: { value: 'invalid-email' },
+    })
+    
+    fireEvent.click(screen.getByRole('button', { name: /sign in/i }))
+    
+    expect(await screen.findByText(/invalid email format/i)).toBeInTheDocument()
+  })
+
   it('handles form submission', async () => {
     const user = userEvent.setup()
-    renderWithProviders(<LoginForm />);
+    render(<LoginForm />, { wrapper: Providers });
 
     const emailInput = screen.getByRole('textbox', { name: /email/i })
     const passwordInput = screen.getByLabelText(/password/i)

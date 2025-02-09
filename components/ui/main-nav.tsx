@@ -5,18 +5,10 @@ import { usePathname } from 'next/navigation'
 
 import { cn } from '@/lib/utils'
 
-const items = [
+const routes = [
   {
-    title: 'Overview',
+    label: 'Overview',
     href: '/overview',
-  },
-  {
-    title: 'Schedule',
-    href: '/schedule',
-  },
-  {
-    title: 'Time Off',
-    href: '/time-off',
   },
 ]
 
@@ -25,21 +17,25 @@ export function MainNav() {
 
   return (
     <nav className="flex items-center space-x-6">
-      <Link href="/" className="hidden items-center space-x-2 md:flex">
-        <span className="hidden font-bold sm:inline-block">Shifterino</span>
+      <Link href="/" className="flex items-center space-x-2">
+        <span className="font-bold">911 Dispatch Scheduler</span>
       </Link>
-      {items.map((item) => (
-        <Link
-          key={item.href}
-          href={item.href}
-          className={cn(
-            'text-sm font-medium transition-colors hover:text-primary',
-            pathname === item.href ? 'text-foreground' : 'text-foreground/60'
-          )}
-        >
-          {item.title}
-        </Link>
-      ))}
+      <div className="flex gap-6">
+        {routes.map((route) => (
+          <Link
+            key={route.href}
+            href={route.href}
+            className={cn(
+              'text-sm font-medium transition-colors hover:text-primary',
+              pathname === route.href
+                ? 'text-foreground'
+                : 'text-muted-foreground'
+            )}
+          >
+            {route.label}
+          </Link>
+        ))}
+      </div>
     </nav>
   )
-}
+} 

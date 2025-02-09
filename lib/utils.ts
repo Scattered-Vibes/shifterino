@@ -18,12 +18,28 @@ export function cn(...inputs: ClassValue[]): string {
   return twMerge(clsx(inputs));
 }
 
-export function formatDate(date: Date): string {
+export function formatDate(input: string | number | Date): string {
+  const date = new Date(input);
   return date.toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
+    month: 'long',
     day: 'numeric',
-    hour: 'numeric',
-    minute: 'numeric'
+    year: 'numeric',
   });
+}
+
+export function formatTime(time: string): string {
+  const [hours = '00', minutes = '00'] = time.split(':');
+  const date = new Date();
+  date.setHours(parseInt(hours, 10));
+  date.setMinutes(parseInt(minutes, 10));
+  
+  return date.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+}
+
+export function absoluteUrl(path: string): string {
+  return `${process.env.NEXT_PUBLIC_APP_URL || ''}${path}`;
 }

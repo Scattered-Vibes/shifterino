@@ -1,128 +1,115 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
-import { StaffingOverview } from '@/app/(dashboard)/manage/components/StaffingOverview';
-import { createMockSupabaseClient } from '@/test/utils/mock-supabase';
+import React from 'react'
+import { render, screen, within } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
+import { StaffingOverview } from '@/components/StaffingOverview'
+import { type TimeBlock } from '@/types/schedule'
 
-let mockSupabase: ReturnType<typeof createMockSupabaseClient>;
-
-// Mock the getSupabaseClient function
-vi.mock('@/lib/supabase/client', () => ({
-  getSupabaseClient: () => mockSupabase
-}));
+// Mock the utils functions
+vi.mock('@/lib/utils', () => ({
+  formatTime: (time: string) => time,
+  formatDate: () => 'January 1, 2025',
+  cn: (...inputs: (string | boolean | undefined)[]) => inputs.filter(Boolean).join(' ')
+}))
 
 describe('StaffingOverview', () => {
-  const mockData = {
-    min_total_staff: 6,
-    min_supervisors: 1,
-    time_block_start: '05:00',
-    time_block_end: '09:00'
-  };
-
-  const mockUnderstaffedData = {
-    min_total_staff: 4,
-    min_supervisors: 1,
-    time_block_start: '05:00',
-    time_block_end: '09:00'
-  };
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockSupabase = createMockSupabaseClient();
-    mockSupabase._mock.reset();
-  });
-
-  it('should render current staffing levels', async () => {
-    mockSupabase._mock.mockSelectSuccess(mockData);
-    
-    render(<StaffingOverview timeBlock="05:00-09:00" />);
-
-    // Wait for the initial data fetch
-    expect(mockSupabase.from).toHaveBeenCalledWith('staffing_requirements');
-    expect(mockSupabase._mock.select).toHaveBeenCalledWith('min_total_staff, min_supervisors, time_block_start, time_block_end');
-    expect(mockSupabase._mock.eq).toHaveBeenCalledWith('time_block', '05:00-09:00');
-
-    // Wait for the data to be rendered
-    await waitFor(() => {
-      expect(screen.getByText(/Required Staff: 6/i)).toBeInTheDocument();
-    });
-
-    // Check other elements
-    expect(screen.getByText(/Required Supervisors: 1/i)).toBeInTheDocument();
-    expect(screen.getByText(/05:00 to 09:00/i)).toBeInTheDocument();
-  });
-
-  it('should show warning when understaffed', async () => {
-    mockSupabase._mock.mockSelectSuccess(mockUnderstaffedData);
-    
-    render(<StaffingOverview timeBlock="05:00-09:00" />);
-
-    // Wait for the warning to appear
-    await waitFor(() => {
-      expect(screen.getByRole('alert')).toBeInTheDocument();
-    });
-
-    expect(screen.getByText(/Understaffed/i)).toBeInTheDocument();
-  });
-
-  it('should show error state when data fetch fails', async () => {
-    mockSupabase._mock.mockSelectError(new Error('Failed to fetch'));
-    
-    render(<StaffingOverview timeBlock="05:00-09:00" />);
-
-    await waitFor(() => {
-      expect(screen.getByText(/Error loading staffing data/i)).toBeInTheDocument();
-    });
-  });
-
-  it('should show loading state initially', () => {
-    // Create a promise that never resolves to keep the loading state
-    mockSupabase._mock.single.mockImplementation(() => new Promise(() => {}));
-    
-    render(<StaffingOverview timeBlock="05:00-09:00" />);
-    expect(screen.getByText(/Loading/i)).toBeInTheDocument();
-  });
-
-  it('should update in real-time when staffing changes', async () => {
-    mockSupabase._mock.mockSelectSuccess(mockData);
-    
-    render(<StaffingOverview timeBlock="05:00-09:00" />);
-
-    // Wait for initial data
-    await waitFor(() => {
-      expect(screen.getByText(/Required Staff: 6/i)).toBeInTheDocument();
-    });
-
-    // Simulate real-time update
-    const updatedData = {
-      min_total_staff: 7,
-      min_supervisors: 1,
-      time_block_start: '05:00',
-      time_block_end: '09:00'
-    };
-
-    const mockCalls = mockSupabase._mock.on.mock.calls;
-    expect(mockCalls).toBeDefined();
-    expect(mockCalls.length).toBeGreaterThan(0);
-
-    const firstCall = mockCalls[0];
-    if (firstCall) {
-      const onCallback = firstCall[2];
-      if (typeof onCallback === 'function') {
-        const mockPayload = {
-          new: updatedData,
-          old: mockData,
-          eventType: 'UPDATE'
-        };
-
-        // Update the mock data before triggering the callback
-        mockSupabase._mock.updateCurrentResponse(updatedData);
-        onCallback(mockPayload);
-
-        // Wait for the update to be rendered
-        await waitFor(() => {
-          expect(screen.getByText(/Required Staff: 7/i)).toBeInTheDocument();
-        });
-      }
+  const mockDate = new Date('2025-01-01')
+  
+  const mockTimeBlocks: TimeBlock[] = [
+    {
+      id: 'block1',
+      startTime: '05:00',
+      endTime: '09:00',
+      minStaff: 6,
+      currentStaff: 4,
+      supervisors: 1,
+      date: '2025-01-01'
+    },
+    {
+      id: 'block2',
+      startTime: '09:00',
+      endTime: '21:00',
+      minStaff: 8,
+      currentStaff: 6,
+      supervisors: 1,
+      date: '2025-01-01'
     }
-  });
-}); 
+  ]
+
+  it('renders time blocks with staffing information', () => {
+    const { container } = render(
+      <StaffingOverview 
+        date={mockDate} 
+        timeBlocks={mockTimeBlocks} 
+      />
+    )
+
+    // Get all time block cards
+    const cards = container.querySelectorAll('.rounded-xl')
+    expect(cards).toHaveLength(2)
+
+    // Check first time block
+    const firstCard = cards[0] as HTMLElement
+    expect(within(firstCard).getByText('05:00 - 09:00')).toBeInTheDocument()
+    expect(within(firstCard).getByText('Required: 6')).toBeInTheDocument()
+    expect(within(firstCard).getByText('Current: 4')).toBeInTheDocument()
+    expect(within(firstCard).getByText('Supervisors: 1')).toBeInTheDocument()
+    expect(within(firstCard).getByText('Understaffed by 2')).toBeInTheDocument()
+
+    // Check second time block
+    const secondCard = cards[1] as HTMLElement
+    expect(within(secondCard).getByText('09:00 - 21:00')).toBeInTheDocument()
+    expect(within(secondCard).getByText('Required: 8')).toBeInTheDocument()
+    expect(within(secondCard).getByText('Current: 6')).toBeInTheDocument()
+    expect(within(secondCard).getByText('Supervisors: 1')).toBeInTheDocument()
+    expect(within(secondCard).getByText('Understaffed by 2')).toBeInTheDocument()
+  })
+
+  it('handles empty time blocks', () => {
+    render(
+      <StaffingOverview 
+        date={mockDate} 
+        timeBlocks={[]} 
+      />
+    )
+    
+    expect(screen.queryByText(/Required:/)).not.toBeInTheDocument()
+  })
+
+  it('shows understaffed warning when current staff is below minimum', () => {
+    const understaffedBlocks: TimeBlock[] = [
+      {
+        id: 'block3',
+        startTime: '21:00',
+        endTime: '05:00',
+        minStaff: 6,
+        currentStaff: 3,
+        supervisors: 1,
+        date: '2025-01-01'
+      }
+    ]
+
+    render(
+      <StaffingOverview 
+        date={mockDate} 
+        timeBlocks={understaffedBlocks} 
+      />
+    )
+
+    expect(screen.getByText('21:00 - 05:00')).toBeInTheDocument()
+    expect(screen.getByText('Required: 6')).toBeInTheDocument()
+    expect(screen.getByText('Current: 3')).toBeInTheDocument()
+    expect(screen.getByText('Supervisors: 1')).toBeInTheDocument()
+    expect(screen.getByText('Understaffed by 3')).toBeInTheDocument()
+  })
+
+  it('displays the correct date format', () => {
+    render(
+      <StaffingOverview 
+        date={mockDate} 
+        timeBlocks={mockTimeBlocks} 
+      />
+    )
+
+    expect(screen.getByText('January 1, 2025')).toBeInTheDocument()
+  })
+}) 

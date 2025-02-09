@@ -1,19 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createMockSupabaseClient } from '../../utils/mock-supabase';
+import { createMockSupabaseClient } from '@/test/utils/supabase-mock';
 import { getEmployeeSchedule, updateShift, createTimeOffRequest } from '@/lib/supabase/service';
-
-// Mock the createClient function
-vi.mock('@/lib/supabase/server', () => ({
-  createClient: vi.fn(() => mockSupabase)
-}));
-
-// Create a single instance of mockSupabase to be used across tests
-const mockSupabase = createMockSupabaseClient();
+import type { Database } from '@/types/database';
 
 describe('Supabase Service', () => {
+  let mockSupabase: ReturnType<typeof createMockSupabaseClient>;
+
   beforeEach(() => {
     vi.clearAllMocks();
-    mockSupabase._mock.reset();
+    mockSupabase = createMockSupabaseClient();
   });
 
   describe('getEmployeeSchedule', () => {
@@ -24,11 +19,13 @@ describe('Supabase Service', () => {
 
       await getEmployeeSchedule(employeeId, startDate, endDate);
 
-      expect(mockSupabase.from).toHaveBeenCalledWith('individual_shifts');
-      expect(mockSupabase._mock.select).toHaveBeenCalled();
-      expect(mockSupabase._mock.eq).toHaveBeenCalledWith('employee_id', employeeId);
-      expect(mockSupabase._mock.gte).toHaveBeenCalledWith('date', startDate);
-      expect(mockSupabase._mock.lte).toHaveBeenCalledWith('date', endDate);
+      expect(mockSupabase.getLastTableName()).toBe('individual_shifts');
+      expect(mockSupabase.from('individual_shifts').getCalls()).toEqual([
+        { method: 'select', args: ['*'] },
+        { method: 'eq', args: ['employee_id', employeeId] },
+        { method: 'gte', args: ['date', startDate] },
+        { method: 'lte', args: ['date', endDate] }
+      ]);
     });
   });
 
@@ -42,9 +39,11 @@ describe('Supabase Service', () => {
 
       await updateShift(shiftId, updateData);
 
-      expect(mockSupabase.from).toHaveBeenCalledWith('individual_shifts');
-      expect(mockSupabase._mock.update).toHaveBeenCalledWith(updateData);
-      expect(mockSupabase._mock.eq).toHaveBeenCalledWith('id', shiftId);
+      expect(mockSupabase.getLastTableName()).toBe('individual_shifts');
+      expect(mockSupabase.from('individual_shifts').getCalls()).toEqual([
+        { method: 'update', args: [updateData] },
+        { method: 'eq', args: ['id', shiftId] }
+      ]);
     });
   });
 
@@ -59,8 +58,94 @@ describe('Supabase Service', () => {
 
       await createTimeOffRequest(request);
 
-      expect(mockSupabase.from).toHaveBeenCalledWith('time_off_requests');
-      expect(mockSupabase._mock.insert).toHaveBeenCalledWith([request]);
+      expect(mockSupabase.getLastTableName()).toBe('time_off_requests');
+      expect(mockSupabase.from('time_off_requests').getCalls()).toEqual([
+        { method: 'insert', args: [[request]] }
+      ]);
     });
+  });
+
+  it('should handle successful data fetch', async () => {
+    const mockData: Database['public']['Tables']['employees']['Row'] = {
+      id: '1',
+      auth_id: '123',
+      first_name: 'John',
+      last_name: 'Doe',
+      email: 'john@example.com',
+      role: 'dispatcher',
+      shift_pattern: 'pattern_a',
+      preferred_shift_category: 'day',
+      weekly_hours_cap: 40,
+      max_overtime_hours: 10,
+      last_shift_date: null,
+      total_hours_current_week: 0,
+      consecutive_shifts_count: 0,
+      created_by: '123',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      weekly_hours: 40
+    };
+    mockSupabase.mockSuccess(mockData);
+
+    const result = await mockSupabase
+      .from('employees')
+      .select()
+      .eq('id', '1')
+      .single();
+
+    expect(result.data).toEqual(mockData);
+    expect(result.error).toBeNull();
+    expect(mockSupabase.getLastTableName()).toBe('employees');
+  });
+
+  it('should handle error states', async () => {
+    const mockError = new Error('Database error');
+    mockSupabase.mockError(mockError);
+
+    const result = await mockSupabase
+      .from('employees')
+      .select()
+      .eq('id', '1')
+      .single();
+
+    expect(result.data).toBeNull();
+    expect(result.error).toEqual(mockError);
+    expect(mockSupabase.getLastTableName()).toBe('employees');
+  });
+
+  it('should handle realtime subscriptions', () => {
+    const mockCallback = vi.fn();
+    const channelName = 'employee-updates';
+    
+    const channel = mockSupabase
+      .channel(channelName)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'employees'
+      }, mockCallback)
+      .subscribe();
+
+    expect(mockSupabase.getLastChannelName()).toBe(channelName);
+
+    const mockPayload = {
+      new: {
+        id: '1',
+        first_name: 'John Updated',
+        last_name: 'Doe',
+      },
+      old: {
+        id: '1',
+        first_name: 'John',
+        last_name: 'Doe',
+      },
+      type: 'UPDATE' as const,
+    };
+
+    mockSupabase.triggerSubscription('postgres_changes', mockPayload);
+
+    expect(mockCallback).toHaveBeenCalledWith(mockPayload);
+
+    channel.unsubscribe();
   });
 }); 

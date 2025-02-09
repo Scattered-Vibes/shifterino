@@ -1,5 +1,4 @@
-import { PostgrestError } from '@supabase/supabase-js'
-import { ZodError } from 'zod'
+import { AuthError } from '@supabase/supabase-js'
 
 export class AppError extends Error {
   constructor(
@@ -23,82 +22,44 @@ export const ErrorCodes = {
 
 export type ErrorCode = typeof ErrorCodes[keyof typeof ErrorCodes]
 
-export interface ErrorResponse {
+interface ErrorWithMessage {
   message: string
-  code: ErrorCode
-  details?: unknown
 }
 
-export function handleError(error: unknown): ErrorResponse {
-  // Handle known error types
-  if (error instanceof AppError) {
-    return {
-      message: error.message,
-      code: error.code as ErrorCode
-    }
-  }
-
-  if (error instanceof ZodError) {
-    return {
-      message: 'Validation error',
-      code: ErrorCodes.VALIDATION_ERROR,
-      details: error.errors
-    }
-  }
-
-  // Handle Supabase errors
-  if (isPostgrestError(error)) {
-    return handleDatabaseError(error)
-  }
-
-  // Handle unknown errors
-  console.error('Unhandled error:', error)
-  return {
-    message: 'An unexpected error occurred',
-    code: ErrorCodes.UNKNOWN_ERROR
-  }
-}
-
-function isPostgrestError(error: unknown): error is PostgrestError {
+function isErrorWithMessage(error: unknown): error is ErrorWithMessage {
   return (
     typeof error === 'object' &&
     error !== null &&
-    'code' in error &&
     'message' in error &&
-    'details' in error
+    typeof (error as Record<string, unknown>).message === 'string'
   )
 }
 
-function handleDatabaseError(error: PostgrestError): ErrorResponse {
-  // Handle specific database errors
-  switch (error.code) {
-    case '23505': // unique_violation
-      return {
-        message: 'A record with this information already exists',
-        code: ErrorCodes.DATABASE_ERROR,
-        details: error.details
-      }
-    case '23503': // foreign_key_violation
-      return {
-        message: 'Referenced record does not exist',
-        code: ErrorCodes.DATABASE_ERROR,
-        details: error.details
-      }
-    default:
-      return {
-        message: 'Database error occurred',
-        code: ErrorCodes.DATABASE_ERROR,
-        details: error.details
-      }
+function toErrorWithMessage(maybeError: unknown): ErrorWithMessage {
+  if (isErrorWithMessage(maybeError)) return maybeError
+
+  try {
+    return new Error(JSON.stringify(maybeError))
+  } catch {
+    // fallback in case there's an error stringifying the maybeError
+    return new Error(String(maybeError))
   }
 }
 
-export function createErrorResponse(
-  message: string,
-  code: ErrorCode = ErrorCodes.UNKNOWN_ERROR,
-  details?: unknown
-): ErrorResponse {
-  return { message, code, details }
+export function handleError(error: unknown) {
+  if (error instanceof AuthError) {
+    // Handle Supabase Auth errors
+    return {
+      message: error.message,
+      status: error.status || 500,
+    }
+  }
+
+  const errorWithMessage = toErrorWithMessage(error)
+  return {
+    message: errorWithMessage.message,
+    status: 500,
+  }
 }
 
 // Helper function to throw common errors

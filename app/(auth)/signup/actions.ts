@@ -1,47 +1,66 @@
 'use server'
 
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { z } from 'zod'
+import { createServerClient } from '@supabase/ssr'
+import { type SignupInput } from '@/lib/validations/schemas'
+import { handleError } from '@/lib/utils/error-handler'
 
-import { signUpWithEmail } from '@/lib/auth'
-
-const SignupSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
-  role: z.enum(['dispatcher', 'supervisor']),
-})
-
-export async function signup(formData: FormData) {
+export async function signup(data: SignupInput) {
   try {
-    const validatedFields = SignupSchema.parse({
-      email: formData.get('email'),
-      password: formData.get('password'),
-      role: formData.get('role'),
-    })
-
-    const { data, error } = await signUpWithEmail(
-      validatedFields.email,
-      validatedFields.password
+    const cookieStore = cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+          set(name: string, value: string, options: any) {
+            cookieStore.set({ name, value, ...options })
+          },
+          remove(name: string, options: any) {
+            cookieStore.set({ name, value: '', ...options })
+          },
+        },
+      }
     )
 
-    if (error) {
-      console.error('Signup error:', error)
-      throw error
+    const { error: signUpError } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+      options: {
+        data: {
+          role: data.role,
+        },
+      },
+    })
+
+    if (signUpError) {
+      return { error: handleError(signUpError).message }
     }
 
-    if (!data) {
-      throw new Error('No data returned from signup')
+    // Log successful signup
+    await supabase.from('auth_logs').insert({
+      operation: 'signup_success',
+      details: { email: data.email, role: data.role },
+    })
+
+    // Create profile
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .insert({
+        email: data.email,
+        role: data.role,
+      })
+
+    if (profileError) {
+      return { error: handleError(profileError).message }
     }
 
-    return redirect('/signup/check-email')
+    redirect('/auth/check-email')
   } catch (error) {
-    console.error('Failed to sign up:', error)
-    if (error instanceof z.ZodError) {
-      throw new Error('Invalid form data')
-    }
-    if (error instanceof Error) {
-      throw new Error(`Failed to sign up: ${error.message}`)
-    }
-    throw error
+    return { error: handleError(error).message }
   }
 }

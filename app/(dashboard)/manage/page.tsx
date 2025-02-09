@@ -7,9 +7,10 @@ import { Card } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 import { ScheduleManager } from './components/ScheduleManager'
-import { StaffingOverview } from './components/StaffingOverview'
+import { StaffingOverview } from '@/components/StaffingOverview'
 import { StaffList } from './components/StaffList'
 import { TimeOffRequests } from './components/TimeOffRequests'
+import { getTimeBlocks } from '@/lib/schedule'
 
 
 
@@ -37,20 +38,8 @@ export default async function ManagePage() {
     redirect('/login')
   }
 
-  // Get current time block
-  const now = new Date()
-  const hour = now.getHours()
-  let timeBlock: string
-
-  if (hour >= 5 && hour < 9) {
-    timeBlock = '05:00-09:00'
-  } else if (hour >= 9 && hour < 21) {
-    timeBlock = '09:00-21:00'
-  } else if (hour >= 21 || hour < 1) {
-    timeBlock = '21:00-01:00'
-  } else {
-    timeBlock = '01:00-05:00'
-  }
+  const today = new Date()
+  const timeBlocks = await getTimeBlocks(today)
 
   // Fetch time off requests
   const { data: timeOffRequests } = await supabase
@@ -74,7 +63,7 @@ export default async function ManagePage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card className="p-4">
           <h2 className="mb-4 text-lg font-semibold">Staffing Overview</h2>
-          <StaffingOverview timeBlock={timeBlock} />
+          <StaffingOverview date={today} timeBlocks={timeBlocks} />
         </Card>
 
         <Card className="p-4">

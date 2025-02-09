@@ -1,136 +1,128 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import React from 'react';
 import { renderHook, waitFor } from '@testing-library/react';
-import { useEmployeeSchedule } from '../../hooks/use-employee-schedule';
-import { createMockSupabaseClient } from '../utils/mock-supabase';
-import { QueryClientProvider } from '@tanstack/react-query';
-import { createTestQueryClient } from '../setup';
+import { describe, it, expect, vi } from 'vitest';
+import { useEmployeeSchedule } from '@/hooks/use-employee-schedule';
+import { createMockSupabaseClient } from '@/test/helpers/supabase-mock';
+import { mockData } from '@/test/mocks/data';
+import { Providers } from '@/test/utils/test-utils';
 
-const mockSupabase = createMockSupabaseClient();
-
-// Mock both client creation functions
-vi.mock('@/lib/supabase/client', () => ({
-  getSupabaseClient: () => mockSupabase
-}));
-
-vi.mock('@/lib/supabase/server', () => ({
-  createClient: () => mockSupabase
+// Mock Supabase client
+vi.mock('@supabase/ssr', () => ({
+  createServerClient: () => createMockSupabaseClient(),
+  createBrowserClient: () => createMockSupabaseClient(),
 }));
 
 describe('useEmployeeSchedule', () => {
-  const queryClient = createTestQueryClient();
+  const startDate = '2025-01-01';
+  const endDate = '2025-01-07';
 
-  const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>
-      {children}
-    </QueryClientProvider>
-  );
-
-  beforeEach(() => {
-    queryClient.clear();
-    vi.clearAllMocks();
-    mockSupabase._mock.reset();
-  });
-
-  it('should fetch employee schedule successfully', async () => {
-    const mockSchedule = [
+  it('fetches employee schedule', async () => {
+    const mockSupabase = createMockSupabaseClient();
+    
+    const { result } = renderHook(
+      () => useEmployeeSchedule(
+        mockData.employees.default.id,
+        startDate,
+        endDate
+      ),
       {
-        id: '1',
-        employee_id: 'emp1',
-        shift_option_id: 'shift1',
-        date: '2025-01-01'
+        wrapper: ({ children }) => (
+          <Providers supabaseClient={mockSupabase}>{children}</Providers>
+        ),
       }
-    ];
-
-    mockSupabase._mock.mockSelectSuccess(mockSchedule);
-
-    const { result } = renderHook(
-      () => useEmployeeSchedule('emp1', '2025-01-01', '2025-01-07'),
-      { wrapper }
-    );
-
-    // Wait for loading to complete and data to be available
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-      expect(result.current.data).toBeDefined();
-    });
-
-    expect(result.current.data).toEqual(mockSchedule);
-    expect(result.current.isError).toBe(false);
-  });
-
-  it('should handle error when fetching schedule', async () => {
-    mockSupabase._mock.mockSelectError(new Error('Failed to fetch schedule'));
-
-    const { result } = renderHook(
-      () => useEmployeeSchedule('emp1', '2025-01-01', '2025-01-07'),
-      { wrapper }
     );
 
     await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-      expect(result.current.isError).toBe(true);
+      expect(result.current.data).toEqual([mockData.schedules.default]);
     });
-
-    expect(result.current.data).toBeUndefined();
   });
 
-  it('should update schedule in real-time', async () => {
-    const initialSchedule = [
-      {
-        id: '1',
-        employee_id: 'emp1',
-        shift_option_id: 'shift1',
-        date: '2025-01-01'
-      }
-    ];
-
-    const updatedSchedule = [
-      {
-        id: '1',
-        employee_id: 'emp1',
-        shift_option_id: 'shift2',
-        date: '2025-01-01'
-      }
-    ];
-
-    mockSupabase._mock.mockSelectSuccess(initialSchedule);
-
+  it('handles loading state', () => {
+    const mockSupabase = createMockSupabaseClient();
+    
     const { result } = renderHook(
-      () => useEmployeeSchedule('emp1', '2025-01-01', '2025-01-07'),
-      { wrapper }
+      () => useEmployeeSchedule(
+        mockData.employees.default.id,
+        startDate,
+        endDate
+      ),
+      {
+        wrapper: ({ children }) => (
+          <Providers supabaseClient={mockSupabase}>{children}</Providers>
+        ),
+      }
     );
+    
+    expect(result.current.isLoading).toBe(true);
+  });
 
-    // Wait for initial data to be loaded
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-      expect(result.current.data).toBeDefined();
+  it('handles error state', async () => {
+    const mockSupabase = createMockSupabaseClient();
+    const error = new Error('Failed to fetch schedule');
+    mockSupabase.from = vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockRejectedValue(error),
+      }),
     });
 
-    expect(result.current.data).toEqual(initialSchedule);
+    const { result } = renderHook(
+      () => useEmployeeSchedule(
+        mockData.employees.default.id,
+        startDate,
+        endDate
+      ),
+      {
+        wrapper: ({ children }) => (
+          <Providers supabaseClient={mockSupabase}>{children}</Providers>
+        ),
+      }
+    );
 
-    // Simulate real-time update
-    const mockCalls = mockSupabase._mock.on.mock.calls;
-    expect(mockCalls).toBeDefined();
-    expect(mockCalls.length).toBeGreaterThan(0);
+    await waitFor(() => {
+      expect(result.current.error).toBeTruthy();
+    });
+  });
 
-    const callback = mockCalls[0]?.[2];
-    expect(callback).toBeDefined();
+  it('updates schedule in real-time', async () => {
+    const mockSupabase = createMockSupabaseClient();
+    const channel = {
+      on: vi.fn().mockReturnThis(),
+      subscribe: vi.fn(),
+    };
+    mockSupabase.channel = vi.fn().mockReturnValue(channel);
 
-    if (callback && typeof callback === 'function') {
-      // Update the mock data before triggering the callback
-      mockSupabase._mock.updateCurrentResponse(updatedSchedule);
-      
-      callback({
-        new: updatedSchedule[0],
-        old: initialSchedule[0],
-        eventType: 'UPDATE'
-      });
+    const { result } = renderHook(
+      () => useEmployeeSchedule(
+        mockData.employees.default.id,
+        startDate,
+        endDate
+      ),
+      {
+        wrapper: ({ children }) => (
+          <Providers supabaseClient={mockSupabase}>{children}</Providers>
+        ),
+      }
+    );
 
-      // Wait for the update to be reflected
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-        expect(result.current.data).toEqual(updatedSchedule);
-      }, { timeout: 2000 });
-    }
+    await waitFor(() => {
+      expect(result.current.data).toEqual([mockData.schedules.default]);
+    });
+
+    const updatedSchedule = {
+      ...mockData.schedules.default,
+      shift_option_id: 'updated-shift',
+    };
+
+    // Simulate realtime update
+    const [, handler] = channel.on.mock.calls[0];
+    handler({
+      new: updatedSchedule,
+      old: mockData.schedules.default,
+      eventType: 'UPDATE',
+    });
+
+    await waitFor(() => {
+      expect(result.current.data).toEqual([updatedSchedule]);
+    });
   });
 }); 

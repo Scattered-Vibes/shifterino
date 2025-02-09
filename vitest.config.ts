@@ -1,17 +1,13 @@
 /// <reference types="vitest" />
 import { defineConfig } from 'vitest/config'
-import react from '@vitejs/plugin-react'
-import tsconfigPaths from 'vite-tsconfig-paths'
+import path from 'path'
 
 export default defineConfig({
-  // @ts-expect-error: Plugin type mismatch between Vite and Vitest
-  plugins: [react(), tsconfigPaths()],
   test: {
-    environment: 'happy-dom',
+    environment: 'jsdom',
+    globals: true,
     setupFiles: ['./test/setup.ts'],
     include: ['**/*.test.{ts,tsx}'],
-    exclude: ['**/node_modules/**', '**/dist/**', '**/cypress/**', '**/.{idea,git,cache,output,temp}/**'],
-    globals: true,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
@@ -19,10 +15,14 @@ export default defineConfig({
         'node_modules/**',
         'test/setup.ts',
         '**/*.d.ts',
-        '**/*.config.ts',
-        '**/types/**',
-        'coverage/**'
+        '**/*.config.*',
+        '**/types/**'
       ]
+    }
+  },
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './')
     }
   }
 })

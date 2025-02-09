@@ -1,73 +1,68 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
+import { cookies } from 'next/headers'
+import { createServerClient } from '@supabase/ssr'
+import type { CookieOptions } from '@supabase/ssr'
+import { type ProfileInput } from '@/lib/validations/schemas'
+import { handleError } from '@/lib/utils/error-handler'
 
-import { createClient } from '@/lib/supabase/server'
+interface UpdateProfileInput extends ProfileInput {
+  id: string
+  auth_id: string
+}
 
-export async function updateProfile(formData: FormData) {
-  const supabase = createClient()
-
+export async function updateProfile(data: UpdateProfileInput) {
   try {
-    // Get current user
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
+    const cookieStore = cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            cookieStore.set({ name, value, ...options })
+          },
+          remove(name: string) {
+            cookieStore.delete(name)
+          },
+        },
+      }
+    )
 
-    if (userError) {
-      console.error('Auth error:', userError)
-      throw new Error('Authentication error')
-    }
-
-    if (!user) {
-      throw new Error('Not authenticated')
-    }
-
-    // Get form data
-    const first_name = formData.get('first_name')
-    const last_name = formData.get('last_name')
-
-    if (
-      !first_name ||
-      !last_name ||
-      typeof first_name !== 'string' ||
-      typeof last_name !== 'string'
-    ) {
-      throw new Error('First name and last name are required')
-    }
-
-    // Update employee record
-    const { error: updateError } = await supabase
+    // First update the employee record
+    const { error: employeeError } = await supabase
       .from('employees')
       .update({
-        first_name,
-        last_name,
+        first_name: data.first_name,
+        last_name: data.last_name,
+        shift_pattern: data.shift_pattern,
+        preferred_shift_category: data.preferred_shift_category,
         updated_at: new Date().toISOString(),
       })
-      .eq('auth_id', user.id)
+      .eq('id', data.id)
+      .eq('auth_id', data.auth_id)
 
-    if (updateError) {
-      console.error('Error updating profile:', updateError)
-      throw new Error(updateError.message || 'Failed to update profile')
+    if (employeeError) {
+      return { error: handleError(employeeError).message }
     }
 
-    // Update user metadata
+    // Then update the user metadata
     const { error: metadataError } = await supabase.auth.updateUser({
       data: {
-        first_name,
-        last_name,
+        first_name: data.first_name,
+        last_name: data.last_name,
       },
     })
 
     if (metadataError) {
-      console.error('Error updating user metadata:', metadataError)
-      // Don't throw here as the employee record was updated successfully
+      return { error: handleError(metadataError).message }
     }
 
-    // Revalidate only the profile page and its components
-    revalidatePath('/profile')
+    return { success: true }
   } catch (error) {
-    console.error('Profile update error:', error)
-    throw error
+    return { error: handleError(error).message }
   }
 }
