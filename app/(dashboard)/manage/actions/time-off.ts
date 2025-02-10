@@ -1,156 +1,214 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import { handleError, ErrorCode } from '@/lib/utils/error-handler'
-import {
-  timeOffRequestSchema,
-  timeOffConflictCheckSchema,
-  type TimeOffRequest,
-  type TimeOffConflictCheck
-} from '@/lib/validations/schemas'
+import { handleError } from '@/lib/utils/error-handler'
+import { requireAuth, requireSupervisorOrAbove, verifyEmployeeAccess } from '@/lib/auth/middleware'
+import { revalidatePath } from 'next/cache'
+import { z } from 'zod'
 
-export async function createTimeOffRequest(input: Omit<TimeOffRequest, 'status'>) {
-  const supabase = createClient()
+const timeOffRequestSchema = z.object({
+  start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  reason: z.string().min(1).max(500),
+  type: z.enum(['VACATION', 'SICK', 'PERSONAL', 'OTHER'])
+})
 
+export async function createTimeOffRequest(data: z.infer<typeof timeOffRequestSchema>) {
   try {
-    // Validate input
-    const validatedData = timeOffRequestSchema.parse({
-      ...input,
-      status: 'pending' // Add default status
-    })
-
-    // Check for conflicts first
-    const { data: hasConflicts, error: conflictError } = await checkTimeOffConflicts({
-      employee_id: validatedData.employee_id,
-      start_date: validatedData.start_date,
-      end_date: validatedData.end_date
-    })
-
-    if (conflictError) {
-      throw conflictError
-    }
-
-    if (hasConflicts) {
-      throw handleError({
-        code: ErrorCode.CONFLICT,
-        message: 'Time off request conflicts with existing approved request'
+    // Verify authenticated
+    const auth = await requireAuth()
+    
+    // Validate request data
+    const validated = timeOffRequestSchema.parse(data)
+    
+    const supabase = createClient()
+    
+    // Create request
+    const { error } = await supabase
+      .from('time_off_requests')
+      .insert({
+        employee_id: auth.employeeId,
+        start_date: validated.start_date,
+        end_date: validated.end_date,
+        reason: validated.reason,
+        type: validated.type,
+        status: 'PENDING'
       })
-    }
-
-    // Create the request
-    const { data, error } = await supabase
-      .from('time_off_requests')
-      .insert([validatedData])
-      .select()
-      .single()
-
-    if (error) {
-      throw handleError(error)
-    }
-
+    
+    if (error) throw error
+    
     revalidatePath('/time-off')
-    revalidatePath('/manage')
-    return { data: data as TimeOffRequest, error: null }
+    return { success: true }
   } catch (error) {
-    const appError = handleError(error)
-    return { data: null, error: appError }
-  }
-}
-
-export async function checkTimeOffConflicts(input: Omit<TimeOffConflictCheck, 'exclude_request_id'> & { exclude_request_id?: string }) {
-  const supabase = createClient()
-
-  try {
-    // Validate input
-    const validatedData = timeOffConflictCheckSchema.parse(input)
-
-    // Build query
-    let query = supabase
-      .from('time_off_requests')
-      .select()
-      .eq('employee_id', validatedData.employee_id)
-      .eq('status', 'approved')
-      .or(`start_date.lte.${validatedData.end_date},end_date.gte.${validatedData.start_date}`)
-
-    // Only add the neq clause if exclude_request_id is provided
-    if (validatedData.exclude_request_id) {
-      query = query.neq('id', validatedData.exclude_request_id)
-    }
-
-    const { data, error } = await query
-
-    if (error) {
-      throw handleError(error)
-    }
-
-    return { data: data.length > 0, error: null }
-  } catch (error) {
-    const appError = handleError(error)
-    return { data: null, error: appError }
+    throw handleError(error)
   }
 }
 
 export async function updateTimeOffRequest(
   requestId: string,
-  status: 'approved' | 'rejected'
+  data: Partial<z.infer<typeof timeOffRequestSchema>>
 ) {
-  const supabase = createClient()
-
   try {
+    // Verify authenticated
+    const auth = await requireAuth()
+    
+    const supabase = createClient()
+    
+    // Get request to verify ownership
+    const { data: request, error: fetchError } = await supabase
+      .from('time_off_requests')
+      .select('employee_id, status')
+      .eq('id', requestId)
+      .single()
+      
+    if (fetchError) throw fetchError
+    if (!request) throw new Error('Request not found')
+    
+    // Only allow updates to pending requests by the owner
+    if (request.employee_id !== auth.employeeId) {
+      throw new Error('Not authorized to update this request')
+    }
+    
+    if (request.status !== 'PENDING') {
+      throw new Error('Can only update pending requests')
+    }
+    
+    // Validate partial data
+    const validated = timeOffRequestSchema.partial().parse(data)
+    
+    // Update request
     const { error } = await supabase
       .from('time_off_requests')
-      .update({
-        status,
-        updated_at: new Date().toISOString(),
-      })
+      .update(validated)
       .eq('id', requestId)
-
-    if (error) {
-      throw handleError(error)
-    }
-
+    
+    if (error) throw error
+    
     revalidatePath('/time-off')
-    revalidatePath('/manage')
-    return { data: true, error: null }
+    return { success: true }
   } catch (error) {
-    const appError = handleError(error)
-    return { data: null, error: appError }
+    throw handleError(error)
   }
 }
 
-export async function getTimeOffRequests(employeeId?: string) {
-  const supabase = createClient()
-
+export async function deleteTimeOffRequest(requestId: string) {
   try {
-    let query = supabase
+    // Verify authenticated
+    const auth = await requireAuth()
+    
+    const supabase = createClient()
+    
+    // Get request to verify ownership
+    const { data: request, error: fetchError } = await supabase
       .from('time_off_requests')
-      .select(
-        `
-        *,
-        employee:employees (
-          id,
-          first_name,
-          last_name,
-          email
-        )
-      `
-      )
-      .order('created_at', { ascending: false })
-
-    if (employeeId) {
-      query = query.eq('employee_id', employeeId)
+      .select('employee_id, status')
+      .eq('id', requestId)
+      .single()
+      
+    if (fetchError) throw fetchError
+    if (!request) throw new Error('Request not found')
+    
+    // Only allow deletion of pending requests by the owner
+    if (request.employee_id !== auth.employeeId) {
+      throw new Error('Not authorized to delete this request')
     }
-
-    const { data, error } = await query
-
-    if (error) {
-      throw handleError(error)
+    
+    if (request.status !== 'PENDING') {
+      throw new Error('Can only delete pending requests')
     }
-
-    return { data: data as TimeOffRequest[], error: null }
+    
+    // Delete request
+    const { error } = await supabase
+      .from('time_off_requests')
+      .delete()
+      .eq('id', requestId)
+    
+    if (error) throw error
+    
+    revalidatePath('/time-off')
+    return { success: true }
   } catch (error) {
-    const appError = handleError(error)
-    return { data: null, error: appError }
+    throw handleError(error)
+  }
+}
+
+export async function approveTimeOffRequest(requestId: string) {
+  try {
+    // Verify supervisor or above
+    const auth = await requireSupervisorOrAbove()
+    
+    const supabase = createClient()
+    
+    // Get request to verify team access
+    const { data: request, error: fetchError } = await supabase
+      .from('time_off_requests')
+      .select('employee_id, status')
+      .eq('id', requestId)
+      .single()
+      
+    if (fetchError) throw fetchError
+    if (!request) throw new Error('Request not found')
+    
+    // Verify access to employee
+    await verifyEmployeeAccess(auth, request.employee_id)
+    
+    if (request.status !== 'PENDING') {
+      throw new Error('Can only approve pending requests')
+    }
+    
+    // Update request status
+    const { error } = await supabase
+      .from('time_off_requests')
+      .update({ status: 'APPROVED' })
+      .eq('id', requestId)
+    
+    if (error) throw error
+    
+    revalidatePath('/time-off')
+    return { success: true }
+  } catch (error) {
+    throw handleError(error)
+  }
+}
+
+export async function rejectTimeOffRequest(requestId: string, reason: string) {
+  try {
+    // Verify supervisor or above
+    const auth = await requireSupervisorOrAbove()
+    
+    const supabase = createClient()
+    
+    // Get request to verify team access
+    const { data: request, error: fetchError } = await supabase
+      .from('time_off_requests')
+      .select('employee_id, status')
+      .eq('id', requestId)
+      .single()
+      
+    if (fetchError) throw fetchError
+    if (!request) throw new Error('Request not found')
+    
+    // Verify access to employee
+    await verifyEmployeeAccess(auth, request.employee_id)
+    
+    if (request.status !== 'PENDING') {
+      throw new Error('Can only reject pending requests')
+    }
+    
+    // Update request status
+    const { error } = await supabase
+      .from('time_off_requests')
+      .update({ 
+        status: 'REJECTED',
+        rejection_reason: reason
+      })
+      .eq('id', requestId)
+    
+    if (error) throw error
+    
+    revalidatePath('/time-off')
+    return { success: true }
+  } catch (error) {
+    throw handleError(error)
   }
 }

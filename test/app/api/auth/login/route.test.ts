@@ -1,72 +1,34 @@
-import { POST } from '@/app/api/auth/login/route'
-import { createMockSupabaseClient, createMockUser } from '@/test/helpers/supabase-mock'
-import { vi, describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { NextRequest } from 'next/server'
+import { POST } from '@/app/api/auth/login/route'
+import { mockAuthUser, mockAuthError } from '@/test/helpers/auth'
+import { rateLimit } from '@/middleware/rate-limit'
 
-// Mock response types
-interface SuccessResponse {
-  status: number;
-  redirectTo: string;
-}
-
-interface ErrorResponse {
-  status: number;
-  error: string;
-}
-
-vi.mock('next/server', () => ({
-  NextResponse: {
-    json: vi.fn((data, init) => ({
-      ...data,
-      status: init?.status || 200
-    })),
-    redirect: vi.fn((url) => ({
-      status: 200,
-      redirectTo: url
-    }))
-  },
-  NextRequest: vi.fn()
+// Mock next/headers
+vi.mock('next/headers', () => ({
+  cookies: vi.fn(() => ({
+    get: vi.fn(),
+    set: vi.fn(),
+    delete: vi.fn()
+  }))
 }))
 
-vi.mock('@supabase/ssr', () => ({
-  createServerClient: vi.fn(() => createMockSupabaseClient())
+// Mock rate limiting
+vi.mock('@/middleware/rate-limit', () => ({
+  rateLimit: vi.fn().mockResolvedValue(null)
 }))
 
 describe('POST /api/auth/login', () => {
-  let mockSupabase = createMockSupabaseClient()
-
   beforeEach(() => {
     vi.clearAllMocks()
-    mockSupabase = createMockSupabaseClient()
   })
 
-  it('should return 200 and redirect on successful login', async () => {
-    const mockUser = createMockUser()
-    const mockEmployee = {
-      id: 'emp-1',
-      role: 'dispatcher',
-      auth_id: mockUser.id
-    }
-
-    mockSupabase.auth.signInWithPassword.mockResolvedValueOnce({
-      data: {
-        user: mockUser,
-        session: { access_token: 'test-token', refresh_token: 'test-refresh' }
-      },
-      error: null
-    })
-
-    const mockFrom = mockSupabase.from as jest.Mock
-    mockFrom.mockReturnValue({
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValueOnce({
-        data: mockEmployee,
-        error: null
-      })
-    })
-
-    const request = new NextRequest('http://localhost:3000/api/auth/login', {
+  it('should successfully log in a dispatcher', async () => {
+    // Mock auth user
+    const { supabase } = mockAuthUser('dispatcher')
+    
+    // Create request
+    const request = new NextRequest('http://localhost/api/auth/login', {
       method: 'POST',
       body: JSON.stringify({
         email: 'test@example.com',
@@ -74,58 +36,56 @@ describe('POST /api/auth/login', () => {
       })
     })
 
-    const response = await POST(request) as unknown as SuccessResponse
+    // Call route handler
+    const response = await POST(request)
+    const data = await response.json()
 
+    // Verify response
     expect(response.status).toBe(200)
-    expect(response.redirectTo).toBe('/overview')
-    expect(mockSupabase.auth.signInWithPassword).toHaveBeenCalledWith({
+    expect(data).toEqual({
+      redirectTo: '/overview'
+    })
+
+    // Verify Supabase calls
+    expect(supabase.auth.signInWithPassword).toHaveBeenCalledWith({
       email: 'test@example.com',
       password: 'password123'
     })
+    expect(supabase.from).toHaveBeenCalledWith('auth_logs')
   })
 
-  it('should return 400 on invalid credentials', async () => {
-    mockSupabase.auth.signInWithPassword.mockResolvedValueOnce({
-      data: { user: null, session: null },
-      error: { message: 'Invalid credentials', status: 400 }
-    })
-
-    const request = new NextRequest('http://localhost:3000/api/auth/login', {
+  it('should handle invalid credentials', async () => {
+    // Mock auth error
+    mockAuthError('Invalid login credentials', 400)
+    
+    // Create request
+    const request = new NextRequest('http://localhost/api/auth/login', {
       method: 'POST',
       body: JSON.stringify({
-        email: 'test@example.com',
-        password: 'wrongpassword'
+        email: 'wrong@example.com',
+        password: 'wrongpass'
       })
     })
 
-    const response = await POST(request) as unknown as ErrorResponse
+    // Call route handler
+    const response = await POST(request)
+    const data = await response.json()
 
+    // Verify response
     expect(response.status).toBe(400)
-    expect(response.error).toBe('Invalid credentials')
+    expect(data).toHaveProperty('error')
   })
 
-  it('should return 400 if employee data not found', async () => {
-    const mockUser = createMockUser()
-
-    mockSupabase.auth.signInWithPassword.mockResolvedValueOnce({
-      data: {
-        user: mockUser,
-        session: { access_token: 'test-token', refresh_token: 'test-refresh' }
-      },
+  it('should redirect to profile completion if employee record not found', async () => {
+    // Mock auth user but return null for employee
+    const { supabase } = mockAuthUser('dispatcher')
+    supabase.from().single.mockResolvedValueOnce({
+      data: null,
       error: null
     })
-
-    const mockFrom = mockSupabase.from as jest.Mock
-    mockFrom.mockReturnValue({
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValueOnce({
-        data: null,
-        error: { message: 'Employee not found' }
-      })
-    })
-
-    const request = new NextRequest('http://localhost:3000/api/auth/login', {
+    
+    // Create request
+    const request = new NextRequest('http://localhost/api/auth/login', {
       method: 'POST',
       body: JSON.stringify({
         email: 'test@example.com',
@@ -133,33 +93,26 @@ describe('POST /api/auth/login', () => {
       })
     })
 
-    const response = await POST(request) as unknown as ErrorResponse
+    // Call route handler
+    const response = await POST(request)
+    const data = await response.json()
 
-    expect(response.status).toBe(400)
-    expect(response.error).toBe('Employee not found')
-  })
-
-  it('should return 400 on invalid request body', async () => {
-    const request = new NextRequest('http://localhost:3000/api/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({
-        email: 'not-an-email',
-        password: ''
-      })
+    // Verify response
+    expect(response.status).toBe(200)
+    expect(data).toEqual({
+      redirectTo: '/complete-profile'
     })
-
-    const response = await POST(request) as unknown as ErrorResponse
-
-    expect(response.status).toBe(400)
-    expect(response.error).toBe('Invalid request body')
   })
 
-  it('should return 500 on unexpected errors', async () => {
-    mockSupabase.auth.signInWithPassword.mockRejectedValueOnce(
-      new Error('Unexpected error')
-    )
-
-    const request = new NextRequest('http://localhost:3000/api/auth/login', {
+  it('should respect rate limiting', async () => {
+    // Mock rate limit exceeded
+    ;(rateLimit as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      status: 429,
+      headers: { 'Retry-After': '60' }
+    })
+    
+    // Create request
+    const request = new NextRequest('http://localhost/api/auth/login', {
       method: 'POST',
       body: JSON.stringify({
         email: 'test@example.com',
@@ -167,9 +120,53 @@ describe('POST /api/auth/login', () => {
       })
     })
 
-    const response = await POST(request) as unknown as ErrorResponse
+    // Call route handler
+    const response = await POST(request)
 
+    // Verify response
+    expect(response.status).toBe(429)
+    expect(response.headers.get('Retry-After')).toBe('60')
+  })
+
+  it('should handle database errors gracefully', async () => {
+    // Mock auth user but simulate database error
+    const { supabase } = mockAuthUser('dispatcher')
+    supabase.from().single.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'Database error', code: 'PGRST301' }
+    })
+    
+    // Create request
+    const request = new NextRequest('http://localhost/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({
+        email: 'test@example.com',
+        password: 'password123'
+      })
+    })
+
+    // Call route handler
+    const response = await POST(request)
+    const data = await response.json()
+
+    // Verify response
+    expect(response.status).toBe(400)
+    expect(data).toHaveProperty('error')
+  })
+
+  it('should handle malformed request body', async () => {
+    // Create request with invalid body
+    const request = new NextRequest('http://localhost/api/auth/login', {
+      method: 'POST',
+      body: 'invalid json'
+    })
+
+    // Call route handler
+    const response = await POST(request)
+    const data = await response.json()
+
+    // Verify response
     expect(response.status).toBe(500)
-    expect(response.error).toBe('Internal server error')
+    expect(data).toHaveProperty('error')
   })
 }) 

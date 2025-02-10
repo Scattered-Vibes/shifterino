@@ -1,37 +1,50 @@
 import { Skeleton } from '@/components/ui/skeleton'
+import { Card } from '@/components/ui/card'
 
-export default function SchedulesLoading() {
+export function ScheduleCalendarSkeleton() {
   return (
-    <div className="space-y-8">
-      {/* Header skeleton */}
-      <div className="flex items-center justify-between">
-        <Skeleton className="h-9 w-[150px]" />
-        <Skeleton className="h-5 w-[100px]" />
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <Skeleton className="h-9 w-[100px]" />
       </div>
-
-      {/* Calendar skeleton */}
-      <div className="rounded-md border p-4">
-        {/* Month navigation */}
-        <div className="mb-4 flex items-center justify-between">
-          <Skeleton className="h-5 w-[100px]" />
-          <div className="flex gap-1">
-            <Skeleton className="h-8 w-8" />
-            <Skeleton className="h-8 w-8" />
-          </div>
-        </div>
-
-        {/* Calendar grid */}
-        <div className="grid grid-cols-7 gap-6">
-          {/* Week days */}
-          {Array.from({ length: 7 }).map((_, i) => (
-            <Skeleton key={`day-${i}`} className="h-8 w-8" />
-          ))}
-
-          {/* Calendar days */}
-          {Array.from({ length: 35 }).map((_, i) => (
-            <Skeleton key={`date-${i}`} className="h-8 w-8" />
+      
+      <Card className="p-4">
+        <div className="grid grid-cols-7 gap-px">
+          {[...Array(35)].map((_, i) => (
+            <div key={i} className="aspect-square p-2">
+              <Skeleton className="h-6 w-6 rounded-full" />
+              <div className="mt-1 space-y-1">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-2/3" />
+              </div>
+            </div>
           ))}
         </div>
+      </Card>
+    </div>
+  )
+}
+
+export function ScheduleListSkeleton() {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <Skeleton className="h-9 w-[100px]" />
+      </div>
+      
+      <div className="space-y-2">
+        {[...Array(5)].map((_, i) => (
+          <Card key={i} className="p-4">
+            <div className="flex items-center gap-4">
+              <Skeleton className="h-12 w-12 rounded-full" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-1/4" />
+                <Skeleton className="h-4 w-1/2" />
+              </div>
+              <Skeleton className="h-8 w-24" />
+            </div>
+          </Card>
+        ))}
       </div>
     </div>
   )

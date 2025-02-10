@@ -118,4 +118,24 @@ export function getUserFriendlyMessage(code: ErrorCode): string {
     default:
       return 'An unexpected error occurred'
   }
+}
+
+export function getHttpStatus(code: ErrorCode): number {
+  switch (code) {
+    case ErrorCode.VALIDATION_ERROR:
+      return 400
+    case ErrorCode.AUTH_UNAUTHORIZED:
+      return 401
+    case ErrorCode.NOT_FOUND:
+      return 404
+    case ErrorCode.CONFLICT:
+      return 409
+    case ErrorCode.RATE_LIMIT:
+      return 429
+    case ErrorCode.DATABASE_ERROR:
+    case ErrorCode.SERVER_ERROR:
+      return 500
+    default:
+      return 500
+  }
 } 

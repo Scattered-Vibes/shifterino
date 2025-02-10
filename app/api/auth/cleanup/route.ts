@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import { handleError, getHttpStatus } from '@/lib/utils/error-handler'
 
-import { createServiceClient } from '@/lib/supabase/server'
+const THIRTY_DAYS_IN_SECONDS = 60 * 60 * 24 * 30
 
 /**
  * Cleanup expired sessions and invalid refresh tokens
@@ -11,32 +13,24 @@ export async function POST(request: Request) {
     // Verify secret key to ensure only authorized calls
     const authHeader = request.headers.get('authorization')
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      throw new Error('Unauthorized')
     }
 
     const token = authHeader.split(' ')[1]
     if (token !== process.env.CLEANUP_SECRET_KEY) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+      throw new Error('Invalid token')
     }
 
-    const supabase = createServiceClient()
+    const supabase = createClient()
 
     // Use admin API to list all sessions
-    const { data: sessions, error: listError } =
-      await supabase.auth.admin.listUsers()
-
-    if (listError) {
-      console.error('Error listing users:', listError)
-      return NextResponse.json(
-        { error: 'Failed to list users' },
-        { status: 500 }
-      )
-    }
+    const { data: sessions, error: listError } = await supabase.auth.admin.listUsers()
+    if (listError) throw listError
 
     const now = Math.floor(Date.now() / 1000)
     const expiredUsers = sessions.users.filter((user) => {
       const lastSignIn = new Date(user.last_sign_in_at || 0).getTime() / 1000
-      return now - lastSignIn > 60 * 60 * 24 * 30 // 30 days
+      return now - lastSignIn > THIRTY_DAYS_IN_SECONDS
     })
 
     if (!expiredUsers.length) {
@@ -46,24 +40,47 @@ export async function POST(request: Request) {
       })
     }
 
-    // Sign out expired users
-    const signOutPromises = expiredUsers.map((user) =>
-      supabase.auth.admin.signOut(user.id)
-    )
+    // Sign out expired users and log the operation
+    const cleanupPromises = expiredUsers.map(async (user) => {
+      try {
+        // Sign out the user
+        const { error: signOutError } = await supabase.auth.admin.signOut(user.id)
+        if (signOutError) throw signOutError
 
-    await Promise.all(signOutPromises).catch((error) => {
-      console.error('Error signing out users:', error)
+        // Log the cleanup
+        const { error: logError } = await supabase.from('auth_logs').insert({
+          operation: 'cleanup',
+          user_id: user.id,
+          details: {
+            reason: 'Session expired',
+            last_sign_in: user.last_sign_in_at,
+          },
+        })
+
+        if (logError) {
+          console.error('Error logging cleanup:', logError)
+        }
+
+        return true
+      } catch (error) {
+        console.error(`Error cleaning up user ${user.id}:`, error)
+        return false
+      }
     })
+
+    const results = await Promise.all(cleanupPromises)
+    const successCount = results.filter(Boolean).length
 
     return NextResponse.json({
       message: 'Successfully cleaned up expired sessions',
-      cleaned: expiredUsers.length,
+      cleaned: successCount,
+      total: expiredUsers.length,
     })
   } catch (error) {
-    console.error('Unexpected error during cleanup:', error)
+    const appError = handleError(error)
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { error: appError.message },
+      { status: getHttpStatus(appError.code) }
     )
   }
 }

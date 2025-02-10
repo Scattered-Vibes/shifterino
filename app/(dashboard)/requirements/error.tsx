@@ -1,10 +1,11 @@
 'use client'
 
 import { useEffect } from 'react'
-
 import { Button } from '@/components/ui/button'
+import { AlertCircle } from 'lucide-react'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
-export default function SettingsError({
+export default function RequirementsError({
   error,
   reset,
 }: {
@@ -12,18 +13,27 @@ export default function SettingsError({
   reset: () => void
 }) {
   useEffect(() => {
-    console.error(error)
+    // Log the error to an error reporting service
+    console.error('Requirements page error:', error)
   }, [error])
 
   return (
     <div className="container mx-auto py-6">
-      <div className="flex flex-col items-center justify-center rounded-lg border p-6 text-center">
-        <h2 className="mb-4 text-xl font-semibold">Something went wrong!</h2>
-        <p className="mb-4 text-muted-foreground">
-          {error.message || 'Failed to load settings. Please try again.'}
-        </p>
-        <Button onClick={reset}>Try again</Button>
+      <div className="mb-8 flex items-center justify-between">
+        <h1 className="text-3xl font-bold tracking-tight">Staffing Requirements</h1>
       </div>
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Error</AlertTitle>
+        <AlertDescription>
+          <p className="mb-4">
+            {error.message || 'An error occurred while loading staffing requirements.'}
+          </p>
+          <Button onClick={reset} variant="outline">
+            Try again
+          </Button>
+        </AlertDescription>
+      </Alert>
     </div>
   )
 }

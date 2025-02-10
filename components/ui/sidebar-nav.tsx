@@ -1,156 +1,76 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import {
-  Calendar,
-  CalendarClock,
-  CheckCircle,
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  Home,
-  Settings,
-  Users,
-} from 'lucide-react'
-
 import { cn } from '@/lib/utils'
-import { Button } from './button'
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-  TooltipProvider,
-} from '@/components/ui/tooltip'
+  CalendarIcon,
+  PersonIcon,
+  ClockIcon,
+  GearIcon,
+  BarChartIcon,
+} from '@radix-ui/react-icons'
+
+interface SidebarNavProps {
+  userRole: string
+}
 
 const routes = [
   {
+    href: '/dashboard',
     label: 'Overview',
-    icon: Home,
-    href: '/overview',
-    color: 'text-sky-500',
+    icon: BarChartIcon,
   },
   {
-    label: 'Manage',
-    icon: Settings,
-    href: '/manage',
-    color: 'text-pink-700',
+    href: '/schedule',
+    label: 'Schedule',
+    icon: CalendarIcon,
   },
   {
-    label: 'Schedules',
-    icon: Calendar,
-    href: '/schedules',
-    color: 'text-violet-500',
-  },
-  {
-    label: 'Time Off',
-    icon: Clock,
-    href: '/time-off',
-    color: 'text-pink-700',
-  },
-  {
-    label: 'Employees',
-    icon: Users,
     href: '/employees',
-    color: 'text-orange-700',
-    role: 'manager',
+    label: 'Employees',
+    icon: PersonIcon,
+    adminOnly: true,
   },
   {
-    label: 'Shift Options',
-    icon: CalendarClock,
-    href: '/shift-options',
-    color: 'text-blue-700',
+    href: '/time-off',
+    label: 'Time Off',
+    icon: ClockIcon,
   },
   {
-    label: 'Requirements',
-    icon: CheckCircle,
-    href: '/requirements',
-    color: 'text-green-700',
-  },
-  {
-    label: 'Settings',
-    icon: Settings,
     href: '/settings',
-    color: 'text-gray-500',
-    role: 'manager',
+    label: 'Settings',
+    icon: GearIcon,
+    adminOnly: true,
   },
 ]
 
-interface SidebarNavProps {
-  className?: string
-  userRole?: string
-}
-
-export function SidebarNav({ className, userRole }: SidebarNavProps) {
+export function SidebarNav({ userRole }: SidebarNavProps) {
   const pathname = usePathname()
-  const [isCollapsed, setIsCollapsed] = useState(false)
-
-  const filteredRoutes = routes.filter(
-    (route) => !route.role || route.role === userRole
-  )
+  const isAdmin = userRole === 'SUPERVISOR' || userRole === 'MANAGER'
 
   return (
-    <TooltipProvider delayDuration={0}>
-      <div
-        className={cn(
-          'relative h-[calc(100vh-3.5rem)] border-r bg-background transition-all duration-300',
-          isCollapsed ? 'w-16' : 'w-64',
-          className
-        )}
-      >
-        <div className="absolute -right-3 top-4 z-10">
-          <Button
-            variant="secondary"
-            size="icon"
-            className="h-6 w-6 rounded-full"
-            onClick={() => setIsCollapsed(!isCollapsed)}
-          >
-            {isCollapsed ? (
-              <ChevronRight className="h-4 w-4" />
-            ) : (
-              <ChevronLeft className="h-4 w-4" />
+    <nav className="grid items-start gap-2">
+      {routes.map((route) => {
+        if (route.adminOnly && !isAdmin) return null
+
+        const Icon = route.icon
+        const isActive = pathname === route.href
+
+        return (
+          <Link
+            key={route.href}
+            href={route.href}
+            className={cn(
+              'group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground',
+              isActive ? 'bg-accent text-accent-foreground' : 'transparent'
             )}
-            <span className="sr-only">
-              {isCollapsed ? 'Expand' : 'Collapse'} Sidebar
-            </span>
-          </Button>
-        </div>
-
-        <nav className="flex flex-col gap-2 p-4">
-          {filteredRoutes.map((route) => {
-            const isActive = pathname === route.href
-
-            return (
-              <Tooltip key={route.href}>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant={isActive ? 'secondary' : 'ghost'}
-                    className={cn(
-                      'justify-start',
-                      isActive && 'bg-muted',
-                      isCollapsed && 'justify-center px-2'
-                    )}
-                    asChild
-                  >
-                    <Link href={route.href}>
-                      <route.icon className={cn('h-5 w-5', route.color)} />
-                      {!isCollapsed && (
-                        <span className="ml-2">{route.label}</span>
-                      )}
-                    </Link>
-                  </Button>
-                </TooltipTrigger>
-                {isCollapsed && (
-                  <TooltipContent side="right">
-                    {route.label}
-                  </TooltipContent>
-                )}
-              </Tooltip>
-            )
-          })}
-        </nav>
-      </div>
-    </TooltipProvider>
+          >
+            <Icon className="mr-2 h-4 w-4" />
+            <span>{route.label}</span>
+          </Link>
+        )
+      })}
+    </nav>
   )
 } 

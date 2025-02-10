@@ -1,66 +1,100 @@
 import { redirect } from 'next/navigation'
-
+import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
-import { handleError } from '@/lib/utils/error-handler'
+import { handleError } from '@/lib/utils'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { TimeOffDataTable } from './data-table'
+import { TimeOffTableSkeleton } from './loading'
+import { CreateTimeOffButton } from './create-button'
+import { TimeOffFilters } from './filters'
+import { ErrorBoundary } from '@/components/ui/error-boundary'
+import type { Database } from '@/types/database'
 
-import { getTimeOffRequests } from '../manage/actions/time-off'
-import TimeOffRequestForm from '../manage/components/TimeOffRequestForm'
-import { TimeOffRequestsWrapper } from './components/time-off-requests-wrapper'
+type TimeOffRequest = Database['public']['Tables']['time_off_requests']['Row'] & {
+  employee: Database['public']['Tables']['employees']['Row']
+}
+
+async function getTimeOffRequests(userId: string, isManager: boolean) {
+  const supabase = createClient()
+
+  const query = supabase
+    .from('time_off_requests')
+    .select(`
+      *,
+      employee:employees(*)
+    `)
+    .order('created_at', { ascending: false })
+
+  // If not a manager, only show user's requests
+  if (!isManager) {
+    query.eq('employee_id', userId)
+  }
+
+  const { data: requests, error } = await query
+
+  if (error) throw error
+  return requests as TimeOffRequest[]
+}
 
 export default async function TimeOffPage() {
   const supabase = createClient()
 
   try {
-    // Get the current user
+    // Verify authentication
     const {
       data: { user },
-      error: userError,
+      error: authError,
     } = await supabase.auth.getUser()
-    
-    if (userError) {
-      throw handleError(userError)
-    }
-    
-    if (!user) {
-      redirect('/login')
-    }
 
-    // Get the employee record
+    if (authError) throw authError
+    if (!user) redirect('/login')
+
+    // Get user's role and ID
     const { data: employee, error: employeeError } = await supabase
       .from('employees')
-      .select('id, first_name, last_name')
+      .select('id, role')
       .eq('auth_id', user.id)
       .single()
 
-    if (employeeError) {
-      throw handleError(employeeError)
-    }
+    if (employeeError) throw employeeError
+    if (!employee) redirect('/unauthorized')
 
-    if (!employee) {
-      redirect('/complete-profile')
-    }
-
-    // Get time off requests for the current employee
-    const { data: requests, error: requestsError } = await getTimeOffRequests(employee.id)
-    
-    if (requestsError) {
-      throw handleError(requestsError)
-    }
+    const isManager = ['manager', 'supervisor'].includes(employee.role)
 
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 p-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight">Time Off Requests</h1>
-        </div>
-
-        <div className="grid gap-6">
-          <TimeOffRequestForm employeeId={employee.id} />
-
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Your Requests</h2>
-            <TimeOffRequestsWrapper initialRequests={requests} />
+          <div>
+            <h1 className="text-2xl font-bold">Time Off Requests</h1>
+            <p className="text-muted-foreground">
+              {isManager 
+                ? 'Manage time off requests for all employees.' 
+                : 'View and manage your time off requests.'}
+            </p>
           </div>
+          <CreateTimeOffButton />
         </div>
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>
+                {isManager ? 'All Requests' : 'Your Requests'}
+              </CardTitle>
+              <TimeOffFilters />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <ErrorBoundary>
+              <Suspense fallback={<TimeOffTableSkeleton />}>
+                <TimeOffDataTable 
+                  promise={getTimeOffRequests(employee.id, isManager)} 
+                  isManager={isManager}
+                />
+              </Suspense>
+            </ErrorBoundary>
+          </CardContent>
+        </Card>
       </div>
     )
   } catch (error) {

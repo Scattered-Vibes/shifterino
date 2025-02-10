@@ -1,53 +1,40 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-
-import { createServiceClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
+import { handleError, getHttpStatus } from '@/lib/utils/error-handler'
 
 const ForceSignOutSchema = z.object({
   userId: z.string().uuid(),
   reason: z.string().min(1).max(500),
 })
 
+// Verify admin/manager role
+async function verifyManagerRole(userId: string) {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('employees')
+    .select('role')
+    .eq('id', userId)
+    .single()
+
+  if (error || !data || data.role !== 'manager') {
+    throw new Error('Unauthorized - Manager role required')
+  }
+}
+
 /**
  * Force sign out a user (admin only)
  */
 export async function POST(request: Request) {
   try {
-    const supabase = createServiceClient()
+    const supabase = createClient()
 
-    // Verify admin authorization
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get admin user from token
-    const adminToken = authHeader.split(' ')[1]
-    const {
-      data: { user: adminUser },
-      error: adminError,
-    } = await supabase.auth.getUser(adminToken)
-
-    if (adminError || !adminUser) {
-      return NextResponse.json(
-        { error: 'Invalid admin token' },
-        { status: 401 }
-      )
-    }
-
-    // Verify admin role
-    const { data: adminEmployee, error: roleError } = await supabase
-      .from('employees')
-      .select('role')
-      .eq('auth_id', adminUser.id)
-      .single()
-
-    if (roleError || !adminEmployee || adminEmployee.role !== 'manager') {
-      return NextResponse.json(
-        { error: 'Insufficient permissions' },
-        { status: 403 }
-      )
-    }
+    // Get current user
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) throw new Error('Unauthorized')
+    
+    // Verify manager role
+    await verifyManagerRole(user.id)
 
     // Parse and validate request body
     const body = await request.json()
@@ -58,13 +45,7 @@ export async function POST(request: Request) {
       validatedData.userId
     )
 
-    if (signOutError) {
-      console.error('Error force signing out user:', signOutError)
-      return NextResponse.json(
-        { error: 'Failed to sign out user' },
-        { status: 500 }
-      )
-    }
+    if (signOutError) throw signOutError
 
     // Log the force sign out
     const { error: logError } = await supabase.from('auth_logs').insert({
@@ -72,7 +53,7 @@ export async function POST(request: Request) {
       user_id: validatedData.userId,
       details: {
         reason: validatedData.reason,
-        admin_id: adminUser.id,
+        admin_id: user.id,
       },
     })
 
@@ -85,18 +66,10 @@ export async function POST(request: Request) {
       userId: validatedData.userId,
     })
   } catch (error) {
-    console.error('Unexpected error during force sign out:', error)
-
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid request data', details: error.errors },
-        { status: 400 }
-      )
-    }
-
+    const appError = handleError(error)
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { error: appError.message }, 
+      { status: getHttpStatus(appError.code) }
     )
   }
 }

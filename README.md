@@ -2,6 +2,17 @@
 
 A comprehensive scheduling system built with Next.js 14, TypeScript, Supabase (using Supabase SSR), and Shadcn UI for managing 24/7 911 dispatch center staffing.
 
+## Security
+
+This project implements comprehensive security measures including:
+- Supabase Auth with secure session management
+- Row Level Security (RLS) policies
+- Rate limiting and API protection
+- Role-based access control
+- Audit logging
+
+For detailed security documentation, see [SECURITY.md](docs/SECURITY.md).
+
 ## Features
 
 - **Authentication & Authorization**

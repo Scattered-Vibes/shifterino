@@ -1,12 +1,20 @@
 import { cookies } from 'next/headers'
-import { NextResponse } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import type { CookieOptions } from '@supabase/ssr'
 import { type LoginInput } from '@/lib/validations/schemas'
 import { handleError } from '@/lib/utils/error-handler'
+import { rateLimit } from '@/middleware/rate-limit'
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    // Apply stricter rate limiting for login
+    const rateLimitResult = await rateLimit(request, NextResponse.next())
+    
+    if (rateLimitResult) {
+      return rateLimitResult
+    }
+
     const data = await request.json() as LoginInput
     const cookieStore = cookies()
     const supabase = createServerClient(

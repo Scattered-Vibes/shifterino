@@ -1,41 +1,111 @@
-'use client'
+'use server'
 
 import { Suspense } from 'react'
-import { format } from 'date-fns'
+import { redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+import { handleError } from '@/lib/utils'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ScheduleCalendar } from './calendar-view'
+import { ScheduleList } from './list-view'
+import { CreateScheduleButton } from './create-button'
+import { ScheduleFilters } from './filters'
+import { ScheduleCalendarSkeleton } from './loading'
+import { ErrorBoundary } from '@/components/ui/error-boundary'
+import type { Database } from '@/types/database'
 
-import { useSchedules } from '@/lib/hooks/use-query'
-import { Calendar } from '@/components/ui/calendar'
-import { ErrorBoundary } from '@/components/error-boundary'
-
-function ScheduleCalendar() {
-  const { data: schedules } = useSchedules()
-
-  return (
-    <Calendar
-      mode="multiple"
-      selected={schedules?.map((schedule) => new Date(schedule.start_date))}
-      className="rounded-md border"
-    />
-  )
+type ScheduleWithDetails = Database['public']['Tables']['individual_shifts']['Row'] & {
+  employee: Database['public']['Tables']['employees']['Row']
+  shift_option: Database['public']['Tables']['shift_options']['Row']
 }
 
-export default function SchedulesPage() {
-  return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Schedules</h1>
-        <div className="flex items-center gap-4">
-          <p className="text-sm text-muted-foreground">
-            {format(new Date(), 'MMMM yyyy')}
-          </p>
-        </div>
-      </div>
+async function getSchedules(startDate: string, endDate: string) {
+  const supabase = createClient()
 
-      <ErrorBoundary>
-        <Suspense fallback={<div>Loading calendar...</div>}>
-          <ScheduleCalendar />
-        </Suspense>
-      </ErrorBoundary>
-    </div>
-  )
+  const { data: shifts, error } = await supabase
+    .from('individual_shifts')
+    .select(`
+      *,
+      employee:employees(*),
+      shift_option:shift_options(*)
+    `)
+    .gte('date', startDate)
+    .lte('date', endDate)
+    .order('date', { ascending: true })
+
+  if (error) throw error
+  return shifts as ScheduleWithDetails[]
+}
+
+export default async function SchedulesPage() {
+  const supabase = createClient()
+
+  try {
+    // Verify authentication
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    if (authError) throw authError
+    if (!user) redirect('/login')
+
+    // Get current month's date range
+    const today = new Date()
+    const startDate = new Date(today.getFullYear(), today.getMonth(), 1)
+      .toISOString()
+      .split('T')[0]
+    const endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+      .toISOString()
+      .split('T')[0]
+
+    return (
+      <div className="space-y-6 p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Schedules</h1>
+            <p className="text-muted-foreground">
+              View and manage employee schedules.
+            </p>
+          </div>
+          <CreateScheduleButton />
+        </div>
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Schedule View</CardTitle>
+              <ScheduleFilters />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="calendar" className="space-y-4">
+              <TabsList>
+                <TabsTrigger value="calendar">Calendar</TabsTrigger>
+                <TabsTrigger value="list">List</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="calendar" className="space-y-4">
+                <ErrorBoundary>
+                  <Suspense fallback={<ScheduleCalendarSkeleton />}>
+                    <ScheduleCalendar promise={getSchedules(startDate, endDate)} />
+                  </Suspense>
+                </ErrorBoundary>
+              </TabsContent>
+              
+              <TabsContent value="list" className="space-y-4">
+                <ErrorBoundary>
+                  <Suspense fallback={<ScheduleCalendarSkeleton />}>
+                    <ScheduleList promise={getSchedules(startDate, endDate)} />
+                  </Suspense>
+                </ErrorBoundary>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  } catch (error) {
+    throw handleError(error)
+  }
 }

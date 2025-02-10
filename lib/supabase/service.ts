@@ -4,6 +4,8 @@
  * This module provides a Supabase client configured with the service role key
  * for administrative operations. This should ONLY be used in server-side code
  * that requires elevated privileges.
+ * 
+ * @deprecated Use the admin API routes instead for administrative operations
  */
 
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
@@ -17,6 +19,8 @@ let serviceClient: SupabaseClient<Database> | null = null
 /**
  * Creates and returns a Supabase client with service role privileges.
  * This should ONLY be used in server-side code that requires admin access.
+ * 
+ * @deprecated Use the admin API routes instead for administrative operations
  */
 export function getServiceClient() {
   if (serviceClient) return serviceClient
@@ -33,6 +37,8 @@ export function getServiceClient() {
 
 /**
  * Helper to ensure we're using the service client with proper error handling
+ * 
+ * @deprecated Use the admin API routes instead for administrative operations
  */
 export function requireServiceClient() {
   try {
@@ -46,49 +52,7 @@ export function requireServiceClient() {
   }
 }
 
-// Admin-only helper functions that require service role access
-export const adminHelpers = {
-  async deleteUser(userId: string) {
-    try {
-      const supabase = requireServiceClient()
-      const { error } = await supabase.auth.admin.deleteUser(userId)
-      
-      if (error) throw error
-      
-      return { error: null }
-    } catch (error) {
-      return { error: handleError(error) }
-    }
-  },
-
-  async getUserById(userId: string) {
-    try {
-      const supabase = requireServiceClient()
-      const { data, error } = await supabase.auth.admin.getUserById(userId)
-      
-      if (error) throw error
-      
-      return { data, error: null }
-    } catch (error) {
-      return { data: null, error: handleError(error) }
-    }
-  },
-
-  async listUsers() {
-    try {
-      const supabase = requireServiceClient()
-      const { data, error } = await supabase.auth.admin.listUsers()
-      
-      if (error) throw error
-      
-      return { data, error: null }
-    } catch (error) {
-      return { data: null, error: handleError(error) }
-    }
-  }
-}
-
-// Regular operations that don't require service role - moved to separate file
+// Regular operations that don't require service role
 export type { Database } from '@/types/supabase'
 
 type ShiftUpdateData = {

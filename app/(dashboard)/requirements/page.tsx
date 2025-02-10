@@ -1,26 +1,82 @@
-import { Metadata } from 'next'
+'use server'
 
-export const metadata: Metadata = {
-  title: 'Settings | Shifterino',
-  description: 'Manage your application settings and preferences.',
+import { redirect } from 'next/navigation'
+import { Suspense } from 'react'
+import { createClient } from '@/lib/supabase/server'
+import { handleError } from '@/lib/utils'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { RequirementsDataTable } from './data-table'
+import { RequirementsTableSkeleton } from './loading'
+import { CreateRequirementButton } from './create-button'
+import { ErrorBoundary } from '@/components/ui/error-boundary'
+import type { Database } from '@/types/database'
+
+type StaffingRequirement = Database['public']['Tables']['staffing_requirements']['Row']
+
+async function getStaffingRequirements() {
+  const supabase = createClient()
+
+  const { data: requirements, error } = await supabase
+    .from('staffing_requirements')
+    .select('*')
+    .order('time_block_start', { ascending: true })
+
+  if (error) throw error
+  return requirements || []
 }
 
-export default function SettingsPage() {
-  return (
-    <div className="container mx-auto py-6">
-      <div className="mb-8 flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-      </div>
-      <div className="grid gap-6">
-        {/* Settings content will go here */}
-        <div className="rounded-lg border p-4">
-          <h2 className="mb-4 text-lg font-semibold">Application Settings</h2>
-          <p className="text-muted-foreground">
-            Settings page is under construction. Check back soon for more
-            options.
-          </p>
+export default async function RequirementsPage() {
+  const supabase = createClient()
+
+  try {
+    // Verify authentication and role
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    if (authError) throw authError
+    if (!user) redirect('/login')
+
+    // Get user's role
+    const { data: employee, error: employeeError } = await supabase
+      .from('employees')
+      .select('role')
+      .eq('auth_id', user.id)
+      .single()
+
+    if (employeeError) throw employeeError
+    if (!employee || employee.role !== 'manager') {
+      redirect('/unauthorized')
+    }
+
+    return (
+      <div className="space-y-6 p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Staffing Requirements</h1>
+            <p className="text-muted-foreground">
+              Manage minimum staffing requirements for different time blocks.
+            </p>
+          </div>
+          <CreateRequirementButton />
         </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>All Requirements</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ErrorBoundary>
+              <Suspense fallback={<RequirementsTableSkeleton />}>
+                <RequirementsDataTable promise={getStaffingRequirements()} />
+              </Suspense>
+            </ErrorBoundary>
+          </CardContent>
+        </Card>
       </div>
-    </div>
-  )
+    )
+  } catch (error) {
+    throw handleError(error)
+  }
 }

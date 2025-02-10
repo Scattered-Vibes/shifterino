@@ -1721,351 +1721,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      gbt_bit_compress: {
+      validate_swap_conflicts: {
         Args: {
-          "": unknown
+          p_swap_request_id: string
         }
-        Returns: unknown
+        Returns: {
+          conflict_type: string
+          description: string
+        }[]
       }
-      gbt_bool_compress: {
+      execute_shift_swap: {
         Args: {
-          "": unknown
+          p_swap_request_id: string
         }
-        Returns: unknown
-      }
-      gbt_bool_fetch: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbt_bpchar_compress: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbt_bytea_compress: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbt_cash_compress: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbt_cash_fetch: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbt_date_compress: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbt_date_fetch: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbt_decompress: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbt_enum_compress: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbt_enum_fetch: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbt_float4_compress: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbt_float4_fetch: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbt_float8_compress: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbt_float8_fetch: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbt_inet_compress: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbt_int2_compress: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbt_int2_fetch: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbt_int4_compress: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbt_int4_fetch: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbt_int8_compress: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbt_int8_fetch: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbt_intv_compress: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbt_intv_decompress: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbt_intv_fetch: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbt_macad_compress: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbt_macad_fetch: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbt_macad8_compress: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbt_macad8_fetch: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbt_numeric_compress: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbt_oid_compress: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbt_oid_fetch: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbt_text_compress: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbt_time_compress: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbt_time_fetch: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbt_timetz_compress: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbt_ts_compress: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbt_ts_fetch: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbt_tstz_compress: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbt_uuid_compress: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbt_uuid_fetch: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbt_var_decompress: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbt_var_fetch: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbtreekey_var_in: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbtreekey_var_out: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbtreekey16_in: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbtreekey16_out: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbtreekey2_in: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbtreekey2_out: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbtreekey32_in: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbtreekey32_out: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbtreekey4_in: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbtreekey4_out: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbtreekey8_in: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      gbtreekey8_out: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-      validate_session: {
-        Args: {
-          session_token: string
-        }
-        Returns: boolean
-      }
-      verify_safe_migration: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
+        Returns: void
       }
     }
     Enums: {
@@ -2184,50 +1853,33 @@ export type CompositeTypes<
     ? PublicSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
 
-export type EmployeeRole = 'dispatcher' | 'supervisor' | 'manager'
-
-export type ShiftPattern = 'four_ten' | 'three_twelve'
-
-export type ShiftCategory = 'day_early' | 'day' | 'swing' | 'graveyard'
-
-export type ShiftStatus = 'scheduled' | 'completed' | 'missed' | 'sick' | 'vacation'
-
-export type TimeOffStatus = 'pending' | 'approved' | 'rejected'
-
-export type LogSeverity = 'info' | 'warning' | 'error'
+export type EmployeeRole = 'DISPATCHER' | 'SUPERVISOR'
+export type ShiftPattern = 'PATTERN_A' | 'PATTERN_B'
+export type ShiftCategory = 'EARLY' | 'DAY' | 'SWING' | 'GRAVEYARD'
+export type ShiftStatus = 'SCHEDULED' | 'COMPLETED' | 'CANCELLED'
+export type TimeOffStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
 
 export interface Employee {
   id: string
-  auth_id: string
   first_name: string
   last_name: string
   email: string
   role: EmployeeRole
   shift_pattern: ShiftPattern
-  preferred_shift_category?: ShiftCategory
+  preferred_shift_category: ShiftCategory
   weekly_hours_cap: number
   max_overtime_hours: number
-  last_shift_date?: string
-  total_hours_current_week: number
-  consecutive_shifts_count: number
-  created_by?: string
   created_at: string
   updated_at: string
 }
 
-export interface Schedule {
+export interface ShiftOption {
   id: string
-  created_at: string
+  category: ShiftCategory
+  start_time: string
+  end_time: string
+  duration_hours: number
   updated_at: string
-  start_date: string
-  end_date: string
-  employee_id: string
-  shift_type: ShiftCategory
-  shift_pattern: ShiftPattern
-  is_supervisor: boolean
-  status: 'draft' | 'published' | 'archived'
-  created_by: string
-  updated_by: string
 }
 
 export interface TimeOffRequest {
@@ -2236,23 +1888,29 @@ export interface TimeOffRequest {
   start_date: string
   end_date: string
   status: TimeOffStatus
-  notes?: string
-  reason: string
-  created_at: string
+  notes: string
   updated_at: string
 }
 
 export interface StaffingRequirement {
   id: string
-  name: string
-  time_block_start: string
-  time_block_end: string
+  start_time: string
+  end_time: string
   min_total_staff: number
   min_supervisors: number
-  schedule_period_id?: string
   is_holiday: boolean
-  override_reason?: string
-  created_at: string
+  updated_at: string
+}
+
+export interface IndividualShift {
+  id: string
+  employee_id: string
+  shift_option_id: string
+  schedule_period_id: string
+  date: string
+  actual_start_time: string
+  actual_end_time: string
+  status: ShiftStatus
   updated_at: string
 }
 

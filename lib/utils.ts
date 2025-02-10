@@ -43,3 +43,13 @@ export function formatTime(time: string): string {
 export function absoluteUrl(path: string): string {
   return `${process.env.NEXT_PUBLIC_APP_URL || ''}${path}`;
 }
+
+export function handleError(error: unknown) {
+  console.error('Error:', error)
+  
+  if (error instanceof Error) {
+    throw new Error(error.message)
+  }
+  
+  throw new Error('An unexpected error occurred')
+}
