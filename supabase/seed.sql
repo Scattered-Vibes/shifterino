@@ -137,14 +137,14 @@ WHERE e.email = 'bob.dispatcher@test.com';
 
 -- Insert shift swap request
 INSERT INTO shift_swap_requests (
-    id, requester_id, requested_employee_id, shift_id, status, notes
+    id, requesting_employee_id, target_employee_id, requesting_shift_id, status, reason
 )
 SELECT
     'f1111111-1111-1111-1111-111111111111'::uuid,
     e1.id,
     e2.id,
     s.id,
-    'pending'::time_off_status,
+    'PENDING'::swap_request_status,
     'Need to swap early shift'
 FROM employees e1
 CROSS JOIN employees e2

@@ -11,16 +11,14 @@ type ToasterToast = ToastProps & {
   title?: React.ReactNode
   description?: React.ReactNode
   action?: ToastActionElement
-  dismiss?: () => void
-  update?: (props: ToasterToast) => void
 }
 
-type ActionType = {
-  ADD_TOAST: 'ADD_TOAST'
-  UPDATE_TOAST: 'UPDATE_TOAST'
-  DISMISS_TOAST: 'DISMISS_TOAST'
-  REMOVE_TOAST: 'REMOVE_TOAST'
-}
+const actionTypes = {
+  ADD_TOAST: 'ADD_TOAST',
+  UPDATE_TOAST: 'UPDATE_TOAST',
+  DISMISS_TOAST: 'DISMISS_TOAST',
+  REMOVE_TOAST: 'REMOVE_TOAST',
+} as const
 
 let count = 0
 
@@ -28,6 +26,8 @@ function genId() {
   count = (count + 1) % Number.MAX_VALUE
   return count.toString()
 }
+
+type ActionType = typeof actionTypes
 
 type Action =
   | {
@@ -40,11 +40,11 @@ type Action =
     }
   | {
       type: ActionType['DISMISS_TOAST']
-      toastId: string | null
+      toastId?: ToasterToast['id']
     }
   | {
       type: ActionType['REMOVE_TOAST']
-      toastId: string | null
+      toastId?: ToasterToast['id']
     }
 
 interface State {
@@ -99,17 +99,17 @@ export const reducer = (state: State, action: Action): State => {
       return {
         ...state,
         toasts: state.toasts.map((t) =>
-          t.id === toastId || toastId === null
+          t.id === toastId || toastId === undefined
             ? {
                 ...t,
-                dismissed: true,
+                open: false,
               }
             : t
         ),
       }
     }
     case 'REMOVE_TOAST':
-      if (action.toastId === null) {
+      if (action.toastId === undefined) {
         return {
           ...state,
           toasts: [],
@@ -133,7 +133,7 @@ function dispatch(action: Action) {
   })
 }
 
-type Toast = Omit<ToasterToast, 'id' | 'dismiss' | 'update'>
+type Toast = Omit<ToasterToast, 'id'>
 
 function toast({ ...props }: Toast) {
   const id = genId()
@@ -150,8 +150,10 @@ function toast({ ...props }: Toast) {
     toast: {
       ...props,
       id,
-      dismiss,
-      update,
+      open: true,
+      onOpenChange: (open) => {
+        if (!open) dismiss()
+      },
     },
   })
 
@@ -178,7 +180,7 @@ function useToast() {
   return {
     ...state,
     toast,
-    dismiss: (toastId?: string) => dispatch({ type: 'DISMISS_TOAST', toastId: toastId || null }),
+    dismiss: (toastId?: string) => dispatch({ type: 'DISMISS_TOAST', toastId }),
   }
 }
 

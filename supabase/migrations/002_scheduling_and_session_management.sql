@@ -111,17 +111,21 @@ CREATE TABLE public.time_off_requests (
     updated_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Create swap request status type
+CREATE TYPE public.swap_request_status AS ENUM ('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED');
+
+-- Create shift swap requests table
 CREATE TABLE public.shift_swap_requests (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    requester_id uuid NOT NULL REFERENCES public.employees(id),
-    requested_employee_id uuid NOT NULL REFERENCES public.employees(id),
-    shift_id uuid NOT NULL REFERENCES public.individual_shifts(id),
-    proposed_shift_id uuid REFERENCES public.individual_shifts(id),
-    status public.time_off_status NOT NULL DEFAULT 'pending',
-    notes text,
-    created_at timestamptz DEFAULT now(),
-    updated_at timestamptz DEFAULT now(),
-    CONSTRAINT different_employees CHECK (requester_id != requested_employee_id)
+    requesting_shift_id uuid NOT NULL REFERENCES public.individual_shifts(id),
+    target_shift_id uuid REFERENCES public.individual_shifts(id),
+    requesting_employee_id uuid NOT NULL REFERENCES public.employees(id),
+    target_employee_id uuid REFERENCES public.employees(id),
+    reason text,
+    status public.swap_request_status NOT NULL DEFAULT 'PENDING',
+    created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT different_employees CHECK (requesting_employee_id != target_employee_id)
 );
 
 CREATE TABLE public.scheduling_logs (
