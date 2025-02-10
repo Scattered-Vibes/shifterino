@@ -1,155 +1,121 @@
-import { PostgrestError } from '@supabase/supabase-js'
+import { z } from 'zod'
 
 export enum ErrorCode {
-  // Database errors
-  DB_CONNECTION_ERROR = 'DB_CONNECTION_ERROR',
-  DB_QUERY_ERROR = 'DB_QUERY_ERROR',
-  DB_CONSTRAINT_ERROR = 'DB_CONSTRAINT_ERROR',
-  
-  // Authentication errors
-  AUTH_INVALID_CREDENTIALS = 'AUTH_INVALID_CREDENTIALS',
-  AUTH_SESSION_EXPIRED = 'AUTH_SESSION_EXPIRED',
-  AUTH_UNAUTHORIZED = 'AUTH_UNAUTHORIZED',
-  
-  // Schedule errors
-  SCHEDULE_CONFLICT = 'SCHEDULE_CONFLICT',
-  SCHEDULE_UPDATE_FAILED = 'SCHEDULE_UPDATE_FAILED',
-  SCHEDULE_INVALID_TIME = 'SCHEDULE_INVALID_TIME',
-  
-  // General errors
-  UNKNOWN_ERROR = 'UNKNOWN_ERROR',
+  UNKNOWN = 'UNKNOWN',
   VALIDATION_ERROR = 'VALIDATION_ERROR',
-  NETWORK_ERROR = 'NETWORK_ERROR'
+  AUTH_ERROR = 'AUTH_ERROR',
+  AUTH_INVALID_CREDENTIALS = 'AUTH_INVALID_CREDENTIALS',
+  AUTH_UNAUTHORIZED = 'AUTH_UNAUTHORIZED',
+  NOT_FOUND = 'NOT_FOUND',
+  CONFLICT = 'CONFLICT',
+  DATABASE_ERROR = 'DATABASE_ERROR',
+  NETWORK_ERROR = 'NETWORK_ERROR',
+  RATE_LIMIT = 'RATE_LIMIT',
+  SERVER_ERROR = 'SERVER_ERROR'
 }
 
-export interface AppError {
+export type AppError = {
   code: ErrorCode
   message: string
   details?: unknown
-  status?: number
 }
 
-export class ApplicationError extends Error {
-  code: ErrorCode
-  details?: unknown
-  status?: number
+export function handleError(error: unknown): AppError {
+  // Handle Zod validation errors
+  if (error instanceof z.ZodError) {
+    return {
+      code: ErrorCode.VALIDATION_ERROR,
+      message: 'Validation error',
+      details: error.errors
+    }
+  }
 
-  constructor(error: AppError) {
-    super(error.message)
-    this.name = 'ApplicationError'
-    this.code = error.code
-    this.details = error.details
-    this.status = error.status
+  // Handle known AppErrors
+  if (isAppError(error)) {
+    return error
+  }
+
+  // Handle Supabase errors
+  if (isSupabaseError(error)) {
+    return mapSupabaseError(error)
+  }
+
+  // Handle unknown errors
+  console.error('Unhandled error:', error)
+  return {
+    code: ErrorCode.UNKNOWN,
+    message: 'An unexpected error occurred'
   }
 }
 
-function isPostgrestError(error: unknown): error is PostgrestError {
+function isAppError(error: unknown): error is AppError {
   return (
     typeof error === 'object' &&
     error !== null &&
     'code' in error &&
     'message' in error &&
-    'details' in error
+    typeof error.code === 'string' &&
+    typeof error.message === 'string'
   )
 }
 
-export function handleError(error: unknown): ApplicationError {
-  // Log error details in development
-  if (process.env.NODE_ENV === 'development') {
-    console.error('Error details:', error)
-  }
-
-  // Handle Supabase PostgrestError
-  if (isPostgrestError(error)) {
-    const postgrestError = error as PostgrestError
-    
-    // Map common Postgres error codes
-    switch (postgrestError.code) {
-      case '23505': // unique_violation
-        return new ApplicationError({
-          code: ErrorCode.DB_CONSTRAINT_ERROR,
-          message: 'A record with this information already exists.',
-          details: postgrestError.details,
-          status: 409
-        })
-      case '23503': // foreign_key_violation
-        return new ApplicationError({
-          code: ErrorCode.DB_CONSTRAINT_ERROR,
-          message: 'Referenced record does not exist.',
-          details: postgrestError.details,
-          status: 409
-        })
-      default:
-        return new ApplicationError({
-          code: ErrorCode.DB_QUERY_ERROR,
-          message: 'Database operation failed.',
-          details: postgrestError,
-          status: 500
-        })
-    }
-  }
-
-  // Handle known application errors
-  if (error instanceof ApplicationError) {
-    return error
-  }
-
-  // Handle standard Error objects
-  if (error instanceof Error) {
-    return new ApplicationError({
-      code: ErrorCode.UNKNOWN_ERROR,
-      message: error.message,
-      details: error,
-      status: 500
-    })
-  }
-
-  // Handle unknown errors
-  return new ApplicationError({
-    code: ErrorCode.UNKNOWN_ERROR,
-    message: 'An unexpected error occurred.',
-    details: error,
-    status: 500
-  })
+function isSupabaseError(error: unknown): error is { message: string; code?: string } {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'message' in error &&
+    typeof error.message === 'string'
+  )
 }
 
-export function getErrorMessage(error: unknown): string {
-  if (error instanceof ApplicationError) {
-    return error.message
+function mapSupabaseError(error: { message: string; code?: string }): AppError {
+  switch (error.code) {
+    case 'auth/invalid-email':
+    case 'auth/user-not-found':
+    case 'auth/wrong-password':
+      return {
+        code: ErrorCode.AUTH_INVALID_CREDENTIALS,
+        message: 'Invalid email or password'
+      }
+    case '23505': // unique_violation
+      return {
+        code: ErrorCode.CONFLICT,
+        message: 'Resource already exists'
+      }
+    case '23503': // foreign_key_violation
+      return {
+        code: ErrorCode.NOT_FOUND,
+        message: 'Referenced resource not found'
+      }
+    default:
+      return {
+        code: ErrorCode.DATABASE_ERROR,
+        message: error.message
+      }
   }
-  
-  if (error instanceof Error) {
-    return error.message
-  }
-  
-  return 'An unexpected error occurred.'
 }
 
 export function getUserFriendlyMessage(code: ErrorCode): string {
   switch (code) {
-    case ErrorCode.DB_CONNECTION_ERROR:
-      return 'Unable to connect to the server. Please check your internet connection and try again.'
-    case ErrorCode.DB_QUERY_ERROR:
-      return 'There was a problem retrieving the data. Please try again later.'
-    case ErrorCode.DB_CONSTRAINT_ERROR:
-      return 'This operation cannot be completed due to data constraints.'
-    case ErrorCode.AUTH_INVALID_CREDENTIALS:
-      return 'Invalid credentials. Please check your email and password.'
-    case ErrorCode.AUTH_SESSION_EXPIRED:
-      return 'Your session has expired. Please sign in again.'
-    case ErrorCode.AUTH_UNAUTHORIZED:
-      return 'You do not have permission to perform this action.'
-    case ErrorCode.SCHEDULE_CONFLICT:
-      return 'This schedule conflicts with existing assignments. Please choose different times.'
-    case ErrorCode.SCHEDULE_UPDATE_FAILED:
-      return 'Failed to update the schedule. Please try again later.'
-    case ErrorCode.SCHEDULE_INVALID_TIME:
-      return 'Invalid time selection. Please check your start and end times.'
     case ErrorCode.VALIDATION_ERROR:
-      return 'Please check your input and try again.'
+      return 'Please check your input and try again'
+    case ErrorCode.AUTH_INVALID_CREDENTIALS:
+      return 'Invalid email or password'
+    case ErrorCode.AUTH_UNAUTHORIZED:
+      return 'You are not authorized to perform this action'
+    case ErrorCode.NOT_FOUND:
+      return 'The requested resource was not found'
+    case ErrorCode.CONFLICT:
+      return 'This action conflicts with existing data'
+    case ErrorCode.DATABASE_ERROR:
+      return 'A database error occurred'
     case ErrorCode.NETWORK_ERROR:
-      return 'Network connection issue. Please check your internet connection.'
+      return 'A network error occurred'
+    case ErrorCode.RATE_LIMIT:
+      return 'Too many requests. Please try again later'
+    case ErrorCode.SERVER_ERROR:
+      return 'A server error occurred'
     default:
-      return 'An unexpected error occurred. Please try again later.'
+      return 'An unexpected error occurred'
   }
 } 

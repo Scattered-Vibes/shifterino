@@ -37,6 +37,15 @@ const positiveNumber = z.number().positive({
   message: 'Value must be positive'
 })
 
+export const dateStringSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, {
+  message: 'Invalid date format. Expected YYYY-MM-DD'
+}).refine((date) => {
+  const parsed = new Date(date)
+  return !isNaN(parsed.getTime())
+}, {
+  message: 'Invalid date value'
+})
+
 // Shift validation
 export const shiftSchema = z.object({
   actual_start_time: timeStringSchema,
@@ -70,17 +79,31 @@ export const shiftPatternSchema = z.object({
 
 // Time-off request validation
 export const timeOffRequestSchema = z.object({
-  start_date: timeStringSchema,
-  end_date: timeStringSchema,
+  employee_id: z.string().uuid(),
+  start_date: dateStringSchema,
+  end_date: dateStringSchema,
   reason: z.string().min(1, 'Reason is required').max(500),
   type: z.enum(['vacation', 'sick', 'personal', 'other']),
-  employee_id: z.string().uuid(),
   status: z.enum(['pending', 'approved', 'rejected']).default('pending')
 }).refine(
   (data) => {
-    const start = new Date(data.start_date)
-    const end = new Date(data.end_date)
-    return end >= start
+    return data.end_date >= data.start_date
+  },
+  {
+    message: 'End date must be after or equal to start date',
+    path: ['end_date']
+  }
+)
+
+// Time-off conflict check input
+export const timeOffConflictCheckSchema = z.object({
+  employee_id: z.string().uuid(),
+  start_date: dateStringSchema,
+  end_date: dateStringSchema,
+  exclude_request_id: z.string().uuid().optional()
+}).refine(
+  (data) => {
+    return data.end_date >= data.start_date
   },
   {
     message: 'End date must be after or equal to start date',
@@ -160,6 +183,7 @@ export const shiftUpdateFormSchema = z.object({
 
 // Export types
 export type ShiftFormData = z.infer<typeof shiftUpdateFormSchema>
-export type TimeOffRequestFormData = z.infer<typeof timeOffRequestSchema>
+export type TimeOffConflictCheck = z.infer<typeof timeOffConflictCheckSchema>
+export type TimeOffRequest = z.infer<typeof timeOffRequestSchema>
 export type ScheduleFormData = z.infer<typeof scheduleSchema>
 export type StaffingRequirementFormData = z.infer<typeof staffingRequirementSchema> 
