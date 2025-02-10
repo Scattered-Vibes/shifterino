@@ -1,12 +1,15 @@
 -- 004_test_helpers_setup.sql
 --
--- This consolidated migration sets up the test helper environment:
--- • Creates (if not exists) the test_helpers schema and test data table.
--- • Defines utility functions for cleaning test data, setting auth contexts,
---   and creating test users.
---
+-- This migration sets up the test helper environment:
+--  - Creates (if not exists) the test_helpers schema.
+--  - Defines utility functions for:
+--    - Cleaning test data
+--    - Setting auth contexts
+--    - Creating test users
+
 CREATE SCHEMA IF NOT EXISTS test_helpers;
 
+-- Test data table and policies
 CREATE TABLE IF NOT EXISTS public.test_data (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     created_at timestamptz DEFAULT now(),
@@ -107,9 +110,9 @@ DECLARE
     v_email text;
 BEGIN
     IF p_suffix = '' THEN
-        v_email := p_email;
+        v_email:= p_email;
     ELSE
-        v_email := replace(p_email, '@', '_' || p_suffix || '@');
+        v_email:= replace(p_email, '@', '_' || p_suffix || '@');
     END IF;
     PERFORM test_helpers.clean_test_user(v_email);
     INSERT INTO auth.users (
@@ -237,11 +240,31 @@ BEGIN
     RETURNING * INTO test_record;
     
     RAISE NOTICE 'Created test data record with id: %, schedule_period_id: %, employee_id: %, shift_option_id: %',
-                 test_record.id,
-                 test_record.schedule_period_id,
-                 test_record.employee_id,
-                 test_record.shift_option_id;
+        test_record.id,
+        test_record.schedule_period_id,
+        test_record.employee_id,
+        test_record.shift_option_id;
     
     RETURN test_record;
 END;
-$$ LANGUAGE plpgsql; 
+$$ LANGUAGE plpgsql;
+
+ALTER TABLE public.test_data ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "test_data_restricted" ON public.test_data
+    FOR ALL USING (false);
+
+-- Helper function to check if we're in a development environment
+CREATE OR REPLACE FUNCTION public.is_development()
+RETURNS boolean 
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    RETURN current_setting('app.settings.environment', true) = 'development';
+END;
+$$;
+
+-- Allow test data access in development
+CREATE POLICY "test_data_development" ON public.test_data
+    FOR ALL USING (is_development());

@@ -101,67 +101,16 @@ export function CalendarView({ data }: CalendarViewProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="h-[400px]">
-            {selectedDateRequests.length > 0 ? (
-              <div className="space-y-4">
-                {selectedDateRequests.map((request) => (
-                  <Card key={request.id}>
-                    <CardContent className="pt-6">
-                      <div className="mb-4 flex items-center justify-between">
-                        <div className="font-medium">
-                          {request.requester.first_name} {request.requester.last_name}
-                          {' → '}
-                          {request.requested_employee.first_name}{' '}
-                          {request.requested_employee.last_name}
-                        </div>
-                        <Badge variant={getStatusBadgeVariant(request.status)}>
-                          {request.status}
-                        </Badge>
-                      </div>
-                      <div className="space-y-2 text-sm text-muted-foreground">
-                        <div>
-                          <strong>Original Shift:</strong>{' '}
-                          {formatShiftTime(request.original_shift)}
-                        </div>
-                        <div>
-                          <strong>Proposed Shift:</strong>{' '}
-                          {formatShiftTime(request.proposed_shift)}
-                        </div>
-                        {request.notes && (
-                          <div>
-                            <strong>Notes:</strong> {request.notes}
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <div className="flex h-[400px] items-center justify-center text-muted-foreground">
-                No shift swaps found for this date.
-              </div>
-            )}
-          </ScrollArea>
-        </CardContent>
           <ScrollArea className="h-[500px]">
             <div className="space-y-4">
               {selectedDateRequests.map((request) => (
-                <Card key={request.id}>
+                <Card key={request.id} className="mb-4">
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-base">
                         Swap Request #{request.id.slice(0, 8)}
                       </CardTitle>
-                      <Badge
-                        variant={
-                          request.status === 'approved'
-                            ? 'default'
-                            : request.status === 'rejected'
-                            ? 'destructive'
-                            : 'secondary'
-                        }
-                      >
+                      <Badge variant={getStatusBadgeVariant(request.status)}>
                         {request.status}
                       </Badge>
                     </div>

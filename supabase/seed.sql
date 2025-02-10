@@ -144,7 +144,7 @@ SELECT
     e1.id,
     e2.id,
     s.id,
-    'PENDING'::swap_request_status,
+    'pending'::swap_request_status,
     'Need to swap early shift'
 FROM employees e1
 CROSS JOIN employees e2
