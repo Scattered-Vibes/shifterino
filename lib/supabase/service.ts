@@ -6,12 +6,13 @@
  * that requires elevated privileges.
  */
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import config from '@/lib/config.server'
 import { handleError } from '@/lib/utils/error-handler'
-import { SupabaseClient } from '@supabase/supabase-js'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Database } from '@/types/supabase'
 
-let serviceClient: SupabaseClient | null = null
+let serviceClient: SupabaseClient<Database> | null = null
 
 /**
  * Creates and returns a Supabase client with service role privileges.
@@ -26,7 +27,7 @@ export function getServiceClient() {
     throw new Error('Missing Supabase service configuration')
   }
 
-  serviceClient = createClient()
+  serviceClient = createSupabaseClient<Database>(url, serviceKey)
   return serviceClient
 }
 
@@ -45,7 +46,7 @@ export function requireServiceClient() {
   }
 }
 
-// Admin-only helper functions
+// Admin-only helper functions that require service role access
 export const adminHelpers = {
   async deleteUser(userId: string) {
     try {
@@ -87,6 +88,9 @@ export const adminHelpers = {
   }
 }
 
+// Regular operations that don't require service role - moved to separate file
+export type { Database } from '@/types/supabase'
+
 type ShiftUpdateData = {
   actual_start_time?: string | null;
   actual_end_time?: string | null;
@@ -104,7 +108,7 @@ export async function getEmployeeSchedule(
   startDate: string,
   endDate: string
 ) {
-  const supabase = createClient();
+  const supabase = createSupabaseClient<Database>();
   return supabase
     .from('individual_shifts')
     .select('*')
@@ -114,7 +118,7 @@ export async function getEmployeeSchedule(
 }
 
 export async function updateShift(id: string, data: ShiftUpdateData) {
-  const supabase = createClient();
+  const supabase = createSupabaseClient<Database>();
   return supabase
     .from('individual_shifts')
     .update(data)
@@ -123,7 +127,7 @@ export async function updateShift(id: string, data: ShiftUpdateData) {
 }
 
 export async function createTimeOffRequest(data: TimeOffRequestData) {
-  const supabase = createClient();
+  const supabase = createSupabaseClient<Database>();
   return supabase
     .from('time_off_requests')
     .insert([data])

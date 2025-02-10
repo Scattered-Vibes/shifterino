@@ -9,24 +9,21 @@ import { redirect } from 'next/navigation'
 import { z } from 'zod'
 
 import { createClient } from '@/lib/supabase/server'
+import { handleError, ErrorCode } from '@/lib/utils/error-handler'
+import {
+  loginSchema,
+  signupSchema,
+  resetPasswordSchema,
+  updatePasswordSchema,
+  type LoginInput,
+  type SignupInput,
+  type ResetPasswordInput,
+  type UpdatePasswordInput,
+} from '@/lib/validations/schemas'
 
-const LoginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
-})
-
-const SignupSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
-  role: z.enum(['dispatcher', 'supervisor']),
-})
-
-export async function login(formData: FormData) {
+export async function login(data: LoginInput) {
   try {
-    const validatedFields = LoginSchema.parse({
-      email: formData.get('email'),
-      password: formData.get('password'),
-    })
+    const validatedFields = loginSchema.parse(data)
 
     const supabase = createClient()
     const { error } = await supabase.auth.signInWithPassword({
@@ -35,26 +32,27 @@ export async function login(formData: FormData) {
     })
 
     if (error) {
-      return { error: error.message }
+      const appError = handleError(error)
+      return { error: appError.message }
     }
 
     revalidatePath('/', 'layout')
     redirect('/dashboard')
   } catch (error) {
+    const appError = handleError(error)
     if (error instanceof z.ZodError) {
-      return { error: 'Invalid email or password format' }
+      return { 
+        error: 'Invalid email or password format',
+        code: ErrorCode.VALIDATION_ERROR
+      }
     }
-    return { error: 'An unexpected error occurred' }
+    return { error: appError.message, code: appError.code }
   }
 }
 
-export async function signup(formData: FormData) {
+export async function signup(data: SignupInput) {
   try {
-    const validatedFields = SignupSchema.parse({
-      email: formData.get('email'),
-      password: formData.get('password'),
-      role: formData.get('role'),
-    })
+    const validatedFields = signupSchema.parse(data)
 
     const supabase = createClient()
     const { error } = await supabase.auth.signUp({
@@ -68,55 +66,92 @@ export async function signup(formData: FormData) {
     })
 
     if (error) {
-      return { error: error.message }
+      const appError = handleError(error)
+      return { error: appError.message }
     }
 
     redirect('/signup/check-email')
   } catch (error) {
+    const appError = handleError(error)
     if (error instanceof z.ZodError) {
-      return { error: 'Invalid form data' }
+      return { 
+        error: 'Invalid form data',
+        code: ErrorCode.VALIDATION_ERROR
+      }
     }
-    return { error: 'An unexpected error occurred' }
+    return { error: appError.message, code: appError.code }
   }
 }
 
 export async function signOut() {
-  const supabase = createClient()
-  await supabase.auth.signOut()
-  revalidatePath('/', 'layout')
-  redirect('/login')
+  try {
+    const supabase = createClient()
+    const { error } = await supabase.auth.signOut()
+    
+    if (error) {
+      const appError = handleError(error)
+      return { error: appError.message }
+    }
+    
+    revalidatePath('/', 'layout')
+    redirect('/login')
+  } catch (error) {
+    const appError = handleError(error)
+    return { error: appError.message, code: appError.code }
+  }
 }
 
-export async function resetPassword(formData: FormData) {
+export async function resetPassword(data: ResetPasswordInput) {
   try {
-    const email = formData.get('email') as string
+    const validatedFields = resetPasswordSchema.parse(data)
     const supabase = createClient()
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    const { error } = await supabase.auth.resetPasswordForEmail(validatedFields.email, {
       redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/reset-password`,
     })
 
     if (error) {
-      return { error: error.message }
+      const appError = handleError(error)
+      return { error: appError.message }
     }
 
     return { success: true }
   } catch (error) {
-    return { error: 'An unexpected error occurred' }
+    const appError = handleError(error)
+    if (error instanceof z.ZodError) {
+      return { 
+        error: 'Invalid email format',
+        code: ErrorCode.VALIDATION_ERROR
+      }
+    }
+    return { error: appError.message, code: appError.code }
   }
 }
 
-export async function updatePassword(formData: FormData) {
-  const supabase = createClient()
+export async function updatePassword(data: UpdatePasswordInput) {
+  try {
+    const validatedFields = updatePasswordSchema.parse(data)
+    const supabase = createClient()
+    
+    const { error } = await supabase.auth.updateUser({
+      password: validatedFields.password,
+    })
 
-  const { error } = await supabase.auth.updateUser({
-    password: formData.get('password') as string,
-  })
+    if (error) {
+      const appError = handleError(error)
+      return { error: appError.message }
+    }
 
-  if (error) {
-    return { error: error.message }
+    revalidatePath('/', 'layout')
+    redirect('/overview')
+  } catch (error) {
+    const appError = handleError(error)
+    if (error instanceof z.ZodError) {
+      return { 
+        error: 'Invalid password format',
+        code: ErrorCode.VALIDATION_ERROR
+      }
+    }
+    return { error: appError.message, code: appError.code }
   }
-
-  revalidatePath('/', 'layout')
-  redirect('/overview')
 }

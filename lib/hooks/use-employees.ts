@@ -1,39 +1,180 @@
-import { useQuery } from '@tanstack/react-query'
-import { getSupabaseClient } from '@/lib/supabase/client'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import { employeeQueries } from '@/lib/supabase/data-access/employees'
+import { toast } from '@/components/ui/use-toast'
+import { ErrorCode, handleError, getUserFriendlyMessage } from '@/lib/utils/error-handler'
+import type { Database } from '@/types/database'
 
-export interface Employee {
-  id: string
-  auth_id: string
-  first_name: string
-  last_name: string
-  email: string
-  role: 'admin' | 'supervisor' | 'dispatcher'
-  weekly_hours_cap: number
-  consecutive_shifts_count: number | null
-  last_shift_date: string | null
-  created_at: string
-  updated_at: string
-  created_by: string | null
-  updated_by: string | null
-}
+type Employee = Database['public']['Tables']['employees']['Row']
 
-export async function getEmployees() {
-  const supabase = getSupabaseClient()
-  const { data, error } = await supabase
-    .from('employees')
-    .select('*')
-    .order('last_name', { ascending: true })
-
-  if (error) {
-    throw new Error(error.message)
+interface UseEmployeesOptions {
+  page?: number
+  limit?: number
+  search?: {
+    column: string
+    query: string
   }
-
-  return data as unknown as Employee[]
 }
 
-export function useEmployees() {
-  return useQuery({
-    queryKey: ['employees'],
-    queryFn: getEmployees,
+export function useEmployees(options: UseEmployeesOptions = {}) {
+  const queryClient = useQueryClient()
+  const supabase = createClient()
+
+  const {
+    data: employees,
+    isLoading,
+    error,
+    refetch
+  } = useQuery({
+    queryKey: ['employees', options],
+    queryFn: async () => {
+      const { data, error } = await employeeQueries.searchEmployees(options)
+      if (error) throw error
+      return data
+    }
   })
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('employees')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'employees'
+        },
+        (_payload) => {
+          try {
+            queryClient.invalidateQueries({ queryKey: ['employees'] })
+          } catch (error) {
+            const appError = handleError(error)
+            toast({
+              title: 'Real-time Update Error',
+              description: getUserFriendlyMessage(ErrorCode.DB_QUERY_ERROR),
+              variant: 'destructive'
+            })
+            console.error('Real-time subscription error:', appError)
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel).catch(error => {
+        console.error('Error removing channel:', error)
+      })
+    }
+  }, [queryClient, supabase])
+
+  return {
+    employees,
+    isLoading,
+    error,
+    refetch
+  }
+}
+
+export function useEmployee(employeeId: string) {
+  const {
+    data: employee,
+    isLoading,
+    error
+  } = useQuery({
+    queryKey: ['employee', employeeId],
+    queryFn: async () => {
+      const { data, error } = await employeeQueries.getEmployee(employeeId)
+      if (error) throw error
+      return data
+    },
+    enabled: !!employeeId
+  })
+
+  return {
+    employee,
+    isLoading,
+    error
+  }
+}
+
+export function useUpdateEmployee() {
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: async ({
+      employeeId,
+      data
+    }: {
+      employeeId: string
+      data: Partial<Employee>
+    }) => {
+      const { data: updatedEmployee, error } = await employeeQueries.updateEmployee(employeeId, data)
+      if (error) throw error
+      return updatedEmployee
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['employees'] })
+      queryClient.invalidateQueries({ queryKey: ['employee', variables.employeeId] })
+      toast({
+        title: 'Success',
+        description: 'Employee updated successfully',
+        variant: 'default'
+      })
+    },
+    onError: (error) => {
+      const appError = handleError(error)
+      toast({
+        title: 'Error Updating Employee',
+        description: getUserFriendlyMessage(appError.code),
+        variant: 'destructive'
+      })
+    }
+  })
+
+  return mutation
+}
+
+export function useEmployeeSchedules(employeeId: string, startDate?: Date, endDate?: Date) {
+  const {
+    data: schedules,
+    isLoading,
+    error
+  } = useQuery({
+    queryKey: ['employee-schedules', employeeId, startDate, endDate],
+    queryFn: async () => {
+      const { data, error } = await employeeQueries.getEmployeeSchedules(employeeId, startDate, endDate)
+      if (error) throw error
+      return data
+    },
+    enabled: !!employeeId
+  })
+
+  return {
+    schedules,
+    isLoading,
+    error
+  }
+}
+
+export function useEmployeeShifts(employeeId: string, startDate?: Date, endDate?: Date) {
+  const {
+    data: shifts,
+    isLoading,
+    error
+  } = useQuery({
+    queryKey: ['employee-shifts', employeeId, startDate, endDate],
+    queryFn: async () => {
+      const { data, error } = await employeeQueries.getEmployeeShifts(employeeId, startDate, endDate)
+      if (error) throw error
+      return data
+    },
+    enabled: !!employeeId
+  })
+
+  return {
+    shifts,
+    isLoading,
+    error
+  }
 } 

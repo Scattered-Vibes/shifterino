@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import type { TimeOffRequest } from '@/types/time-off'
 import { requireAuth } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
+import { handleError, ErrorCode } from '@/lib/utils/error-handler'
 
 export type CreateTimeOffRequestInput = {
   employee_id: string
@@ -23,7 +24,10 @@ export async function createTimeOffRequest(request: CreateTimeOffRequestInput) {
     // For managers/supervisors, allow creating requests for other employees
     // For regular employees, ensure they can only create their own requests
     if (auth.role === 'dispatcher' && request.employee_id !== auth.employeeId) {
-      throw new Error('You can only create time off requests for yourself')
+      throw handleError({
+        code: ErrorCode.AUTH_UNAUTHORIZED,
+        message: 'You can only create time off requests for yourself'
+      })
     }
 
     // Validate date format
@@ -31,11 +35,17 @@ export async function createTimeOffRequest(request: CreateTimeOffRequestInput) {
     const endDate = new Date(request.end_date)
 
     if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-      throw new Error('Invalid date format. Please use YYYY-MM-DD format.')
+      throw handleError({
+        code: ErrorCode.VALIDATION_ERROR,
+        message: 'Invalid date format. Please use YYYY-MM-DD format.'
+      })
     }
 
     if (endDate < startDate) {
-      throw new Error('End date cannot be before start date.')
+      throw handleError({
+        code: ErrorCode.VALIDATION_ERROR,
+        message: 'End date cannot be before start date.'
+      })
     }
 
     const { data, error } = await supabase
@@ -63,16 +73,15 @@ export async function createTimeOffRequest(request: CreateTimeOffRequestInput) {
       .single()
 
     if (error) {
-      console.error('Error creating time off request:', error)
-      throw error
+      throw handleError(error)
     }
 
     revalidatePath('/time-off')
     revalidatePath('/manage')
-    return data as TimeOffRequest
+    return { data: data as TimeOffRequest, error: null }
   } catch (error) {
-    console.error('Error in createTimeOffRequest:', error)
-    throw error
+    const appError = handleError(error)
+    return { data: null, error: appError }
   }
 }
 
@@ -82,44 +91,62 @@ export async function updateTimeOffRequest(
 ) {
   const supabase = createClient()
 
-  const { error } = await supabase
-    .from('time_off_requests')
-    .update({
-      status,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', requestId)
+  try {
+    const { error } = await supabase
+      .from('time_off_requests')
+      .update({
+        status,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', requestId)
 
-  if (error) throw error
-  return true
+    if (error) {
+      throw handleError(error)
+    }
+
+    revalidatePath('/time-off')
+    revalidatePath('/manage')
+    return { data: true, error: null }
+  } catch (error) {
+    const appError = handleError(error)
+    return { data: null, error: appError }
+  }
 }
 
 export async function getTimeOffRequests(employeeId?: string) {
   const supabase = createClient()
 
-  let query = supabase
-    .from('time_off_requests')
-    .select(
+  try {
+    let query = supabase
+      .from('time_off_requests')
+      .select(
+        `
+        *,
+        employee:employees (
+          id,
+          first_name,
+          last_name,
+          email
+        )
       `
-      *,
-      employee:employees (
-        id,
-        first_name,
-        last_name,
-        email
       )
-    `
-    )
-    .order('created_at', { ascending: false })
+      .order('created_at', { ascending: false })
 
-  if (employeeId) {
-    query = query.eq('employee_id', employeeId)
+    if (employeeId) {
+      query = query.eq('employee_id', employeeId)
+    }
+
+    const { data, error } = await query
+
+    if (error) {
+      throw handleError(error)
+    }
+
+    return { data: data as TimeOffRequest[], error: null }
+  } catch (error) {
+    const appError = handleError(error)
+    return { data: null, error: appError }
   }
-
-  const { data, error } = await query
-
-  if (error) throw error
-  return data as TimeOffRequest[]
 }
 
 export async function checkTimeOffConflicts(
@@ -139,7 +166,10 @@ export async function checkTimeOffConflicts(
     const end = new Date(endDate)
 
     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-      throw new Error('Invalid date format. Please use YYYY-MM-DD format.')
+      throw handleError({
+        code: ErrorCode.VALIDATION_ERROR,
+        message: 'Invalid date format. Please use YYYY-MM-DD format.'
+      })
     }
 
     // Build query
@@ -157,11 +187,13 @@ export async function checkTimeOffConflicts(
 
     const { data, error } = await query
 
-    if (error) throw error
+    if (error) {
+      throw handleError(error)
+    }
 
-    return data.length > 0
+    return { data: data.length > 0, error: null }
   } catch (error) {
-    console.error('Error in checkTimeOffConflicts:', error)
-    throw error
+    const appError = handleError(error)
+    return { data: null, error: appError }
   }
 }

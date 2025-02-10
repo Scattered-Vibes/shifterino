@@ -6,12 +6,11 @@ import { loginSchema, type LoginInput } from '@/lib/validations/schemas'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/components/ui/use-toast'
-import { useRouter } from 'next/navigation'
 import { Label } from '@/components/ui/label'
+import { login } from '../actions'
 
 export function LoginForm() {
   const { toast } = useToast()
-  const router = useRouter()
   const {
     register,
     handleSubmit,
@@ -22,17 +21,9 @@ export function LoginForm() {
 
   async function onSubmit(data: LoginInput) {
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      })
-
-      const result = await response.json()
+      const result = await login(data)
       
-      if (!response.ok) {
+      if (result?.error) {
         toast({
           variant: 'destructive',
           title: 'Error',
@@ -40,10 +31,8 @@ export function LoginForm() {
         })
         return
       }
-
-      // Handle successful login
-      router.push(result.redirectTo)
-      router.refresh()
+      
+      // Redirect will be handled by the server action
     } catch {
       toast({
         variant: 'destructive',

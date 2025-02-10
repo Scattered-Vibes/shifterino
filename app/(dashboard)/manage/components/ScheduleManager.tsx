@@ -1,193 +1,109 @@
 'use client'
 
-import { useEffect } from 'react'
-import type {
-  EventDropArg,
-  EventInput,
-} from '@fullcalendar/core'
-import type { EventResizeStopArg } from '@fullcalendar/interaction'
-import interactionPlugin from '@fullcalendar/interaction'
-import FullCalendar from '@fullcalendar/react'
-import timeGridPlugin from '@fullcalendar/timegrid'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { DndProvider } from 'react-dnd'
-import { HTML5Backend } from 'react-dnd-html5-backend'
-
-import { createClient } from '@/lib/supabase/client'
+import { FC } from 'react'
+import { EventDropArg } from '@fullcalendar/core'
+import { EventResizeStopArg } from '@fullcalendar/interaction'
+import { ShiftCalendar } from '@/components/calendar/ShiftCalendar'
+import { useShifts } from '@/lib/hooks/use-shifts'
+import type { Shift } from '@/types/shift'
+import { ErrorBoundary } from '@/components/error-boundary'
 import { toast } from '@/components/ui/use-toast'
-import type { Database } from '@/types/database'
+import { getUserFriendlyMessage, ErrorCode } from '@/lib/utils/error-handler'
 
-interface ShiftEvent extends EventInput {
-  id: string
-  employeeId: string
-  title: string
-  start: string
-  end: string
-  backgroundColor: string
-  extendedProps: {
-    shiftOptionId: string
-    isOvertime: boolean
-    isRegularSchedule: boolean
-    status: Database['public']['Enums']['shift_status']
-  }
+interface ScheduleManagerProps {
+  shifts: Shift[]
 }
 
-const fetchShifts = async (): Promise<ShiftEvent[]> => {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from('individual_shifts')
-    .select(`
-      id,
-      employee_id,
-      date,
-      shift_option_id,
-      is_overtime,
-      is_regular_schedule,
-      status,
-      shift_options!shift_option_id (
-        start_time,
-        end_time,
-        name
-      ),
-      employees!employee_id (
-        first_name,
-        last_name
-      )
-    `)
+const ErrorFallback: FC<{ error: Error }> = ({ error }) => {
+  return (
+    <div className="flex h-full w-full items-center justify-center">
+      <div className="rounded-lg bg-destructive/10 p-6 text-center">
+        <h3 className="mb-2 text-lg font-semibold">Schedule Display Error</h3>
+        <p className="text-muted-foreground">
+          {getUserFriendlyMessage(ErrorCode.SCHEDULE_UPDATE_FAILED)}
+        </p>
+        {process.env.NODE_ENV === 'development' && (
+          <p className="mt-2 text-sm text-destructive">{error.message}</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export const ScheduleManager: FC<ScheduleManagerProps> = ({ shifts: _shifts }) => {
+  const { events, updateShift, isLoading, error } = useShifts()
+
+  if (isLoading) {
+    return (
+      <div className="flex h-full w-full items-center justify-center">
+        <div className="text-muted-foreground">Loading schedule...</div>
+      </div>
+    )
+  }
 
   if (error) {
-    console.error('Error fetching shifts:', error)
-    return []
+    return <ErrorFallback error={error} />
   }
-
-  return data?.map((shift) => ({
-    id: shift.id,
-    employeeId: shift.employee_id,
-    title: `${shift.employees.first_name} ${shift.employees.last_name}`,
-    start: `${shift.date}T${shift.shift_options.start_time}`,
-    end: `${shift.date}T${shift.shift_options.end_time}`,
-    backgroundColor: shift.is_overtime ? '#fca5a5' : '#93c5fd',
-    extendedProps: {
-      shiftOptionId: shift.shift_option_id,
-      isOvertime: shift.is_overtime,
-      isRegularSchedule: shift.is_regular_schedule,
-      status: shift.status
-    }
-  })) || []
-}
-
-export function ScheduleManager() {
-  const queryClient = useQueryClient()
-  const supabase = createClient()
-
-  const { data: shifts = [] } = useQuery({
-    queryKey: ['shifts'],
-    queryFn: fetchShifts,
-  })
-
-  useEffect(() => {
-    const channel = supabase
-      .channel('shifts')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'individual_shifts',
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['shifts'] })
-        },
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [queryClient, supabase])
 
   const handleEventDrop = async (dropInfo: EventDropArg) => {
     const { event } = dropInfo
-    const supabase = createClient()
 
-    if (!event.start) return
+    if (!event.start || !event.end) {
+      toast({
+        title: 'Invalid Time Selection',
+        description: getUserFriendlyMessage(ErrorCode.SCHEDULE_INVALID_TIME),
+        variant: 'destructive'
+      })
+      return
+    }
 
     try {
-      const { error } = await supabase
-        .from('individual_shifts')
-        .update({
-          date: event.start.toISOString().split('T')[0] as string,
-        })
-        .eq('id', event.id)
-
-      if (error) throw error
-
-      toast({
-        title: 'Shift updated',
-        description: 'The shift has been successfully moved.',
+      await updateShift(event.id, {
+        actual_start_time: event.start.toISOString(),
+        actual_end_time: event.end.toISOString(),
+        shift_option_id: event.extendedProps.shiftOptionId,
+        actual_hours_worked: (event.end.getTime() - event.start.getTime()) / (1000 * 60 * 60)
       })
-
-      queryClient.invalidateQueries({ queryKey: ['shifts'] })
     } catch (error) {
-      console.error('Error updating shift:', error)
-      toast({
-        title: 'Error',
-        description: 'Failed to update shift. Please try again.',
-        variant: 'destructive',
-      })
+      // Error is already handled in useShifts hook
+      console.error('Event drop error:', error)
     }
   }
 
   const handleEventResize = async (resizeInfo: EventResizeStopArg) => {
     const { event } = resizeInfo
-    const supabase = createClient()
 
-    if (!event.start) return
+    if (!event.start || !event.end) {
+      toast({
+        title: 'Invalid Time Selection',
+        description: getUserFriendlyMessage(ErrorCode.SCHEDULE_INVALID_TIME),
+        variant: 'destructive'
+      })
+      return
+    }
 
     try {
-      const { error } = await supabase
-        .from('individual_shifts')
-        .update({
-          date: event.start.toISOString().split('T')[0] as string,
-        })
-        .eq('id', event.id)
-
-      if (error) throw error
-
-      toast({
-        title: 'Shift updated',
-        description: 'The shift duration has been successfully updated.',
+      await updateShift(event.id, {
+        actual_start_time: event.start.toISOString(),
+        actual_end_time: event.end.toISOString(),
+        shift_option_id: event.extendedProps.shiftOptionId,
+        actual_hours_worked: (event.end.getTime() - event.start.getTime()) / (1000 * 60 * 60)
       })
-
-      queryClient.invalidateQueries({ queryKey: ['shifts'] })
     } catch (error) {
-      console.error('Error updating shift:', error)
-      toast({
-        title: 'Error',
-        description: 'Failed to update shift duration. Please try again.',
-        variant: 'destructive',
-      })
+      // Error is already handled in useShifts hook
+      console.error('Event resize error:', error)
     }
   }
 
   return (
-    <DndProvider backend={HTML5Backend}>
-      <div className="h-[calc(100vh-4rem)]">
-        <FullCalendar
-          plugins={[timeGridPlugin, interactionPlugin]}
-          initialView="timeGridWeek"
-          editable={true}
-          droppable={true}
-          events={shifts}
-          eventDrop={handleEventDrop}
-          eventResize={handleEventResize}
-          slotMinTime="00:00:00"
-          slotMaxTime="24:00:00"
-          allDaySlot={false}
-          nowIndicator={true}
-          height="100%"
+    <ErrorBoundary FallbackComponent={ErrorFallback}>
+      <div className="h-full w-full">
+        <ShiftCalendar
+          events={events}
+          onEventDrop={handleEventDrop}
+          onEventResize={handleEventResize}
         />
       </div>
-    </DndProvider>
+    </ErrorBoundary>
   )
 }

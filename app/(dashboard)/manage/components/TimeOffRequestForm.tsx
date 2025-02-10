@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Card } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
+import { getUserFriendlyMessage } from '@/lib/utils/error-handler'
 
 import {
   checkTimeOffConflicts,
@@ -54,11 +55,16 @@ export default function TimeOffRequestForm({
       const endDateString = formatDateForDB(endDate)
 
       // Check for conflicts using formatted dates
-      const hasConflicts = await checkTimeOffConflicts(
+      const { data: hasConflicts, error: conflictError } = await checkTimeOffConflicts(
         employeeId,
         startDateString,
         endDateString
       )
+
+      if (conflictError) {
+        toast.error(getUserFriendlyMessage(conflictError.code))
+        return
+      }
 
       if (hasConflicts) {
         toast.error('You already have approved time off during this period')
@@ -66,12 +72,17 @@ export default function TimeOffRequestForm({
       }
 
       // Submit request with formatted dates
-      await createTimeOffRequest({
+      const { error: createError } = await createTimeOffRequest({
         employee_id: employeeId,
         start_date: startDateString,
         end_date: endDateString,
         reason,
       })
+
+      if (createError) {
+        toast.error(getUserFriendlyMessage(createError.code))
+        return
+      }
 
       toast.success('Time off request submitted successfully')
 
@@ -83,7 +94,6 @@ export default function TimeOffRequestForm({
       // Notify parent
       onRequestSubmitted?.()
     } catch (err) {
-      console.error('Failed to submit time off request:', err)
       toast.error('Failed to submit time off request')
     } finally {
       setIsSubmitting(false)

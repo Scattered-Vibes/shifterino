@@ -1,6 +1,8 @@
 'use client'
 
-import { UserNav } from './user-nav'
+import { MainNav } from './main-nav'
+import { UserNav } from '@/components/ui/user-nav'
+import { ModeToggle } from './mode-toggle'
 
 interface HeaderProps {
   user: {

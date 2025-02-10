@@ -1,13 +1,16 @@
 import { type SupabaseClient, type UserAttributes, type RealtimeChannel, type RealtimeClient } from '@supabase/supabase-js'
 import { vi, type Mock } from 'vitest'
 import type { User, UserResponse } from '@supabase/supabase-js'
+import type { BaseSupabaseClient } from '@supabase/supabase-js'
 
 export interface MockData {
   [key: string]: unknown
 }
 
-type MockResponse<T> = { data: T | null; error: Error | null }
-type Database = Record<string, unknown>
+export interface MockResponse<T> {
+  data: T | null;
+  error: Error | null;
+}
 
 export interface MockQueryBuilder<T = unknown> {
   select: Mock & ((columns?: string) => MockQueryBuilder<T>)
@@ -23,6 +26,7 @@ export interface MockQueryBuilder<T = unknown> {
   in: Mock & ((column: string, values: unknown[]) => MockQueryBuilder<T>)
   is: Mock & ((column: string, value: boolean | null) => MockQueryBuilder<T>)
   contains: Mock & ((column: string, value: unknown) => MockQueryBuilder<T>)
+  overlaps: Mock & ((column: string, value: unknown) => MockQueryBuilder<T>)
   single: Mock & (() => Promise<MockResponse<T>>)
   maybeSingle: Mock & (() => Promise<MockResponse<T>>)
   order: Mock & ((column: string, options?: { ascending?: boolean }) => MockQueryBuilder<T>)
@@ -30,7 +34,6 @@ export interface MockQueryBuilder<T = unknown> {
   then: <TResult>(
     onfulfilled?: ((value: MockResponse<T>) => TResult | PromiseLike<TResult>) | null | undefined
   ) => Promise<TResult>
-  getCalls: () => { method: string; args: unknown[] }[]
 }
 
 type MockAuthMethods = {
@@ -73,7 +76,15 @@ type BaseSupabaseClient = Omit<SupabaseClient<Database>, 'from' | 'auth' | 'chan
 
 export interface MockSupabaseClient extends Omit<BaseSupabaseClient, 'removeChannel' | 'removeAllChannels'>, MockMethods {
   from: <T>(table: string) => MockQueryBuilder<T>
-  auth: MockAuthMethods
+  auth: {
+    signInWithPassword: Mock
+    signOut: Mock
+    getUser: Mock
+    getSession: Mock
+    admin: {
+      signOut: Mock
+    }
+  }
   channel: Mock<[string], RealtimeChannel>
   schema: string
   supabaseUrl: string
@@ -92,6 +103,7 @@ export interface MockSupabaseClient extends Omit<BaseSupabaseClient, 'removeChan
   getChannels: () => RealtimeChannel[]
   removeChannel: Mock<[RealtimeChannel], Promise<'ok' | 'timed out' | 'error'>>
   removeAllChannels: Mock<[], Promise<('ok' | 'timed out' | 'error')[]>>
+  triggerSubscription: (channel: string, event: string, payload: unknown) => void
 }
 
 export function createMockSupabaseClient(): MockSupabaseClient {
@@ -129,6 +141,7 @@ export function createMockSupabaseClient(): MockSupabaseClient {
       in: vi.fn().mockReturnThis(),
       is: vi.fn().mockReturnThis(),
       contains: vi.fn().mockReturnThis(),
+      overlaps: vi.fn().mockReturnThis(),
       single: vi.fn().mockImplementation(() => Promise.resolve(mockResponse as MockResponse<T>)),
       maybeSingle: vi.fn().mockImplementation(() => Promise.resolve(mockResponse as MockResponse<T>)),
       order: vi.fn().mockReturnThis(),
@@ -136,13 +149,11 @@ export function createMockSupabaseClient(): MockSupabaseClient {
       then: <TResult>(
         onfulfilled?: ((value: MockResponse<T>) => TResult | PromiseLike<TResult>) | null | undefined
       ): Promise<TResult> => {
-        const response = mockResponse as MockResponse<T>
         if (!onfulfilled) {
-          return Promise.resolve(response) as Promise<TResult>
+          return Promise.resolve(mockResponse as unknown as TResult)
         }
-        return Promise.resolve(response).then(onfulfilled)
-      },
-      getCalls: () => [...queryHistory]
+        return Promise.resolve(mockResponse as MockResponse<T>).then(onfulfilled)
+      }
     }
 
     return Object.assign(builder, {
@@ -177,11 +188,16 @@ export function createMockSupabaseClient(): MockSupabaseClient {
       channels: [],
       endPoint: 'ws://localhost:54321/realtime/v1'
     },
-    auth: mockAuth,
-    from: <T>(table: string) => {
-      lastTableName = table
-      return createQueryBuilder<T>()
+    auth: {
+      signInWithPassword: vi.fn(),
+      signOut: vi.fn(),
+      getUser: vi.fn(),
+      getSession: vi.fn(),
+      admin: {
+        signOut: vi.fn()
+      }
     },
+    from: vi.fn(<T>(table: string) => createQueryBuilder<T>()),
     storage: {
       from: (_bucket: string) => ({
         upload: vi.fn().mockResolvedValue({ data: null, error: null }),
