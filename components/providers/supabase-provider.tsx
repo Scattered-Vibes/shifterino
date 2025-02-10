@@ -1,40 +1,41 @@
 'use client'
 
-import { createBrowserClient } from '@supabase/ssr'
-import { useRouter } from 'next/navigation'
 import { createContext, useContext, useEffect, useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import type { SupabaseClient, User } from '@supabase/supabase-js'
+import type { Database } from '@/types/database'
 
-const Context = createContext<ReturnType<typeof createBrowserClient> | undefined>(
-  undefined
-)
+type SupabaseContext = {
+  supabase: SupabaseClient<Database>
+  user: User | null
+}
+
+const Context = createContext<SupabaseContext | undefined>(undefined)
 
 export function SupabaseProvider({
   children,
+  initialSession,
 }: {
   children: React.ReactNode
+  initialSession: User | null
 }) {
-  const [supabase] = useState(() =>
-    createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
-  )
-  const router = useRouter()
+  const [supabase] = useState(() => createClient())
+  const [user, setUser] = useState<User | null>(initialSession)
 
   useEffect(() => {
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(() => {
-      router.refresh()
+    } = supabase.auth.onAuthStateChange((_, session) => {
+      setUser(session?.user ?? null)
     })
 
     return () => {
       subscription.unsubscribe()
     }
-  }, [router, supabase])
+  }, [supabase])
 
   return (
-    <Context.Provider value={supabase}>
+    <Context.Provider value={{ supabase, user }}>
       {children}
     </Context.Provider>
   )

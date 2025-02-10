@@ -1,14 +1,8 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-// Routes that don't require authentication
-const publicRoutes = ['/login', '/signup', '/reset-password', '/auth/callback']
-
-// Routes that require authentication
-const protectedRoutes = ['/overview', '/schedule', '/profile', '/time-off']
-
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({
+  const response = NextResponse.next({
     request: {
       headers: request.headers,
     },
@@ -23,52 +17,39 @@ export async function middleware(request: NextRequest) {
           return request.cookies.get(name)?.value
         },
         set(name: string, value: string, options: CookieOptions) {
-          response.cookies.set({
-            name,
-            value,
-            ...options,
-          })
+          response.cookies.set({ name, value, ...options })
         },
         remove(name: string, options: CookieOptions) {
-          response.cookies.set({
-            name,
-            value: '',
-            ...options,
-          })
+          response.cookies.set({ name, value: '', ...options })
         },
       },
     }
   )
 
-  await supabase.auth.getSession()
+  const { data: { session } } = await supabase.auth.getSession()
 
-  const { pathname } = request.nextUrl
-
-  // Handle public routes - redirect to overview if authenticated
-  if (publicRoutes.includes(pathname)) {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (session) {
-      return NextResponse.redirect(new URL('/overview', request.url))
-    }
-    return response
+  // Handle authentication
+  if (!session && !request.nextUrl.pathname.startsWith('/login')) {
+    return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // Handle protected routes - redirect to login if not authenticated
-  if (protectedRoutes.some(route => pathname.startsWith(route))) {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) {
-      return NextResponse.redirect(new URL('/login', request.url))
-    }
-
-    // Check if user has completed profile
+  // Handle role-based access
+  if (session) {
     const { data: employee } = await supabase
       .from('employees')
-      .select('id')
+      .select('role')
       .eq('auth_id', session.user.id)
       .single()
 
-    if (!employee) {
-      return NextResponse.redirect(new URL('/complete-profile', request.url))
+    const isAdminRoute = request.nextUrl.pathname.startsWith('/admin')
+    const isManagerRoute = request.nextUrl.pathname.startsWith('/manage')
+    
+    if (isAdminRoute && employee?.role !== 'manager') {
+      return NextResponse.redirect(new URL('/unauthorized', request.url))
+    }
+
+    if (isManagerRoute && !['manager', 'supervisor'].includes(employee?.role || '')) {
+      return NextResponse.redirect(new URL('/unauthorized', request.url))
     }
   }
 

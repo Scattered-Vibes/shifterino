@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { format, parseISO } from 'date-fns'
+import { format, parseISO, differenceInDays } from 'date-fns'
 import {
   DotsHorizontalIcon,
   CheckIcon,
@@ -154,7 +154,9 @@ function DataTable({ requests, isManager }: { requests: TimeOffRequest[], isMana
               )}
               <TableCell>{format(parseISO(request.start_date), 'PPP')}</TableCell>
               <TableCell>{format(parseISO(request.end_date), 'PPP')}</TableCell>
-              <TableCell>{request.duration} days</TableCell>
+              <TableCell>
+                {differenceInDays(parseISO(request.end_date), parseISO(request.start_date)) + 1} days
+              </TableCell>
               <TableCell>
                 <Badge variant={getStatusVariant(request.status)} className="capitalize">
                   {request.status}

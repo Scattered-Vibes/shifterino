@@ -1,23 +1,12 @@
-import { type Metadata } from 'next'
-import { Inter } from 'next/font/google'
-
 import { createClient } from '@/lib/supabase/server'
+import { SupabaseProvider } from '@/components/providers/supabase-provider'
+import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
 import { RootProvider } from '@/components/providers/root-provider'
-import { ThemeProvider } from '@/components/providers/theme-provider'
-
+import { Inter } from 'next/font/google'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
-
-export const metadata: Metadata = {
-  title: 'Shifterino - 911 Dispatch Scheduling',
-  description:
-    'Streamline your 911 dispatch center scheduling with our comprehensive solution.',
-  icons: {
-    icon: '/favicon.ico',
-  },
-}
 
 export default async function RootLayout({
   children,
@@ -25,26 +14,24 @@ export default async function RootLayout({
   children: React.ReactNode
 }) {
   const supabase = createClient()
-
-  // Get the initial session
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { session } } = await supabase.auth.getSession()
 
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`font-sans ${inter.variable}`} suppressHydrationWarning>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <RootProvider initialUser={user}>
-            {children}
-            <Toaster />
-          </RootProvider>
-        </ThemeProvider>
+        <SupabaseProvider initialSession={session?.user ?? null}>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <RootProvider initialUser={session?.user ?? null}>
+              {children}
+              <Toaster />
+            </RootProvider>
+          </ThemeProvider>
+        </SupabaseProvider>
       </body>
     </html>
   )
