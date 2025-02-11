@@ -2,19 +2,23 @@
 
 import { useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/app/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from '@/components/ui/use-toast'
+import type { Database } from '@/app/types/supabase/database'
+
+type Employee = Database['public']['Tables']['employees']['Row']
 
 interface ProfileFormProps {
   initialData: {
     id: string
+    auth_id: string
     first_name: string
     last_name: string
     email: string
+    role: Employee['role']
   }
 }
 
@@ -45,19 +49,20 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
     const formData = new FormData(event.currentTarget)
 
     try {
-      // First update the profile in the database
-      const { error: profileError } = await supabase
-        .from('profiles')
+      // Update the employee record in the database
+      const { error: employeeError } = await supabase
+        .from('employees')
         .update({
           first_name: formData.get('first_name'),
           last_name: formData.get('last_name'),
+          profile_completed: true,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', initialData.id)
+        .eq('auth_id', initialData.auth_id)
 
-      if (profileError) throw profileError
+      if (employeeError) throw employeeError
 
-      // Then update the user metadata to remove the profile_incomplete flag
+      // Update the user metadata
       const { error: metadataError } = await supabase.auth.updateUser({
         data: {
           profile_incomplete: false,
@@ -73,16 +78,11 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
         description: 'Your profile has been completed successfully.',
       })
 
-      // Force a refresh to update the UI and trigger the auth state change
+      // Force a refresh to update the UI
       router.refresh()
 
       // Redirect to the appropriate dashboard
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      const defaultRoute =
-        user?.user_metadata?.role === 'supervisor' ? '/manage' : '/overview'
-      router.push(defaultRoute)
+      router.push(initialData.role === 'supervisor' ? '/manage' : '/overview')
     } catch (error) {
       console.error('Profile update error:', error)
       toast({

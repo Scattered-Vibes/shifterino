@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { ViewOptions } from './view-options'
-import type { Database } from '@/types/database'
+import type { Database } from '@/types/supabase/database'
 
 type ScheduleWithDetails = Database['public']['Tables']['individual_shifts']['Row'] & {
   employee: Database['public']['Tables']['employees']['Row']

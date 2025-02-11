@@ -34,7 +34,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { EditEmployeeDialog } from './edit-dialog'
 import { DeleteEmployeeDialog } from './delete-dialog'
-import type { Employee } from '@/types/database'
+import type { Employee } from '@/app/types/database'
 
 const columns: ColumnDef<Employee>[] = [
   {

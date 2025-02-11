@@ -25,8 +25,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
-import { createClient } from '@/lib/supabase/client'
-import type { Database } from '@/types/database'
+import { createClient } from '@/app/lib/supabase/client'
+import type { Database } from '@/types/supabase/database'
 
 type TimeOffRequest = Database['public']['Tables']['time_off_requests']['Row'] & {
   employee: Database['public']['Tables']['employees']['Row']

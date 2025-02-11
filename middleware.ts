@@ -28,28 +28,61 @@ export async function middleware(request: NextRequest) {
 
   const { data: { session } } = await supabase.auth.getSession()
 
+  // Get the pathname
+  const path = request.nextUrl.pathname
+
+  // Define public routes that don't require authentication
+  const isAuthRoute = path.startsWith('/login') || 
+                     path.startsWith('/signup') || 
+                     path.startsWith('/reset-password') ||
+                     path.startsWith('/auth/')
+
   // Handle authentication
-  if (!session && !request.nextUrl.pathname.startsWith('/login')) {
+  if (!session && !isAuthRoute) {
     return NextResponse.redirect(new URL('/login', request.url))
+  }
+
+  // Redirect authenticated users away from auth pages
+  if (session && isAuthRoute) {
+    return NextResponse.redirect(new URL('/overview', request.url))
   }
 
   // Handle role-based access
   if (session) {
-    const { data: employee } = await supabase
-      .from('employees')
-      .select('role')
-      .eq('auth_id', session.user.id)
-      .single()
+    try {
+      const { data: employee, error: employeeError } = await supabase
+        .from('employees')
+        .select('role, is_active')
+        .eq('auth_id', session.user.id)
+        .single()
 
-    const isAdminRoute = request.nextUrl.pathname.startsWith('/admin')
-    const isManagerRoute = request.nextUrl.pathname.startsWith('/manage')
-    
-    if (isAdminRoute && employee?.role !== 'manager') {
-      return NextResponse.redirect(new URL('/unauthorized', request.url))
-    }
+      if (employeeError) {
+        console.error('Error fetching employee:', employeeError)
+        return NextResponse.redirect(new URL('/error', request.url))
+      }
 
-    if (isManagerRoute && !['manager', 'supervisor'].includes(employee?.role || '')) {
-      return NextResponse.redirect(new URL('/unauthorized', request.url))
+      if (!employee?.is_active) {
+        return NextResponse.redirect(new URL('/account-inactive', request.url))
+      }
+
+      const isAdminRoute = path.startsWith('/admin')
+      const isManagerRoute = path.startsWith('/manage')
+      const isScheduleRoute = path.startsWith('/schedule')
+      
+      if (isAdminRoute && employee?.role !== 'admin') {
+        return NextResponse.redirect(new URL('/unauthorized', request.url))
+      }
+
+      if (isManagerRoute && !['admin', 'manager', 'supervisor'].includes(employee?.role || '')) {
+        return NextResponse.redirect(new URL('/unauthorized', request.url))
+      }
+
+      if (isScheduleRoute && !['admin', 'manager', 'supervisor', 'dispatcher'].includes(employee?.role || '')) {
+        return NextResponse.redirect(new URL('/unauthorized', request.url))
+      }
+    } catch (error) {
+      console.error('Middleware error:', error)
+      return NextResponse.redirect(new URL('/error', request.url))
     }
   }
 

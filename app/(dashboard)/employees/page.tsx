@@ -20,12 +20,12 @@
 
 import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/app/lib/supabase/server'
 import { EmployeesDataTable } from '@/components/employees/data-table'
 import { EmployeesTableSkeleton } from '@/components/employees/loading'
 import { CreateEmployeeButton } from '@/components/employees/create-button'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
-import type { Database } from '@/types/database'
+import type { Database } from '@/types/supabase/database'
 
 type Employee = Database['public']['Tables']['employees']['Row']
 

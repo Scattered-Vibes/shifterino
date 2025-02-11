@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 
-import { requireAuth } from '@/lib/auth'
+import { requireAuth } from '@/app/lib/auth'
 import { ProfileForm } from '@/components/profile/profile-form'
 
 export default async function CompleteProfilePage() {
@@ -36,9 +36,11 @@ export default async function CompleteProfilePage() {
         <ProfileForm
           initialData={{
             id: auth.userId,
+            auth_id: auth.userId,
             first_name: '',
             last_name: '',
             email: auth.email,
+            role: auth.role,
           }}
         />
       </div>

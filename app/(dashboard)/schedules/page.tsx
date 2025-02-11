@@ -2,8 +2,8 @@
 
 import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import { handleError } from '@/lib/utils'
+import { createClient } from '@/app/lib/supabase/server'
+import { handleError } from '@/app/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ScheduleCalendar } from './calendar-view'
@@ -12,7 +12,7 @@ import { CreateScheduleButton } from './create-button'
 import { ScheduleFilters } from './filters'
 import { ScheduleCalendarSkeleton } from './loading'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
-import type { Database } from '@/types/database'
+import type { Database } from '@/types/supabase/database'
 
 type ScheduleWithDetails = Database['public']['Tables']['individual_shifts']['Row'] & {
   employee: Database['public']['Tables']['employees']['Row']

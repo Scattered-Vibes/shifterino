@@ -4,11 +4,11 @@ import { FC } from 'react'
 import { EventDropArg } from '@fullcalendar/core'
 import { EventResizeStopArg } from '@fullcalendar/interaction'
 import { ShiftCalendar } from '@/components/calendar/ShiftCalendar'
-import { useShifts } from '@/lib/hooks/use-shifts'
-import type { Shift } from '@/types/shift'
-import { ErrorBoundary } from '@/components/error-boundary'
+import { useShifts } from '@/hooks/use-shifts'
+import type { Shift } from '@/app/types/shift'
+import { ErrorBoundary } from '@/components/ui/error-boundary'
 import { toast } from '@/components/ui/use-toast'
-import { getUserFriendlyMessage, ErrorCode } from '@/lib/utils/error-handler'
+import { getUserFriendlyMessage, ErrorCode } from '@/app/lib/utils/error-handler'
 
 interface ScheduleManagerProps {
   shifts: Shift[]

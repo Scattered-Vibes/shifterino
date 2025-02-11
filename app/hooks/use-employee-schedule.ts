@@ -1,32 +1,32 @@
 import { useQuery } from '@tanstack/react-query'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
-import { Database } from '@/types/supabase'
+import { useToast } from '@/components/ui/use-toast'
+import { createClient } from '@/app/lib/supabase/client'
 
 export function useEmployeeSchedule(employeeId: string) {
+  const supabase = createClient()
+  const { toast } = useToast()
+
   return useQuery({
     queryKey: ['employee-schedule', employeeId],
     queryFn: async () => {
-      const cookieStore = cookies()
-      const supabase = createServerClient<Database>(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-          cookies: {
-            get(name: string) {
-              return cookieStore.get(name)?.value
-            },
-          },
-        }
-      )
-
       const { data, error } = await supabase
-        .from('schedules')
-        .select('*')
+        .from('individual_shifts')
+        .select(`
+          *,
+          shift_option:shift_options(*)
+        `)
         .eq('employee_id', employeeId)
         .order('date', { ascending: true })
 
-      if (error) throw error
+      if (error) {
+        toast({
+          title: 'Error fetching schedule',
+          description: error.message,
+          variant: 'destructive',
+        })
+        throw error
+      }
+
       return data
     },
   })

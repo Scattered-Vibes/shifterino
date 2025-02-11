@@ -21,7 +21,7 @@ import { Badge } from '@/components/ui/badge'
 import { EditShiftOptionDialog } from './edit-dialog'
 import { DeleteShiftOptionDialog } from './delete-dialog'
 import { DotsHorizontalIcon } from '@radix-ui/react-icons'
-import type { Database } from '@/types/database'
+import type { Database } from '@/types/supabase/database'
 
 type ShiftOption = Database['public']['Tables']['shift_options']['Row']
 

@@ -30,10 +30,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/app/lib/supabase/client'
 import { useToast } from '@/components/ui/use-toast'
 import { Pencil2Icon } from '@radix-ui/react-icons'
-import type { Employee } from '@/types/database'
+import type { Database } from '@/app/types/supabase/database'
+type Employee = Database['public']['Tables']['employees']['Row']
 
 const employeeFormSchema = z.object({
   first_name: z.string().min(2, {
@@ -45,11 +46,11 @@ const employeeFormSchema = z.object({
   email: z.string().email({
     message: 'Please enter a valid email address.',
   }),
-  role: z.enum(['DISPATCHER', 'SUPERVISOR']),
-  shift_pattern: z.enum(['PATTERN_A', 'PATTERN_B']),
-  preferred_shift_category: z.enum(['EARLY', 'DAY', 'SWING', 'GRAVEYARD']),
+  role: z.enum(['dispatcher', 'supervisor', 'manager']),
+  shift_pattern: z.enum(['pattern_a', 'pattern_b', 'custom']),
+  preferred_shift_category: z.enum(['early', 'day', 'swing', 'graveyard']).optional(),
   weekly_hours_cap: z.number().min(0).max(60),
-  max_overtime_hours: z.number().min(0).max(20),
+  max_overtime_hours: z.number().min(0).max(20).optional(),
 })
 
 type EmployeeFormValues = z.infer<typeof employeeFormSchema>
@@ -70,9 +71,9 @@ export function EditEmployeeDialog({ employee }: EditEmployeeDialogProps) {
       email: employee.email,
       role: employee.role,
       shift_pattern: employee.shift_pattern,
-      preferred_shift_category: employee.preferred_shift_category,
+      preferred_shift_category: employee.preferred_shift_category || undefined,
       weekly_hours_cap: employee.weekly_hours_cap,
-      max_overtime_hours: employee.max_overtime_hours,
+      max_overtime_hours: employee.max_overtime_hours || undefined,
     },
   })
 
@@ -81,7 +82,11 @@ export function EditEmployeeDialog({ employee }: EditEmployeeDialogProps) {
       const supabase = createClient()
       const { error } = await supabase
         .from('employees')
-        .update(data)
+        .update({
+          ...data,
+          preferred_shift_category: data.preferred_shift_category || null,
+          max_overtime_hours: data.max_overtime_hours || null,
+        })
         .eq('id', employee.id)
 
       if (error) throw error
@@ -173,8 +178,9 @@ export function EditEmployeeDialog({ employee }: EditEmployeeDialogProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="DISPATCHER">Dispatcher</SelectItem>
-                      <SelectItem value="SUPERVISOR">Supervisor</SelectItem>
+                      <SelectItem value="dispatcher">Dispatcher</SelectItem>
+                      <SelectItem value="supervisor">Supervisor</SelectItem>
+                      <SelectItem value="manager">Manager</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -197,11 +203,14 @@ export function EditEmployeeDialog({ employee }: EditEmployeeDialogProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="PATTERN_A">
+                      <SelectItem value="pattern_a">
                         Pattern A (4x10)
                       </SelectItem>
-                      <SelectItem value="PATTERN_B">
+                      <SelectItem value="pattern_b">
                         Pattern B (3x12 + 1x4)
+                      </SelectItem>
+                      <SelectItem value="custom">
+                        Custom
                       </SelectItem>
                     </SelectContent>
                   </Select>
@@ -225,10 +234,10 @@ export function EditEmployeeDialog({ employee }: EditEmployeeDialogProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="EARLY">Early (5AM-3PM)</SelectItem>
-                      <SelectItem value="DAY">Day (9AM-7PM)</SelectItem>
-                      <SelectItem value="SWING">Swing (3PM-1AM)</SelectItem>
-                      <SelectItem value="GRAVEYARD">
+                      <SelectItem value="early">Early (5AM-3PM)</SelectItem>
+                      <SelectItem value="day">Day (9AM-7PM)</SelectItem>
+                      <SelectItem value="swing">Swing (3PM-1AM)</SelectItem>
+                      <SelectItem value="graveyard">
                         Graveyard (9PM-7AM)
                       </SelectItem>
                     </SelectContent>
@@ -265,9 +274,9 @@ export function EditEmployeeDialog({ employee }: EditEmployeeDialogProps) {
                   <FormControl>
                     <Input
                       type="number"
-                      {...field}
+                      value={field.value || ''}
                       onChange={(e) =>
-                        field.onChange(Number(e.target.value))
+                        field.onChange(e.target.value ? Number(e.target.value) : undefined)
                       }
                     />
                   </FormControl>

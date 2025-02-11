@@ -6,7 +6,7 @@ import { Calendar } from '@/components/ui/calendar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
-import type { Database } from '@/types/database'
+import type { Database } from '@/types/supabase/database'
 
 type ShiftSwapRequest = Database['public']['Tables']['shift_swap_requests']['Row'] & {
   requester: Database['public']['Tables']['employees']['Row']

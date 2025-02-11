@@ -14,7 +14,7 @@ export async function GET(request: Request) {
 
     if (!error) {
       return NextResponse.redirect(
-        `${requestUrl.origin}${next || '/dashboard'}`
+        `${requestUrl.origin}${next || '/overview'}`
       )
     }
   }

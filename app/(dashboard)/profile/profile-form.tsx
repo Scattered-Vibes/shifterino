@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/app/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -24,7 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useToast } from '@/components/ui/use-toast'
-import type { Database } from '@/types/database'
+import type { Database } from '@/types/supabase/database'
 import type { User } from '@supabase/supabase-js'
 
 type Employee = Database['public']['Tables']['employees']['Row']

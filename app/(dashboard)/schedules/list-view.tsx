@@ -4,7 +4,7 @@ import { format } from 'date-fns'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import type { Database } from '@/types/database'
+import type { Database } from '@/types/supabase/database'
 
 type ScheduleWithDetails = Database['public']['Tables']['individual_shifts']['Row'] & {
   employee: Database['public']['Tables']['employees']['Row']

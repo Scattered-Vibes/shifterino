@@ -1,4 +1,4 @@
-import { getUser } from '@/lib/auth'
+import { getUser } from '@/app/lib/auth'
 import { ClientManageLayout } from './client-layout'
 
 export default async function ManageLayout({

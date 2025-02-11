@@ -18,7 +18,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
-import { Database } from "@/types/supabase/database"
+import { Database } from "@/app/types/supabase/database"
 
 interface ConfirmDialogProps {
   title: string

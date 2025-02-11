@@ -1,66 +1,82 @@
 'use server'
 
-import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { createServerClient } from '@supabase/ssr'
-import { type SignupInput } from '@/lib/validations/schemas'
-import { handleError } from '@/lib/utils/error-handler'
+import { createClient } from '@/app/lib/supabase/server'
+import { signupSchema, type SignupInput } from '@/app/lib/validations/schemas'
+import { z } from 'zod'
+
+interface DatabaseError extends Error {
+  code: string;
+}
 
 export async function signup(data: SignupInput) {
   try {
-    const cookieStore = cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-          set(name: string, value: string, options: any) {
-            cookieStore.set({ name, value, ...options })
-          },
-          remove(name: string, options: any) {
-            cookieStore.set({ name, value: '', ...options })
-          },
-        },
-      }
-    )
+    const validatedFields = signupSchema.parse(data)
+    const supabase = createClient()
+
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+    if (!siteUrl) {
+      throw new Error('Missing NEXT_PUBLIC_SITE_URL environment variable')
+    }
 
     const { error: signUpError } = await supabase.auth.signUp({
-      email: data.email,
-      password: data.password,
+      email: validatedFields.email,
+      password: validatedFields.password,
       options: {
         data: {
-          role: data.role,
+          role: validatedFields.role,
+          first_name: validatedFields.first_name,
+          last_name: validatedFields.last_name,
+          profile_incomplete: true
         },
+        emailRedirectTo: `${siteUrl}/auth/callback?next=/complete-profile`,
       },
     })
 
     if (signUpError) {
-      return { error: handleError(signUpError).message }
-    }
-
-    // Log successful signup
-    await supabase.from('auth_logs').insert({
-      operation: 'signup_success',
-      details: { email: data.email, role: data.role },
-    })
-
-    // Create profile
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .insert({
-        email: data.email,
-        role: data.role,
-      })
-
-    if (profileError) {
-      return { error: handleError(profileError).message }
+      console.error('Signup error:', signUpError)
+      return { 
+        error: signUpError.message,
+        code: 'AUTH_ERROR'
+      }
     }
 
     redirect('/auth/check-email')
   } catch (error) {
-    return { error: handleError(error).message }
+    console.error('Error in signup:', error)
+    
+    if (error instanceof z.ZodError) {
+      const fieldErrors = error.errors.map(err => ({
+        field: err.path.join('.'),
+        message: err.message
+      }))
+      return { 
+        error: 'Please check your input',
+        code: 'VALIDATION_ERROR',
+        details: fieldErrors
+      }
+    }
+    
+    // Handle known Supabase error codes
+    if (error instanceof Error && 'code' in error) {
+      const dbError = error as DatabaseError
+      switch (dbError.code) {
+        case '23505': // unique violation
+          return {
+            error: 'An account with this email already exists',
+            code: 'AUTH_ERROR'
+          }
+        default:
+          return {
+            error: 'An unexpected error occurred',
+            code: 'UNKNOWN_ERROR'
+          }
+      }
+    }
+    
+    return { 
+      error: 'An unexpected error occurred',
+      code: 'UNKNOWN_ERROR'
+    }
   }
 }

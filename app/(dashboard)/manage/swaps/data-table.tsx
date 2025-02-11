@@ -42,10 +42,10 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { format } from 'date-fns'
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/app/lib/supabase/client'
 import { useToast } from '@/components/ui/use-toast'
 import { CheckIcon, Cross2Icon } from '@radix-ui/react-icons'
-import type { Database } from '@/types/database'
+import type { Database } from '@/types/supabase/database'
 
 type ShiftSwapRequest = Database['public']['Tables']['shift_swap_requests']['Row'] & {
   requester: Database['public']['Tables']['employees']['Row']

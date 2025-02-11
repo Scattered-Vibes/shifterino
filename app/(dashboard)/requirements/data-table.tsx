@@ -33,9 +33,9 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { EditRequirementDialog } from './edit-dialog'
 import { DeleteRequirementDialog } from './delete-dialog'
-import { formatTime } from '@/lib/utils'
+import { formatTime } from '@/app/lib/utils'
 import { DotsHorizontalIcon } from '@radix-ui/react-icons'
-import type { Database } from '@/types/database'
+import type { Database } from '@/types/supabase/database'
 
 type StaffingRequirement = Database['public']['Tables']['staffing_requirements']['Row']
 

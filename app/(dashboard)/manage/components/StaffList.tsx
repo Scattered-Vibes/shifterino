@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useRef } from 'react'
 import { useInfiniteQuery } from '@tanstack/react-query'
-import type { Database } from '@/types/database'
-import { createClient } from '@/lib/supabase/client'
+import type { Database } from '@/types/supabase/database'
+import { createClient } from '@/app/lib/supabase/client'
 import { Loading } from '@/components/ui/loading'
 
 type Employee = Database['public']['Tables']['employees']['Row']

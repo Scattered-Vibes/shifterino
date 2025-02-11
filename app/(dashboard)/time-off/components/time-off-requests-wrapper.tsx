@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 
-import type { TimeOffRequest } from '@/types/time-off'
+import type { TimeOffRequest } from '@/app/types/time-off'
 
 import { TimeOffRequests } from '../../manage/components/TimeOffRequests'
 

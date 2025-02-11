@@ -1,14 +1,14 @@
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
-import { createClient } from '@/lib/supabase/server'
-import { handleError } from '@/lib/utils'
+import { createClient } from '@/app/lib/supabase/server'
+import { handleError } from '@/app/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { TimeOffDataTable } from './data-table'
 import { TimeOffTableSkeleton } from './loading'
 import { CreateTimeOffButton } from './create-button'
 import { TimeOffFilters } from './filters'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
-import type { Database } from '@/types/database'
+import type { Database } from '@/types/supabase/database'
 
 type TimeOffRequest = Database['public']['Tables']['time_off_requests']['Row'] & {
   employee: Database['public']['Tables']['employees']['Row']

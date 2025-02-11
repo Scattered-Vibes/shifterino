@@ -1,9 +1,20 @@
--- Seed file for testing the scheduling system
--- Reset sequences
-TRUNCATE TABLE auth.users CASCADE;
-TRUNCATE TABLE employees, profiles, shift_options, staffing_requirements, schedule_periods, individual_shifts, time_off_requests, shift_swap_requests CASCADE;
+-- Seed file for the 911 Dispatch Scheduling System
+-- Contains minimal test data for feature testing
 
--- Insert initial admin user
+-- Reset all relevant tables
+TRUNCATE TABLE auth.users CASCADE;
+TRUNCATE TABLE public.employees, public.schedules, public.time_off_requests, 
+             public.shift_options, public.staffing_requirements, 
+             public.shift_swap_requests, public.on_call_assignments CASCADE;
+
+-- Temporarily disable the auth trigger
+ALTER TABLE auth.users DISABLE TRIGGER on_auth_user_created;
+
+-- =====================
+-- 1. Create Test Users
+-- =====================
+
+-- Manager (System Admin)
 INSERT INTO auth.users (
     id,
     instance_id,
@@ -12,19 +23,40 @@ INSERT INTO auth.users (
     email_confirmed_at,
     raw_user_meta_data
 ) VALUES (
+    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,  -- Manager
     '00000000-0000-0000-0000-000000000000'::uuid,
-    '00000000-0000-0000-0000-000000000000'::uuid,
-    'admin@shifterino.com',
-    crypt('admin123', gen_salt('bf')), -- This is just for testing, in production use proper password management
+    'manager@dispatch911.test',
+    crypt('test123', gen_salt('bf')),
     NOW(),
     jsonb_build_object(
         'role', 'manager',
-        'first_name', 'System',
-        'last_name', 'Admin'
+        'first_name', 'Mike',
+        'last_name', 'Manager'
     )
 );
 
--- Insert test users
+-- Supervisor
+INSERT INTO auth.users (
+    id,
+    instance_id,
+    email,
+    encrypted_password,
+    email_confirmed_at,
+    raw_user_meta_data
+) VALUES (
+    'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,  -- Supervisor
+    '00000000-0000-0000-0000-000000000000'::uuid,
+    'supervisor@dispatch911.test',
+    crypt('test123', gen_salt('bf')),
+    NOW(),
+    jsonb_build_object(
+        'role', 'supervisor',
+        'first_name', 'Sarah',
+        'last_name', 'Supervisor'
+    )
+);
+
+-- Dispatchers (one for each shift pattern)
 INSERT INTO auth.users (
     id,
     instance_id,
@@ -33,122 +65,252 @@ INSERT INTO auth.users (
     email_confirmed_at,
     raw_user_meta_data
 ) VALUES
-    ('11111111-1111-1111-1111-111111111111'::uuid, '00000000-0000-0000-0000-000000000000'::uuid, 'john.supervisor@test.com', crypt('test123', gen_salt('bf')), NOW(),
-     jsonb_build_object('role', 'supervisor', 'first_name', 'John', 'last_name', 'Supervisor', 'created_by', '00000000-0000-0000-0000-000000000000'::uuid)),
-    ('22222222-2222-2222-2222-222222222222'::uuid, '00000000-0000-0000-0000-000000000000'::uuid, 'jane.supervisor@test.com', crypt('test123', gen_salt('bf')), NOW(),
-     jsonb_build_object('role', 'supervisor', 'first_name', 'Jane', 'last_name', 'Supervisor', 'created_by', '00000000-0000-0000-0000-000000000000'::uuid)),
-    ('33333333-3333-3333-3333-333333333333'::uuid, '00000000-0000-0000-0000-000000000000'::uuid, 'bob.dispatcher@test.com', crypt('test123', gen_salt('bf')), NOW(),
-     jsonb_build_object('role', 'dispatcher', 'first_name', 'Bob', 'last_name', 'Dispatcher', 'created_by', '11111111-1111-1111-1111-111111111111'::uuid)),
-    ('44444444-4444-4444-4444-444444444444'::uuid, '00000000-0000-0000-0000-000000000000'::uuid, 'alice.dispatcher@test.com', crypt('test123', gen_salt('bf')), NOW(),
-     jsonb_build_object('role', 'dispatcher', 'first_name', 'Alice', 'last_name', 'Dispatcher', 'created_by', '11111111-1111-1111-1111-111111111111'::uuid)),
-    ('55555555-5555-5555-5555-555555555555'::uuid, '00000000-0000-0000-0000-000000000000'::uuid, 'charlie.dispatcher@test.com', crypt('test123', gen_salt('bf')), NOW(),
-     jsonb_build_object('role', 'dispatcher', 'first_name', 'Charlie', 'last_name', 'Dispatcher', 'created_by', '22222222-2222-2222-2222-222222222222'::uuid)),
-    ('66666666-6666-6666-6666-666666666666'::uuid, '00000000-0000-0000-0000-000000000000'::uuid, 'diana.dispatcher@test.com', crypt('test123', gen_salt('bf')), NOW(),
-     jsonb_build_object('role', 'dispatcher', 'first_name', 'Diana', 'last_name', 'Dispatcher', 'created_by', '22222222-2222-2222-2222-222222222222'::uuid)),
-    ('77777777-7777-7777-7777-777777777777'::uuid, '00000000-0000-0000-0000-000000000000'::uuid, 'eve.dispatcher@test.com', crypt('test123', gen_salt('bf')), NOW(),
-     jsonb_build_object('role', 'dispatcher', 'first_name', 'Eve', 'last_name', 'Dispatcher', 'created_by', '11111111-1111-1111-1111-111111111111'::uuid)),
-    ('88888888-8888-8888-8888-888888888888'::uuid, '00000000-0000-0000-0000-000000000000'::uuid, 'frank.dispatcher@test.com', crypt('test123', gen_salt('bf')), NOW(),
-     jsonb_build_object('role', 'dispatcher', 'first_name', 'Frank', 'last_name', 'Dispatcher', 'created_by', '22222222-2222-2222-2222-222222222222'::uuid));
+    (
+        'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,  -- 4/10 Dispatcher
+        '00000000-0000-0000-0000-000000000000'::uuid,
+        'dispatcher1@dispatch911.test',
+        crypt('test123', gen_salt('bf')),
+        NOW(),
+        jsonb_build_object(
+            'role', 'dispatcher',
+            'first_name', 'David',
+            'last_name', 'Day'
+        )
+    ),
+    (
+        'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,  -- 3/12 Dispatcher
+        '00000000-0000-0000-0000-000000000000'::uuid,
+        'dispatcher2@dispatch911.test',
+        crypt('test123', gen_salt('bf')),
+        NOW(),
+        jsonb_build_object(
+            'role', 'dispatcher',
+            'first_name', 'Nina',
+            'last_name', 'Night'
+        )
+    );
 
--- Insert shift options
-INSERT INTO shift_options (id, name, start_time, end_time, duration_hours, category)
-VALUES
-    -- Early Shift
-    ('a1111111-1111-1111-1111-111111111111'::uuid, 'Early 4hr', '05:00', '09:00', 4, 'early'),
-    ('a1111112-1111-1111-1111-111111111111'::uuid, 'Early 10hr', '05:00', '15:00', 10, 'early'),
-    ('a1111113-1111-1111-1111-111111111111'::uuid, 'Early 12hr', '05:00', '17:00', 12, 'early'),
+-- Re-enable the auth trigger
+ALTER TABLE auth.users ENABLE TRIGGER on_auth_user_created;
 
-    -- Day Shift
-    ('a2222221-2222-2222-2222-222222222222'::uuid, 'Day 4hr', '09:00', '13:00', 4, 'day'),
-    ('a2222222-2222-2222-2222-222222222222'::uuid, 'Day 10hr', '09:00', '19:00', 10, 'day'),
-    ('a2222223-2222-2222-2222-222222222222'::uuid, 'Day 12hr', '09:00', '21:00', 12, 'day'),
+-- =====================
+-- 2. Create Employees
+-- =====================
 
-    -- Swing Shift
-    ('a3333331-3333-3333-3333-333333333333'::uuid, 'Swing 4hr', '13:00', '17:00', 4, 'swing'),
-    ('a3333332-3333-3333-3333-333333333333'::uuid, 'Swing 10hr', '15:00', '01:00', 10, 'swing'),
-    ('a3333333-3333-3333-3333-333333333333'::uuid, 'Swing 12hr', '15:00', '03:00', 12, 'swing'),
+INSERT INTO public.employees (
+    id,
+    auth_id,
+    first_name,
+    last_name,
+    email,
+    role,
+    shift_pattern,
+    preferred_shift_category,
+    weekly_hours_cap,
+    profile_completed
+) VALUES
+    (
+        'a1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,
+        'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,
+        'Mike',
+        'Manager',
+        'manager@dispatch911.test',
+        'manager',
+        '4_10',
+        'DAY',
+        40,
+        true
+    ),
+    (
+        'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,
+        'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,
+        'Sarah',
+        'Supervisor',
+        'supervisor@dispatch911.test',
+        'supervisor',
+        '4_10',
+        'DAY',
+        40,
+        true
+    ),
+    (
+        'c1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,
+        'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,
+        'David',
+        'Day',
+        'dispatcher1@dispatch911.test',
+        'dispatcher',
+        '4_10',
+        'DAY',
+        40,
+        true
+    ),
+    (
+        'd1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,
+        'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,
+        'Nina',
+        'Night',
+        'dispatcher2@dispatch911.test',
+        'dispatcher',
+        '3_12_4',
+        'NIGHT',
+        40,
+        true
+    );
 
-    -- Graveyard Shift
-    ('a4444441-4444-4444-4444-444444444444'::uuid, 'Graveyard 4hr', '01:00', '05:00', 4, 'graveyard'),
-    ('a4444444-4444-4444-4444-444444444444'::uuid, 'Graveyard 10hr', '19:00', '05:00', 10, 'graveyard'),
-    ('a4444445-4444-4444-4444-444444444444'::uuid, 'Graveyard 12hr', '17:00', '05:00', 12, 'graveyard');
+-- =====================
+-- 3. Create Shift Options
+-- =====================
 
--- Insert staffing requirements
-INSERT INTO staffing_requirements (id, name, time_block_start, time_block_end, min_total_staff, min_supervisors)
-VALUES
-    ('b1111111-1111-1111-1111-111111111111'::uuid, 'Early Block', '05:00', '09:00', 6, 1),
-    ('b2222222-2222-2222-2222-222222222222'::uuid, 'Day Block', '09:00', '21:00', 8, 1),
-    ('b3333333-3333-3333-3333-333333333333'::uuid, 'Evening Block', '21:00', '01:00', 7, 1),
-    ('b4444444-4444-4444-4444-444444444444'::uuid, 'Night Block', '01:00', '05:00', 6, 1);
+INSERT INTO public.shift_options (
+    id,
+    name,
+    category,
+    start_time,
+    end_time,
+    duration_hours
+) VALUES
+    -- Day Shifts
+    (
+        'a2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,
+        'Early Day 10-Hour',
+        'DAY',
+        '05:00',
+        '15:00',
+        10
+    ),
+    (
+        'b2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,
+        'Day 12-Hour',
+        'DAY',
+        '09:00',
+        '21:00',
+        12
+    ),
+    (
+        'c2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,
+        'Day 4-Hour',
+        'DAY',
+        '09:00',
+        '13:00',
+        4
+    ),
+    -- Night Shifts
+    (
+        'd2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,
+        'Night 12-Hour',
+        'NIGHT',
+        '21:00',
+        '09:00',
+        12
+    ),
+    (
+        'e2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,
+        'Night 4-Hour',
+        'NIGHT',
+        '01:00',
+        '05:00',
+        4
+    );
 
--- Insert schedule period
-INSERT INTO schedule_periods (id, start_date, end_date, description, is_active)
-VALUES
-    ('c1111111-1111-1111-1111-111111111111'::uuid, CURRENT_DATE, CURRENT_DATE + INTERVAL '28 days', 'Current Period', true);
+-- =====================
+-- 4. Create Schedule Period
+-- =====================
 
--- Insert some individual shifts
-INSERT INTO individual_shifts (
-    id, employee_id, shift_option_id, schedule_period_id, date, status
-)
-SELECT 
-    'd1111111-1111-1111-1111-111111111111'::uuid,
-    e.id,
-    'a2222222-2222-2222-2222-222222222222'::uuid,
-    'c1111111-1111-1111-1111-111111111111'::uuid,
+INSERT INTO public.schedule_periods (
+    id,
+    start_date,
+    end_date,
+    description,
+    is_published,
+    published_at,
+    published_by
+) VALUES (
+    'a3eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,
     CURRENT_DATE,
-    'scheduled'::shift_status
-FROM employees e
-WHERE e.email = 'john.supervisor@test.com'
-UNION ALL
-SELECT 
-    'd2222222-2222-2222-2222-222222222222'::uuid,
-    e.id,
-    'a3333333-3333-3333-3333-333333333333'::uuid,
-    'c1111111-1111-1111-1111-111111111111'::uuid,
-    CURRENT_DATE,
-    'scheduled'::shift_status
-FROM employees e
-WHERE e.email = 'jane.supervisor@test.com'
-UNION ALL
-SELECT 
-    'd3333333-3333-3333-3333-333333333333'::uuid,
-    e.id,
-    'a1111111-1111-1111-1111-111111111111'::uuid,
-    'c1111111-1111-1111-1111-111111111111'::uuid,
-    CURRENT_DATE,
-    'scheduled'::shift_status
-FROM employees e
-WHERE e.email = 'bob.dispatcher@test.com';
+    CURRENT_DATE + interval '30 days',
+    'Current Schedule Period',
+    true,
+    NOW(),
+    'a1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid  -- Published by manager
+);
 
--- Insert time off request
-INSERT INTO time_off_requests (
-    id, employee_id, start_date, end_date, status, notes, reason
-)
-SELECT
-    'e1111111-1111-1111-1111-111111111111'::uuid,
-    e.id,
-    CURRENT_DATE + INTERVAL '7 days',
-    CURRENT_DATE + INTERVAL '8 days',
-    'pending'::time_off_status,
-    'Family event',
-    'Family event'
-FROM employees e
-WHERE e.email = 'bob.dispatcher@test.com';
+-- =====================
+-- 5. Create Sample Schedules
+-- =====================
 
--- Insert shift swap request
-INSERT INTO shift_swap_requests (
-    id, requesting_employee_id, target_employee_id, requesting_shift_id, status, reason
-)
-SELECT
-    'f1111111-1111-1111-1111-111111111111'::uuid,
-    e1.id,
-    e2.id,
-    s.id,
-    'pending'::swap_request_status,
-    'Need to swap early shift'
-FROM employees e1
-CROSS JOIN employees e2
-CROSS JOIN individual_shifts s
-WHERE e1.email = 'bob.dispatcher@test.com'
-AND e2.email = 'alice.dispatcher@test.com'
-AND s.employee_id = e1.id; 
+INSERT INTO public.schedules (
+    id,
+    employee_id,
+    shift_option_id,
+    schedule_period_id,
+    date,
+    status
+) VALUES
+    -- Day shift for supervisor
+    (
+        'a4eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,
+        'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,  -- Supervisor
+        'a2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,  -- Early Day 10-Hour
+        'a3eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,  -- Current Period
+        CURRENT_DATE,
+        'scheduled'
+    ),
+    -- Day shift for day dispatcher
+    (
+        'b4eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,
+        'c1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,  -- Day Dispatcher
+        'a2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,  -- Early Day 10-Hour
+        'a3eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,  -- Current Period
+        CURRENT_DATE,
+        'scheduled'
+    ),
+    -- Night shift for night dispatcher
+    (
+        'c4eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,
+        'd1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,  -- Night Dispatcher
+        'd2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,  -- Night 12-Hour
+        'a3eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,  -- Current Period
+        CURRENT_DATE,
+        'scheduled'
+    );
+
+-- =====================
+-- 6. Create Sample Time Off Request
+-- =====================
+
+INSERT INTO public.time_off_requests (
+    id,
+    employee_id,
+    start_date,
+    end_date,
+    status,
+    reason
+) VALUES (
+    'a5eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,
+    'c1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,  -- Day Dispatcher
+    CURRENT_DATE + interval '7 days',
+    CURRENT_DATE + interval '8 days',
+    'pending',
+    'Personal appointment'
+);
+
+-- =====================
+-- 7. Create Sample Shift Swap Request
+-- =====================
+
+INSERT INTO public.shift_swap_requests (
+    id,
+    requesting_employee_id,
+    receiving_employee_id,
+    requesting_shift_id,
+    receiving_shift_id,
+    status
+) VALUES (
+    'a6eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,
+    'c1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,  -- Day Dispatcher
+    'd1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,  -- Night Dispatcher
+    'b4eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,  -- Day shift
+    'c4eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,  -- Night shift
+    'pending'
+); 

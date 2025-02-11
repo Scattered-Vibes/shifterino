@@ -3,10 +3,10 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 
-import type { TimeOffRequest } from '@/types/time-off'
+import type { TimeOffRequest } from '@/app/types/time-off'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { getUserFriendlyMessage } from '@/lib/utils/error-handler'
+import { getUserFriendlyMessage } from '@/app/lib/utils/error-handler'
 
 import { updateTimeOffRequest } from '../actions/time-off'
 

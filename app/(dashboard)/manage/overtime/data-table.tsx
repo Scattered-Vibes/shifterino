@@ -41,10 +41,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Checkbox } from '@/components/ui/checkbox'
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/app/lib/supabase/client'
 import { useToast } from '@/components/ui/use-toast'
 import { format } from 'date-fns'
-import type { Database } from '@/types/database'
+import type { Database } from '@/types/supabase/database'
 
 type OvertimeRequest = Database['public']['Tables']['individual_shifts']['Row'] & {
   employees: Database['public']['Tables']['employees']['Row']

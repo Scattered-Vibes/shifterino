@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { SignOutButton } from '@/components/auth/sign-out-button'
+import { SignOutButton } from '@/app/(auth)/components/sign-out-button'
 import {
   PersonIcon,
   SunIcon,

@@ -19,10 +19,10 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { CalendarIcon } from '@radix-ui/react-icons'
-import { cn } from '@/lib/utils'
-import { shiftSchema } from '@/lib/validations/shift'
-import type { ShiftEvent, ShiftUpdateData } from '@/types/shift'
-import { useShiftConflicts } from '@/lib/hooks/use-shifts'
+import { cn } from '@/app/lib/utils'
+import { shiftSchema } from '@/app/lib/validations/shift'
+import type { ShiftEvent, ShiftUpdateData } from '@/app/types/shift'
+import { useShiftConflicts } from '@/hooks/use-shifts'
 import { toast } from '@/components/ui/use-toast'
 
 interface ShiftUpdateFormProps {

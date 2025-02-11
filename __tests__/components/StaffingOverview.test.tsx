@@ -1,7 +1,7 @@
 import React from 'react'
 import { render, screen } from '@testing-library/react'
 import { StaffingOverview } from '@/components/StaffingOverview'
-import { type TimeBlock } from '@/types/schedule'
+import { type TimeBlock } from '@/app/types/schedule'
 
 describe('StaffingOverview', () => {
   const mockDate = new Date('2025-01-01')

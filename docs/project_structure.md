@@ -1,384 +1,384 @@
-. // Root directory: Contains the entire project structure
+. // Root: Entire project structure including documentation, code, tests, and configurations
 ├── README.md // Project overview and documentation
-├── __tests__ // Contains automated test files for the project
-│   └── components // Tests for individual UI components
-│       └── StaffingOverview.test.tsx // Unit test for the StaffingOverview component
+├── __tests__ // Automated test files
+│   └── components // Component-specific tests
+│       └── StaffingOverview.test.tsx // Unit test for StaffingOverview component
 ├── app // Main application code (Next.js pages, routes, API endpoints, and layouts)
-│   ├── (auth) // Authentication-related functionality (login, signup, password management, etc.)
-│   │   ├── actions.ts // Implements authentication actions (e.g., handling login/signup actions)
-│   │   ├── auth-error // Handles authentication error displays
-│   │   │   └── page.tsx // Page component to show auth-related errors
-│   │   ├── callback // Handles auth callbacks from external providers
-│   │   │   └── route.ts // API route for processing authentication callbacks
-│   │   ├── complete-profile // Manages the complete profile flow post-signup
-│   │   │   └── page.tsx // Page for users to complete their profile details
-│   │   ├── login // Contains components and pages for the login feature
-│   │   │   ├── login-form.test.tsx // Tests for the login form component
-│   │   │   ├── login-form.tsx // Login form component implementation
+│   ├── (auth) // Authentication features (login, signup, password management, etc.)
+│   │   ├── actions.ts // Authentication action handlers
+│   │   ├── auth-error // Auth error display module
+│   │   │   └── page.tsx // Auth error page component
+│   │   ├── callback // External auth callback handler
+│   │   │   └── route.ts // Auth callback API route
+│   │   ├── complete-profile // Post-signup complete profile flow
+│   │   │   └── page.tsx // Complete profile page component
+│   │   ├── login // Login feature components and pages
+│   │   │   ├── login-form.test.tsx // Login form tests
+│   │   │   ├── login-form.tsx // Login form component
 │   │   │   └── page.tsx // Login page component
-│   │   ├── reset-password // Manages password reset functionality
-│   │   │   ├── page.tsx // Page component for resetting password
-│   │   │   └── reset-password-form.tsx // Form component for submitting a password reset
-│   │   ├── signup // Handles user signup processes
-│   │   │   ├── actions.ts // Signup logic and actions
-│   │   │   ├── check-email // Manages email verification during signup
-│   │   │   │   └── page.tsx // Page component for email check feedback
-│   │   │   ├── page.tsx // Main signup page component
-│   │   │   └── signup-form.tsx // Signup form component implementation
-│   │   └── update-password // Allows authenticated users to update their password
-│   │       ├── page.tsx // Page component for updating password
-│   │       └── update-password-form.tsx // Form for updating the user password
-│   ├── (dashboard) // Dashboard area for logged-in users, displaying various management tools
-│   │   ├── employees // Manages employee-related views and pages
-│   │   │   └── page.tsx // Page component showing employee details
-│   │   ├── layout.tsx // Layout component for the dashboard section
-│   │   ├── loading.tsx // Loading indicator component for dashboard pages
-│   │   ├── manage // Section for managing scheduling and time-off functionality
-│   │   │   ├── actions // Contains action files for management processes
-│   │   │   │   ├── scheduling.ts // Handles scheduling actions
-│   │   │   │   └── time-off.ts // Handles time-off request actions
+│   │   ├── reset-password // Password reset functionality
+│   │   │   ├── page.tsx // Password reset page component
+│   │   │   └── reset-password-form.tsx // Password reset form component
+│   │   ├── signup // User signup processes
+│   │   │   ├── actions.ts // Signup actions and logic
+│   │   │   ├── check-email // Email verification step
+│   │   │   │   └── page.tsx // Email verification feedback page
+│   │   │   ├── page.tsx // Signup main page
+│   │   │   └── signup-form.tsx // Signup form component
+│   │   └── update-password // Password update for authenticated users
+│   │       ├── page.tsx // Update password page component
+│   │       └── update-password-form.tsx // Password update form component
+│   ├── (dashboard) // Dashboard area with management tools for logged-in users
+│   │   ├── employees // Employee management views
+│   │   │   └── page.tsx // Employee details page
+│   │   ├── layout.tsx // Dashboard layout component
+│   │   ├── loading.tsx // Dashboard loading indicator
+│   │   ├── manage // Scheduling and time-off management section
+│   │   │   ├── actions // Action files for management processes
+│   │   │   │   ├── scheduling.ts // Scheduling actions
+│   │   │   │   └── time-off.ts // Time-off request actions
 │   │   │   ├── actions.ts // General management actions
-│   │   │   ├── components // Reusable UI components for the management area
-│   │   │   │   ├── RealtimeSchedule.tsx // Displays live schedule updates
-│   │   │   │   ├── ScheduleManager.tsx // Interface for managing schedules
-│   │   │   │   ├── StaffList.tsx // Lists staff members
-│   │   │   │   ├── TimeOffRequestForm.tsx // Form for time-off requests
-│   │   │   │   └── TimeOffRequests.tsx // Displays submitted time-off requests
-│   │   │   ├── layout.tsx // Layout for the management section
-│   │   │   ├── metadata.ts // Metadata configuration for management features
-│   │   │   ├── overtime // Subsection focused on overtime management
-│   │   │   │   ├── data-table.tsx // Data table to display overtime records
-│   │   │   │   ├── loading.tsx // Loading indicator for the overtime section
-│   │   │   │   └── page.tsx // Main page for overtime management
-│   │   │   ├── page.tsx // Primary management page component
-│   │   │   └── swaps // Handles shift swap functionalities
-│   │   │       ├── calendar-view.tsx // Calendar visualization for shift swaps
-│   │   │       ├── data-table.tsx // Displays shift swap data in a table
-│   │   │       ├── loading.tsx // Loading state indicator for shift swaps
-│   │   │       └── page.tsx // Main page for managing shift swaps
-│   │   ├── overview // Provides an overview summary of dashboard data
-│   │   │   └── page.tsx // Dashboard overview page component
-│   │   ├── profile // Manages user profile data and settings
-│   │   │   ├── actions.ts // Contains actions for updating profile information
-│   │   │   ├── error.tsx // Renders error messages related to profile updates
-│   │   │   ├── loading.tsx // Loading indicator for profile page
-│   │   │   ├── page.tsx // Main profile page component
-│   │   │   ├── password-form.tsx // Form to update user password within profile
-│   │   │   └── profile-form.tsx // Form for editing profile details
-│   │   ├── requirements // Section for managing staffing requirements
-│   │   │   ├── _components // Private components used only in requirements
-│   │   │   │   └── staffing-requirements-form.tsx // Form for entering staffing requirements
-│   │   │   ├── actions.ts // Action file for staffing requirements operations
-│   │   │   ├── create-button.tsx // Button to initiate creation of a requirement
-│   │   │   ├── data-table.tsx // Table displaying staffing requirements data
-│   │   │   ├── delete-dialog.tsx // Dialog for confirming deletion of a requirement
-│   │   │   ├── edit-dialog.tsx // Dialog interface for editing requirements
-│   │   │   ├── error.tsx // Error handling display for requirements
-│   │   │   ├── layout.tsx // Layout specific to the requirements section
-│   │   │   ├── loading.tsx // Loading indicator for the requirements page
-│   │   │   ├── not-found.tsx // 404 page when a requirement is not found
-│   │   │   └── page.tsx // Main page for staffing requirements
-│   │   ├── schedules // Contains schedule-related pages and components
-│   │   │   ├── calendar-view.tsx // Calendar view component for schedules
-│   │   │   ├── create-button.tsx // Button to create a new schedule
-│   │   │   ├── error.tsx // Error display for scheduling issues
-│   │   │   ├── filters.tsx // Component to filter schedule listings
-│   │   │   ├── list-view.tsx // List view component for schedules
-│   │   │   ├── loading.tsx // Loading indicator for schedule pages
-│   │   │   ├── page.tsx // Main schedules page component
-│   │   │   └── view-options.tsx // Options to customize schedule display view
-│   │   ├── settings // Contains dashboard settings components
-│   │   │   ├── error.tsx // Renders errors on the settings page
-│   │   │   ├── loading.tsx // Loading indicator for settings
-│   │   │   └── page.tsx // Main settings page component
-│   │   ├── shift-options // Manages different shift configuration options
-│   │   │   ├── create-button.tsx // Button to create a new shift option
-│   │   │   ├── data-table.tsx // Table listing available shift options
-│   │   │   ├── delete-dialog.tsx // Dialog for confirming deletion of a shift option
-│   │   │   ├── edit-dialog.tsx // Dialog for editing a shift option
-│   │   │   ├── error.tsx // Displays errors pertaining to shift options
-│   │   │   ├── loading.tsx // Loading indicator for shift options section
-│   │   │   └── page.tsx // Main page for managing shift options
-│   │   └── time-off // Section dedicated to time-off request management
-│   │       ├── components // Contains components specific to time-off functionality
-│   │       │   └── time-off-requests-wrapper.tsx // Wrapper component for time-off requests UI
-│   │       ├── create-button.tsx // Button to create a new time-off request
-│   │       ├── data-table.tsx // Data table displaying time-off requests
-│   │       ├── filters.tsx // Component for filtering time-off requests
-│   │       ├── loading.tsx // Loading indicator for the time-off section
-│   │       └── page.tsx // Main page component for time-off requests
-│   ├── api // Serverless API endpoints used by the app
-│   │   ├── admin // API endpoints for administrative operations
-│   │   │   ├── middleware.ts // Middleware for admin API authentication and authorization
-│   │   │   ├── route.ts // Main API route for admin functions
-│   │   │   └── users // API endpoints for user management under admin
-│   │   │       ├── [id] // Dynamic route for operations on a specific user
-│   │   │       │   └── route.ts // API route handler for a specific user based on ID
-│   │   │       └── route.ts // API route for general user operations
-│   │   └── auth // API endpoints for authentication operations
-│   │       ├── callback // API endpoint for authentication callbacks
-│   │       │   └── route.ts // Route handler for auth callback responses
-│   │       ├── cleanup // Endpoint for cleaning up obsolete auth sessions
-│   │       │   └── route.ts // API route for session cleanup
-│   │       ├── force-signout // Endpoint to enforce user sign out
-│   │       │   └── route.ts // API route to process force signout requests
-│   │       ├── login // Handles API login requests
-│   │       │   └── route.ts // Route handler for login API calls
-│   │       ├── session // Manages session-related API endpoints
-│   │       │   └── refresh // Endpoint to refresh user sessions
-│   │       │       └── route.ts // API route to refresh authentication sessions
-│   │       └── signout // Handles API signout requests
-│   │           └── route.ts // API route for processing user signout
-│   ├── error // Contains error page components for the application
-│   │   └── page.tsx // Custom error page component
-│   ├── error.tsx // Global error component to catch and render errors
-│   ├── favicon.ico // Favicon icon file for the application
-│   ├── global-error.tsx // Global error boundary to capture uncaught errors
-│   ├── globals.css // Global stylesheet for application-wide styles
-│   ├── hooks // Custom React hooks used exclusively within the app layer
-│   │   ├── use-employee-schedule.ts // Hook to manage and fetch employee schedule data
-│   │   └── useRealtimeSubscription.ts // Hook for managing real-time data subscriptions
-│   ├── layout.tsx // Root layout component which wraps app pages
-│   ├── loading.tsx // Global loading component used during page transitions
-│   ├── not-found.tsx // 404 not found page component for missing routes
-│   ├── page.tsx // Primary entry point page for the application
-│   ├── providers // Provides context and state management for the app
-│   │   └── supabase-provider.tsx // Supplies the Supabase client context to components
-│   └── schedule // Contains scheduling features and related UI
-│       ├── _components // Private components used in schedule management
-│       │   ├── schedule-manager.tsx // Component to manage schedule creation and editing
-│       │   ├── shift-calendar.tsx // Calendar to visualize shifts
-│       │   ├── shift-update-form.tsx // Form for updating shift details
-│       │   └── staffing-requirements.tsx // Displays staffing requirements within schedules
-│       ├── page.tsx // Main scheduling page component
-│       └── shift-swaps // Handles shift swap functionalities within scheduling
-│           └── page.tsx // Page component for managing shift swap requests
-├── components // Reusable UI components across the project
-│   ├── StaffingOverview.tsx // Component to display an overview of staffing information
-│   ├── auth // UI components related to authentication
-│   │   └── sign-out-button.tsx // Button component for signing out users
-│   ├── calendar // Components dealing with calendar views and interactions
-│   │   └── ShiftCalendar.tsx // Calendar component for visualizing shifts
-│   ├── dashboard // UI elements specific to dashboard features (may include subcomponents)
-│   ├── employees // Components for managing employee-related UI
-│   │   ├── create-button.tsx // Button to create a new employee entry
-│   │   ├── data-table.tsx // Table component to list employee data
-│   │   ├── delete-dialog.tsx // Dialog for confirming deletion of an employee record
-│   │   ├── edit-dialog.tsx // Dialog for editing employee details
-│   │   └── loading.tsx // Loading indicator component for employee sections
-│   ├── error-boundary.tsx // Boundary component to catch and handle UI errors
-│   ├── forms // Form components used throughout the application
-│   │   ├── ScheduleForm.tsx // Form for creating or editing schedules
-│   │   ├── ShiftUpdateForm.tsx // Form for updating shift information
-│   │   └── TimeOffRequestForm.tsx // Form for submitting a time-off request
-│   ├── layout // Layout components for client-side views
-│   │   └── client-layout.tsx // Layout used to structure client-side pages
-│   ├── profile // UI components for user profile features
-│   │   └── profile-form.tsx // Form component for editing user profiles
-│   ├── providers // React context providers for global app state
-│   │   ├── AuthProvider.tsx // Provides authentication context to the app
-│   │   ├── root-provider.tsx // Wraps the app with all required providers
-│   │   ├── supabase-provider.tsx // Supplies the Supabase client to components
-│   │   ├── theme-provider.tsx // Provides theming support across the app
-│   │   └── tooltip-provider.tsx // Provides tooltip functionality for UI elements
-│   ├── schedule // Components related to scheduling UI
-│   │   └── schedule-calendar.tsx // Calendar view component for schedule management
-│   ├── theme-provider.tsx // Standalone theme provider for styling purposes
-│   └── ui // Basic UI components and building blocks (atoms/molecules)
-│       ├── alert-dialog.tsx // Component for rendering alert dialogs
-│       ├── alert.tsx // Simple alert notification component
-│       ├── avatar.tsx // Avatar component for user profile images
-│       ├── badge.tsx // UI badge component for labels or statuses
+│   │   │   ├── components // Reusable management UI components
+│   │   │   │   ├── RealtimeSchedule.tsx // Live schedule updater
+│   │   │   │   ├── ScheduleManager.tsx // Schedule management interface
+│   │   │   │   ├── StaffList.tsx // Staff listing component
+│   │   │   │   ├── TimeOffRequestForm.tsx // Time-off request form
+│   │   │   │   └── TimeOffRequests.tsx // Submitted time-off requests overview
+│   │   │   ├── layout.tsx // Management section layout
+│   │   │   ├── metadata.ts // Management metadata configuration
+│   │   │   ├── overtime // Overtime management subsection
+│   │   │   │   ├── data-table.tsx // Overtime records data table
+│   │   │   │   ├── loading.tsx // Overtime section loading indicator
+│   │   │   │   └── page.tsx // Overtime management main page
+│   │   │   ├── page.tsx // Main management page
+│   │   │   └── swaps // Shift swap management section
+│   │   │       ├── calendar-view.tsx // Calendar view for shift swaps
+│   │   │       ├── data-table.tsx // Shift swaps data table
+│   │   │       ├── loading.tsx // Shift swaps loading indicator
+│   │   │       └── page.tsx // Shift swap management main page
+│   │   ├── overview // Dashboard overview summary
+│   │   │   └── page.tsx // Overview page component
+│   │   ├── profile // User profile management
+│   │   │   ├── actions.ts // Profile update actions
+│   │   │   ├── error.tsx // Profile error display
+│   │   │   ├── loading.tsx // Profile page loading indicator
+│   │   │   ├── page.tsx // Profile main page
+│   │   │   ├── password-form.tsx // Profile password update form
+│   │   │   └── profile-form.tsx // Profile detail editing form
+│   │   ├── requirements // Staffing requirements management
+│   │   │   ├── _components // Private components for staffing requirements
+│   │   │   │   └── staffing-requirements-form.tsx // Staffing requirements entry form
+│   │   │   ├── actions.ts // Staffing requirements actions
+│   │   │   ├── create-button.tsx // Button to create new requirement
+│   │   │   ├── data-table.tsx // Staffing requirements data table
+│   │   │   ├── delete-dialog.tsx // Requirement deletion confirmation dialog
+│   │   │   ├── edit-dialog.tsx // Requirement editing dialog
+│   │   │   ├── error.tsx // Staffing requirements error display
+│   │   │   ├── layout.tsx // Requirements section layout
+│   │   │   ├── loading.tsx // Requirements page loading indicator
+│   │   │   ├── not-found.tsx // 404 page for missing requirement
+│   │   │   └── page.tsx // Main staffing requirements page
+│   │   ├── schedules // Scheduling feature pages and components
+│   │   │   ├── calendar-view.tsx // Schedule calendar view
+│   │   │   ├── create-button.tsx // Button to create schedule
+│   │   │   ├── error.tsx // Scheduling error display
+│   │   │   ├── filters.tsx // Schedule filter component
+│   │   │   ├── list-view.tsx // Schedule list view
+│   │   │   ├── loading.tsx // Schedule page loading indicator
+│   │   │   ├── page.tsx // Main schedules page
+│   │   │   └── view-options.tsx // Schedule view options
+│   │   ├── settings // Dashboard settings
+│   │   │   ├── error.tsx // Settings error display
+│   │   │   ├── loading.tsx // Settings loading indicator
+│   │   │   └── page.tsx // Main settings page
+│   │   ├── shift-options // Shift configuration options management
+│   │   │   ├── create-button.tsx // Button to create a shift option
+│   │   │   ├── data-table.tsx // Shift options data table
+│   │   │   ├── delete-dialog.tsx // Shift option deletion dialog
+│   │   │   ├── edit-dialog.tsx // Shift option editing dialog
+│   │   │   ├── error.tsx // Shift options error display
+│   │   │   ├── loading.tsx // Shift options loading indicator
+│   │   │   └── page.tsx // Shift options management page
+│   │   └── time-off // Time-off request management section
+│   │       ├── components // Time-off specific UI components
+│   │       │   └── time-off-requests-wrapper.tsx // Time-off requests UI wrapper
+│   │       ├── create-button.tsx // Button to initiate a time-off request
+│   │       ├── data-table.tsx // Time-off requests data table
+│   │       ├── filters.tsx // Time-off request filter
+│   │       ├── loading.tsx // Time-off section loading indicator
+│   │       └── page.tsx // Main time-off requests page
+│   ├── api // Serverless API endpoints
+│   │   ├── admin // Administrative API endpoints
+│   │   │   ├── middleware.ts // Admin API middleware for auth and authorization
+│   │   │   ├── route.ts // Main admin API route
+│   │   │   └── users // Admin API endpoints for user management
+│   │   │       ├── [id] // Dynamic route for specific user operations
+│   │   │       │   └── route.ts // API handler for a user by ID
+│   │   │       └── route.ts // General admin user API route
+│   │   └── auth // Authentication API endpoints
+│   │       ├── callback // Auth callback endpoint
+│   │       │   └── route.ts // Auth callback API handler
+│   │       ├── cleanup // Cleanup endpoint for obsolete auth sessions
+│   │       │   └── route.ts // Auth session cleanup handler
+│   │       ├── force-signout // Force sign-out endpoint
+│   │       │   └── route.ts // Force sign-out API handler
+│   │       ├── login // Login API endpoint
+│   │       │   └── route.ts // Login API route handler
+│   │       ├── session // Session management endpoints
+│   │       │   └── refresh // Session refresh endpoint
+│   │       │       └── route.ts // Session refresh API handler
+│   │       └── signout // Signout API endpoint
+│   │           └── route.ts // Signout API route handler
+│   ├── error // Custom error page components
+│   │   └── page.tsx // Custom error page
+│   ├── error.tsx // Global error rendering component
+│   ├── favicon.ico // Application favicon
+│   ├── global-error.tsx // Global error boundary
+│   ├── globals.css // Global CSS styles
+│   ├── hooks // App-specific custom React hooks
+│   │   ├── use-employee-schedule.ts // Manages employee schedule data
+│   │   └── useRealtimeSubscription.ts // Real-time subscription hook
+│   ├── layout.tsx // Root layout component for app pages
+│   ├── loading.tsx // Global page transition loading component
+│   ├── not-found.tsx // 404 not found page
+│   ├── page.tsx // Primary entry point page
+│   ├── providers // App context and state management providers
+│   │   └── supabase-provider.tsx // Supabase context provider
+│   └── schedule // Scheduling features and UI components
+│       ├── _components // Private scheduling management components
+│       │   ├── schedule-manager.tsx // Component for schedule creation/editing
+│       │   ├── shift-calendar.tsx // Shift visualization calendar
+│       │   ├── shift-update-form.tsx // Shift update form
+│       │   └── staffing-requirements.tsx // Displays staffing requirements in schedules
+│       ├── page.tsx // Main scheduling page
+│       └── shift-swaps // Shift swap functionality
+│           └── page.tsx // Shift swap management page
+├── components // Reusable UI components
+│   ├── StaffingOverview.tsx // Staffing overview display component
+│   ├── auth // Authentication UI components
+│   │   └── sign-out-button.tsx // Sign-out button component
+│   ├── calendar // Calendar view components
+│   │   └── ShiftCalendar.tsx // Shift calendar component
+│   ├── dashboard // Dashboard-specific UI elements
+│   ├── employees // Employee management UI components
+│   │   ├── create-button.tsx // New employee creation button
+│   │   ├── data-table.tsx // Employee data table
+│   │   ├── delete-dialog.tsx // Employee deletion confirmation dialog
+│   │   ├── edit-dialog.tsx // Employee edit dialog
+│   │   └── loading.tsx // Employee section loading indicator
+│   ├── error-boundary.tsx // UI error boundary component
+│   ├── forms // Reusable form components
+│   │   ├── ScheduleForm.tsx // Schedule creation/editing form
+│   │   ├── ShiftUpdateForm.tsx // Shift information update form
+│   │   └── TimeOffRequestForm.tsx // Time-off request submission form
+│   ├── layout // Client-side layout components
+│   │   └── client-layout.tsx // Client page layout component
+│   ├── profile // User profile UI components
+│   │   └── profile-form.tsx // User profile editing form
+│   ├── providers // Global React context providers
+│   │   ├── AuthProvider.tsx // Authentication context provider
+│   │   ├── root-provider.tsx // Root provider for app-wide state
+│   │   ├── supabase-provider.tsx // Supabase client provider (duplicate)
+│   │   ├── theme-provider.tsx // Theming provider component
+│   │   └── tooltip-provider.tsx // Tooltip provider component
+│   ├── schedule // Scheduling UI components
+│   │   └── schedule-calendar.tsx // Schedule calendar view component
+│   ├── theme-provider.tsx // Standalone theming provider
+│   └── ui // Basic UI building blocks
+│       ├── alert-dialog.tsx // Alert dialog component
+│       ├── alert.tsx // Alert notification component
+│       ├── avatar.tsx // User avatar component
+│       ├── badge.tsx // Badge component
 │       ├── button.tsx // Reusable button component
-│       ├── calendar.tsx // Basic calendar UI element
-│       ├── card.tsx // Card component for content display
-│       ├── checkbox.tsx // Checkbox input component
-│       ├── dialog.tsx // Generic dialog/modal component
-│       ├── dropdown-menu.tsx // Dropdown menu component for navigation or options
-│       ├── error-boundary.tsx // UI error boundary for catching component errors
-│       ├── errors.tsx // Component to display error messages in the UI
-│       ├── form.tsx // Generic form wrapper component
-│       ├── header.tsx // Header component for app sections
+│       ├── calendar.tsx // Basic calendar UI component
+│       ├── card.tsx // Card component
+│       ├── checkbox.tsx // Checkbox component
+│       ├── dialog.tsx // Generic dialog component
+│       ├── dropdown-menu.tsx // Dropdown menu component
+│       ├── error-boundary.tsx // UI error boundary
+│       ├── errors.tsx // UI error message display
+│       ├── form.tsx // Generic form wrapper
+│       ├── header.tsx // Header component
 │       ├── input.tsx // Text input component
-│       ├── label.tsx // Label element for form inputs
-│       ├── loading-spinner.tsx // Spinner component used during loading states
-│       ├── loading.tsx // Simple loading indicator component
-│       ├── main-nav.tsx // Main navigation bar component
-│       ├── popover.tsx // Popover component for contextual overlays
+│       ├── label.tsx // Form label component
+│       ├── loading-spinner.tsx // Loading spinner component
+│       ├── loading.tsx // Simple loading indicator
+│       ├── main-nav.tsx // Main navigation bar
+│       ├── popover.tsx // Popover component
 │       ├── progress.tsx // Progress bar component
-│       ├── radio-group.tsx // Radio button group component
-│       ├── scroll-area.tsx // Scrollable container component
-│       ├── select.tsx // Select dropdown input component
-│       ├── separator.tsx // Visual separator component for layout
-│       ├── sheet.tsx // Slide-over sheet component for menus/dialogs
-│       ├── sidebar-nav.tsx // Sidebar navigation component
-│       ├── sign-out-button.tsx // Button for signing out (UI duplicate)
-│       ├── skeleton.tsx // Skeleton loader component for content placeholders
-│       ├── sonner.tsx // Component related to the Sonner notification system
-│       ├── switch.tsx // Toggle switch input component
-│       ├── table.tsx // Table component for data presentation
-│       ├── tabs.tsx // Tab navigation component
-│       ├── textarea.tsx // Multi-line text area component
-│       ├── theme-toggle.tsx // Toggle component to switch between themes
+│       ├── radio-group.tsx // Radio group component
+│       ├── scroll-area.tsx // Scrollable container
+│       ├── select.tsx // Select dropdown component
+│       ├── separator.tsx // Separator component
+│       ├── sheet.tsx // Slide-over sheet component
+│       ├── sidebar-nav.tsx // Sidebar navigation
+│       ├── sign-out-button.tsx // Sign-out button component (duplicate)
+│       ├── skeleton.tsx // Skeleton loader component
+│       ├── sonner.tsx // Sonner notifications component
+│       ├── switch.tsx // Toggle switch component
+│       ├── table.tsx // Data presentation table component
+│       ├── tabs.tsx // Tabs navigation component
+│       ├── textarea.tsx // Text area component
+│       ├── theme-toggle.tsx // Theme toggle component
 │       ├── toast.tsx // Toast notification component
-│       ├── toaster.tsx // Container component for displaying toast notifications
-│       ├── tooltip.tsx // Tooltip component for extra information
-│       ├── use-toast.ts // Custom hook to trigger toast notifications
-│       └── user-nav.tsx // User navigation component (links to profile, settings, etc.)
-├── components.json // JSON configuration for components (used by tooling or documentation)
-├── docs // Documentation files outlining project policies and design
-│   ├── SECURITY.md // Security guidelines and best practices
-│   ├── project_requirements_document.md // Detailed list of project requirements
-│   ├── rls_policies.md // Documentation for row-level security policies
-│   ├── scheduling_logic_document.md // Explanation of scheduling algorithms and logic
-│   └── supabase-db-overview.md // Overview of the Supabase database schema and structure
-├── eslint.config.mjs // ESLint configuration file (in MJS format)
-├── hooks // Additional custom hooks used across the project (outside the app directory)
-│   ├── use-auth.ts // Hook handling authentication logic
-│   ├── use-employee-schedule.ts // Hook for managing employee schedules (duplicate of app/hooks)
-│   ├── use-media-query.ts // Hook for handling responsive design via media queries
-│   └── use-toast.ts // Hook for managing toast notifications (duplicate of ui/use-toast)
-├── jwt_config.sql // SQL script for configuring JSON Web Token (JWT) settings
-├── lib // Library of helper utilities and internal APIs
-│   ├── api-utils.ts // Utility functions for API operations
-│   ├── auth // Library code for authentication handling
-│   │   ├── client.ts // Client-side authentication utilities
-│   │   ├── middleware.ts // Middleware for API authentication
-│   │   └── server.ts // Server-side authentication helper functions
-│   ├── auth.ts // General authentication utility functions
-│   ├── config.server.ts // Server-only configuration settings
-│   ├── config.ts // General configuration file for the project
-│   ├── env.public.ts // Public environment variable definitions
-│   ├── env.server.ts // Server environment variable settings
-│   ├── env.ts // Combined environment variable configuration
-│   ├── hooks // Shared hooks for library-level features
-│   │   ├── index.ts // Exports for shared hooks
-│   │   ├── use-auth-mutations.ts // Hook for authentication mutation operations
-│   │   ├── use-auth.ts // Hook to access authentication state
-│   │   ├── use-employees.ts // Hook for managing employee data
-│   │   ├── use-query.ts // Hook for performing data queries
-│   │   ├── use-schedule-mutations.ts // Hook for schedule mutation operations
-│   │   ├── use-schedules.ts // Hook for fetching and managing schedules
-│   │   ├── use-shift-swaps.ts // Hook for managing shift swap operations
-│   │   ├── use-shifts.ts // Hook for handling shift data
-│   │   ├── use-staffing-requirements.ts // Hook for managing staffing requirements data
-│   │   └── use-time-off.ts // Hook for time off request handling
-│   ├── providers // Provider components for library-level state management
-│   │   └── query-provider.tsx // Provider for managing and caching API queries
-│   ├── rate-limit.ts // Implements logic for API rate limiting
-│   ├── schedule.ts // Utility functions related to scheduling operations
-│   ├── scheduling // Contains helper functions for scheduling logic
-│   │   ├── conflicts.ts // Functions to detect scheduling conflicts
-│   │   ├── generate.ts // Functions to generate schedule structures
-│   │   ├── helpers.ts // Miscellaneous scheduling helper utilities
-│   │   ├── scoring.ts // Algorithms for scoring shift assignments
-│   │   └── tracking.ts // Utilities to track scheduling changes and events
-│   ├── supabase // Supabase integration and helper utilities
-│   │   ├── auth.ts // Supabase-specific authentication utilities
-│   │   ├── client.ts // Initializes the Supabase client
-│   │   ├── cookie-adapter.ts // Adapter for cookie management with Supabase
-│   │   ├── data-access // Data access layer for Supabase interactions
-│   │   │   ├── employees.ts // Data functions for employee records
-│   │   │   ├── schedules.ts // Functions to access schedule data
-│   │   │   ├── shifts.ts // Functions to access shift data
-│   │   │   └── time-off.ts // Functions to manage time off data
-│   │   ├── data-access.ts // Aggregate utilities for data access via Supabase
-│   │   ├── realtime.ts // Setup for Supabase real-time subscriptions
-│   │   ├── server.ts // Server-side utilities for interacting with Supabase
-│   │   └── service.ts // Service layer interfacing with Supabase APIs
-│   ├── supabase-mock.ts // Mock implementation of Supabase for testing purposes
-│   ├── utils // General utility functions used across the project
-│   │   ├── error-handler.ts // Centralized error handling functions
-│   │   └── query.ts // Utility for constructing API queries
-│   ├── utils.ts // Miscellaneous utility functions
-│   └── validations // Schema validation and data-check utilities
-│       ├── schemas.ts // Data validation schemas for various models
-│       └── shift.ts // Validation rules specific to shift data
-├── middleware // Custom middleware implementations for API handling
-│   └── rate-limit.ts // Middleware to enforce API rate limiting on requests
-├── middleware.ts // Global middleware for the application
-├── next-env.d.ts // Next.js TypeScript environment declaration file
-├── next.config.js // Next.js configuration file (JavaScript version)
-├── next.config.ts // Next.js configuration file (TypeScript version)
-├── package-lock.json // Lockfile for npm, ensuring consistent dependency versions
-├── package.json // Project metadata, scripts, and dependency definitions
-├── postcss.config.js // Configuration file for PostCSS processing
-├── public // Static assets served directly by the web server
-│   ├── file.svg // SVG asset (general purpose file image)
-│   ├── globe.svg // SVG image of a globe icon
-│   ├── next.svg // Next.js logo asset
-│   ├── vercel.svg // Vercel logo asset
-│   └── window.svg // SVG icon representing a window/interface element
-├── scripts // Utility scripts for maintenance and code generation
-│   └── generate-types.ts // Script to generate TypeScript types from backend schemas
-├── supabase // Contains Supabase configuration, migrations, and seed data
-│   ├── config.toml // Supabase configuration file in TOML format
-│   ├── migrations // Database migration scripts for setting up schema and policies
-│   │   ├── 001_core_schema_and_auth_sessions.sql // Sets up core schema and auth session tables
-│   │   ├── 002_scheduling_and_session_management.sql // Adds scheduling and session management features
-│   │   ├── 003_indexes_schema_improvements.sql // Improves indexes and overall schema performance
-│   │   ├── 004_test_helpers_setup.sql // Sets up helpers for integration testing
-│   │   ├── 005_fix_auth_permissions.sql // Fixes permissions related to authentication
-│   │   ├── 20240320000000_phase4_features_part1.sql // Migration for phase 4 features (part 1)
-│   │   ├── 20240321000000_phase4_features_part2.sql // Migration for phase 4 features (part 2)
-│   │   ├── 20240321000000_phase4_features_part2.sql.bak // Backup of migration for phase 4 features (part 2)
-│   │   ├── 20240322000000_add_rate_limiting.sql // Adds database-level rate limiting support
-│   │   ├── 20240323000000_fix_audit_logs.sql // Fixes issues with audit log tables
-│   │   ├── 20240324000000_rls_policies_phase1.sql // Implements row-level security policies (phase 1)
-│   │   ├── 20240324000001_rls_policies_phase2.sql // Implements row-level security policies (phase 2)
-│   │   └── 20250207212316_fix_test_helpers.sql // Fixes issues with test helper configurations
-│   ├── seed.sql // SQL script to seed the database with initial data
-│   └── tests // Contains tests for Supabase configuration and migrations
-│       └── database // SQL test files for verifying database policies and setups
-│           ├── 02_profile_policies.test.sql // Tests for user profile policies
-│           ├── 03_rls_policies.test.sql // Tests for row-level security policies
+│       ├── toaster.tsx // Toast notifications container
+│       ├── tooltip.tsx // Tooltip component
+│       ├── use-toast.ts // Custom hook for triggering toasts
+│       └── user-nav.tsx // User navigation component
+├── components.json // Components configuration (tooling/documentation)
+├── docs // Project documentation files
+│   ├── SECURITY.md // Security guidelines
+│   ├── project_requirements_document.md // Project requirements document
+│   ├── rls_policies.md // Row-level security policies documentation
+│   ├── scheduling_logic_document.md // Scheduling algorithms and logic overview
+│   └── supabase-db-overview.md // Supabase database overview
+├── eslint.config.mjs // ESLint configuration (MJS)
+├── hooks // Global custom hooks (outside app)
+│   ├── use-auth.ts // Authentication logic hook
+│   ├── use-employee-schedule.ts // Employee schedule management hook (duplicate)
+│   ├── use-media-query.ts // Responsive design media query hook
+│   └── use-toast.ts // Toast notifications hook (duplicate)
+├── jwt_config.sql // JWT configuration SQL script
+├── lib // Helper utilities and internal APIs
+│   ├── api-utils.ts // API utility functions
+│   ├── auth // Authentication library
+│   │   ├── client.ts // Client auth utilities
+│   │   ├── middleware.ts // API auth middleware
+│   │   └── server.ts // Server auth helper functions
+│   ├── auth.ts // General auth utilities
+│   ├── config.server.ts // Server configuration settings
+│   ├── config.ts // Project configuration
+│   ├── env.public.ts // Public environment variables
+│   ├── env.server.ts // Server environment variables
+│   ├── env.ts // Combined environment configuration
+│   ├── hooks // Shared library hooks
+│   │   ├── index.ts // Shared hooks exports
+│   │   ├── use-auth-mutations.ts // Auth mutations hook
+│   │   ├── use-auth.ts // Authentication state hook
+│   │   ├── use-employees.ts // Employee data management hook
+│   │   ├── use-query.ts // Data query hook
+│   │   ├── use-schedule-mutations.ts // Schedule mutations hook
+│   │   ├── use-schedules.ts // Schedule management hook
+│   │   ├── use-shift-swaps.ts // Shift swaps management hook
+│   │   ├── use-shifts.ts // Shift data hook
+│   │   ├── use-staffing-requirements.ts // Staffing requirements hook
+│   │   └── use-time-off.ts // Time-off request hook
+│   ├── providers // Library state management providers
+│   │   └── query-provider.tsx // API query caching provider
+│   ├── rate-limit.ts // API rate limiting logic
+│   ├── schedule.ts // Scheduling utility functions
+│   ├── scheduling // Scheduling helper functions
+│   │   ├── conflicts.ts // Detects scheduling conflicts
+│   │   ├── generate.ts // Generates schedule structures
+│   │   ├── helpers.ts // Misc scheduling helpers
+│   │   ├── scoring.ts // Shift assignment scoring algorithms
+│   │   └── tracking.ts // Tracks scheduling changes
+│   ├── supabase // Supabase integration utilities
+│   │   ├── auth.ts // Supabase auth utilities
+│   │   ├── client.ts // Supabase client initialization
+│   │   ├── cookie-adapter.ts // Cookie adapter for Supabase
+│   │   ├── data-access // Supabase data access layer
+│   │   │   ├── employees.ts // Employee records data functions
+│   │   │   ├── schedules.ts // Schedule data access functions
+│   │   │   ├── shifts.ts // Shift data access functions
+│   │   │   └── time-off.ts // Time-off data management functions
+│   │   ├── data-access.ts // Aggregate Supabase data utilities
+│   │   ├── realtime.ts // Supabase real-time subscription setup
+│   │   ├── server.ts // Supabase server utilities
+│   │   └── service.ts // Supabase API service layer
+│   ├── supabase-mock.ts // Supabase mock for testing
+│   ├── utils // General utility functions
+│   │   ├── error-handler.ts // Centralized error handling
+│   │   └── query.ts // API query helper
+│   ├── utils.ts // Miscellaneous utilities
+│   └── validations // Data validation utilities
+│       ├── schemas.ts // Data validation schemas
+│       └── shift.ts // Shift data validation rules
+├── middleware // Custom API middleware implementations
+│   └── rate-limit.ts // API rate limiting middleware
+├── middleware.ts // Global application middleware
+├── next-env.d.ts // Next.js TypeScript environment declarations
+├── next.config.js // Next.js configuration (JavaScript)
+├── next.config.ts // Next.js configuration (TypeScript)
+├── package-lock.json // npm lockfile for dependency consistency
+├── package.json // Project metadata and dependencies
+├── postcss.config.js // PostCSS configuration
+├── public // Public static assets
+│   ├── file.svg // General SVG asset
+│   ├── globe.svg // Globe icon SVG
+│   ├── next.svg // Next.js logo SVG
+│   ├── vercel.svg // Vercel logo SVG
+│   └── window.svg // Window/interface SVG icon
+├── scripts // Maintenance and code generation scripts
+│   └── generate-types.ts // Generates TypeScript types from backend schemas
+├── supabase // Supabase configuration, migrations, and seeds
+│   ├── config.toml // Supabase configuration (TOML)
+│   ├── migrations // Database migration scripts
+│   │   ├── 001_core_schema_and_auth_sessions.sql // Core schema and auth sessions
+│   │   ├── 002_scheduling_and_session_management.sql // Scheduling and session management migrations
+│   │   ├── 003_indexes_schema_improvements.sql // Schema indexing and performance improvements
+│   │   ├── 004_test_helpers_setup.sql // Integration test helpers setup
+│   │   ├── 005_fix_auth_permissions.sql // Fixes authentication permissions
+│   │   ├── 20240320000000_phase4_features_part1.sql // Phase 4 features migration part 1
+│   │   ├── 20240321000000_phase4_features_part2.sql // Phase 4 features migration part 2
+│   │   ├── 20240321000000_phase4_features_part2.sql.bak // Backup for Phase 4 features migration part 2
+│   │   ├── 20240322000000_add_rate_limiting.sql // Adds DB-level rate limiting
+│   │   ├── 20240323000000_fix_audit_logs.sql // Fixes audit log table issues
+│   │   ├── 20240324000000_rls_policies_phase1.sql // RLS policies implementation phase 1
+│   │   ├── 20240324000001_rls_policies_phase2.sql // RLS policies implementation phase 2
+│   │   └── 20250207212316_fix_test_helpers.sql // Fix test helper configuration issues
+│   ├── seed.sql // Database seeding script
+│   └── tests // Supabase configuration and migration tests
+│       └── database // Database policy and setup tests
+│           ├── 02_profile_policies.test.sql // Tests for profile policies
+│           ├── 03_rls_policies.test.sql // Tests for RLS policies
 │           └── 04_rls_policies_phase2.test.sql // Additional tests for RLS policies phase 2
-├── tailwind.config.ts // Tailwind CSS configuration file (TypeScript version)
-├── test // Additional test files covering various aspects of the project
-│   ├── app // Tests specifically for app-level functionality
-│   │   ├── (auth) // Authentication tests within the app context
-│   │   │   └── login // Tests for the login feature in the app
-│   │   │       └── login-form.test.tsx // Test for the login form component (duplicate test)
+├── tailwind.config.ts // Tailwind CSS configuration (TypeScript)
+├── test // Additional project tests
+│   ├── app // App-level tests
+│   │   ├── (auth) // App auth tests
+│   │   │   └── login // Login feature tests in app
+│   │   │       └── login-form.test.tsx // Test for login form (duplicate test)
 │   │   ├── (dashboard) // Dashboard functionality tests
-│   │   │   ├── manage // Tests related to management actions and components
-│   │   │   │   ├── actions // Tests for management action files
-│   │   │   │   │   ├── schedule.test.ts // Tests for scheduling action logic
-│   │   │   │   │   └── time-off.test.ts // Tests for time-off action logic
-│   │   │   │   └── components // Tests for components within the management section
-│   │   │   │       ├── ScheduleManager.test.tsx // Tests for the ScheduleManager component
-│   │   │   │       └── StaffingOverview.test.tsx // Tests for StaffingOverview in dashboard context
-│   │   │   └── profile // Tests for profile management features
-│   │   │       ├── actions.test.ts // Tests for profile action handlers
-│   │   │       └── profile-form.test.tsx // Tests for the profile form component
-│   │   └── api // Tests for API endpoint functionalities
-│   │       ├── admin // Admin API endpoint tests
-│   │       │   ├── middleware.test.ts // Tests for admin middleware logic
-│   │       │   ├── route.test.ts // Tests for the admin API route
-│   │       │   └── users // Tests for admin user-related API endpoints
-│   │       │       ├── [id] // Tests for dynamic user-specific routes
-│   │       │       │   └── route.test.ts // Test for the user-specific API route
-│   │       │       └── route.test.ts // Tests for the general users API route
-│   │       └── auth // Authentication API endpoint tests
-│   │           ├── callback // Tests for the auth callback endpoint
-│   │           │   └── route.test.ts // Test for the auth callback API route
-│   │           ├── cleanup // Tests for the auth cleanup endpoint
-│   │           │   └── route.test.ts // Test for the cleanup API route
-│   │           ├── login // Tests for the auth login endpoint
-│   │           │   └── route.test.ts // Test for the login API route
-│   │           └── signout // Tests for the auth signout endpoint
-│   │               └── route.test.ts // Test for the signout API route
-├── tsconfig.json // TypeScript compiler configuration file
-├── tsconfig.tsbuildinfo // Auxiliary TypeScript build info (auto-generated)
-├── types // Custom TypeScript type definitions for the project
-│   ├── auth.d.ts // Type definitions related to authentication
-│   ├── database.ts // Database schema type definitions
-│   ├── profile.ts // Type definitions for user profile data
-│   ├── schedule.ts // Types for schedule data structures
-│   ├── scheduling.ts // Types for scheduling operations and logic
-│   ├── shift.ts // Type definitions for shift details
-│   ├── supabase // Supabase-specific type definitions
-│   │   └── database.ts // Types for the Supabase database schema
-│   ├── supabase.ts // General type definitions for Supabase integration
-│   └── time-off.ts // Types related to time-off and leave requests
-├── vitest.config.ts // Configuration for the Vitest testing framework
-└── vitest.setup.ts // Setup file for initializing Vitest testing environment
+│   │   │   ├── manage // Management functionality tests
+│   │   │   │   ├── actions // Management action tests
+│   │   │   │   │   ├── schedule.test.ts // Tests for scheduling actions
+│   │   │   │   │   └── time-off.test.ts // Tests for time-off actions
+│   │   │   │   └── components // Management components tests
+│   │   │   │       ├── ScheduleManager.test.tsx // Test for ScheduleManager component
+│   │   │   │       └── StaffingOverview.test.tsx // Dashboard StaffingOverview test
+│   │   │   └── profile // Profile management tests
+│   │   │       ├── actions.test.ts // Profile action tests
+│   │   │       └── profile-form.test.tsx // Profile form component test
+│   │   └── api // API endpoint tests
+│   │       ├── admin // Admin API tests
+│   │       │   ├── middleware.test.ts // Admin middleware tests
+│   │       │   ├── route.test.ts // Admin route test
+│   │       │   └── users // Admin user endpoint tests
+│   │       │       ├── [id] // Dynamic user tests
+│   │       │       │   └── route.test.ts // Dynamic user API test
+│   │       │       └── route.test.ts // General admin users API test
+│   │       └── auth // Auth API tests
+│   │           ├── callback // Auth callback tests
+│   │           │   └── route.test.ts // Auth callback API test
+│   │           ├── cleanup // Auth cleanup tests
+│   │           │   └── route.test.ts // Auth cleanup API test
+│   │           ├── login // Auth login tests
+│   │           │   └── route.test.ts // Auth login API test
+│   │           └── signout // Auth signout tests
+│   │               └── route.test.ts // Auth signout API test
+├── tsconfig.json // TypeScript configuration
+├── tsconfig.tsbuildinfo // Auto-generated TypeScript build info
+├── types // Project-specific TypeScript type definitions
+│   ├── auth.d.ts // Authentication type definitions
+│   ├── database.ts // Database schema types
+│   ├── profile.ts // User profile type definitions
+│   ├── schedule.ts // Schedule data structures types
+│   ├── scheduling.ts // Scheduling operations and logic types
+│   ├── shift.ts // Shift detail types
+│   ├── supabase // Supabase type definitions
+│   │   └── database.ts // Supabase database schema types
+│   ├── supabase.ts // General Supabase integration types
+│   └── time-off.ts // Time-off request types
+├── vitest.config.ts // Vitest configuration
+└── vitest.setup.ts // Vitest initialization file

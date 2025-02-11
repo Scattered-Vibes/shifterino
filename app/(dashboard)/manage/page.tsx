@@ -15,10 +15,29 @@ import {
   PersonIcon,
   UpdateIcon,
 } from '@radix-ui/react-icons'
-import { createClient } from '@/lib/supabase/server'
-import { handleError } from '@/lib/utils/error-handler'
+import { createClient } from '@/app/lib/supabase/server'
+import { handleError } from '@/app/lib/utils/error-handler'
 import { formatDistanceToNow } from 'date-fns'
 import Link from 'next/link'
+import type { Database, Tables } from '@/types/supabase'
+
+type EmployeeInfo = Pick<Tables['employees']['Row'], 'first_name' | 'last_name'>
+
+type TimeOffRequest = Tables['time_off_requests']['Row'] & {
+  employees: EmployeeInfo | null
+}
+
+type OvertimeRequest = Tables['overtime_requests']['Row'] & {
+  employees: EmployeeInfo | null
+}
+
+type ShiftSwapRequest = Tables['shift_swap_requests']['Row'] & {
+  employees: EmployeeInfo | null
+}
+
+type OnCallAssignment = Tables['on_call_assignments']['Row'] & {
+  employees: EmployeeInfo | null
+}
 
 // Metric Card Component
 function MetricCard({
@@ -116,30 +135,33 @@ function QuickActions() {
 async function PendingRequests() {
   const supabase = createClient()
 
-  const [
-    { data: timeOffRequests },
-    { data: overtimeRequests },
-    { data: swapRequests },
-  ] = await Promise.all([
+  const [timeOffData, overtimeData, swapData] = await Promise.all([
     supabase
       .from('time_off_requests')
       .select('*, employees(first_name, last_name)')
-      .eq('status', 'PENDING')
+      .eq('status', 'pending')
       .order('created_at', { ascending: false })
-      .limit(5),
+      .limit(5)
+      .then(res => ({ data: res.data as TimeOffRequest[] | null })),
     supabase
       .from('overtime_requests')
-      .select('*, employees(first_name, last_name)')
-      .eq('status', 'PENDING')
+      .select('*, employees!overtime_requests_employee_id_fkey(first_name, last_name)')
+      .eq('status', 'pending')
       .order('created_at', { ascending: false })
-      .limit(5),
+      .limit(5)
+      .then(res => ({ data: res.data as OvertimeRequest[] | null })),
     supabase
       .from('shift_swap_requests')
-      .select('*, employees(first_name, last_name)')
-      .eq('status', 'PENDING')
+      .select('*, employees!shift_swap_requests_requester_id_fkey(first_name, last_name)')
+      .eq('status', 'pending')
       .order('created_at', { ascending: false })
-      .limit(5),
+      .limit(5)
+      .then(res => ({ data: res.data as ShiftSwapRequest[] | null })),
   ])
+
+  const timeOffRequests = timeOffData.data
+  const overtimeRequests = overtimeData.data
+  const swapRequests = swapData.data
 
   return (
     <Card>
@@ -159,7 +181,7 @@ async function PendingRequests() {
                 >
                   <div>
                     <p className="font-medium">
-                      {request.employees.first_name} {request.employees.last_name}
+                      {request.employees?.first_name} {request.employees?.last_name}
                     </p>
                     <p className="text-sm text-muted-foreground">
                       {formatDistanceToNow(new Date(request.created_at), {
@@ -188,7 +210,7 @@ async function PendingRequests() {
                 >
                   <div>
                     <p className="font-medium">
-                      {request.employees.first_name} {request.employees.last_name}
+                      {request.employees?.first_name} {request.employees?.last_name}
                     </p>
                     <p className="text-sm text-muted-foreground">
                       {formatDistanceToNow(new Date(request.created_at), {
@@ -217,7 +239,7 @@ async function PendingRequests() {
                 >
                   <div>
                     <p className="font-medium">
-                      {request.employees.first_name} {request.employees.last_name}
+                      {request.employees?.first_name} {request.employees?.last_name}
                     </p>
                     <p className="text-sm text-muted-foreground">
                       {formatDistanceToNow(new Date(request.created_at), {
@@ -244,31 +266,34 @@ async function PendingRequests() {
 async function OnCallAssignments() {
   const supabase = createClient()
   
-  const { data: onCallAssignments } = await supabase
+  const { data: assignments } = await supabase
     .from('on_call_assignments')
-    .select('*, employees(first_name, last_name)')
+    .select('*, employees!on_call_assignments_employee_id_fkey(first_name, last_name)')
     .gte('end_time', new Date().toISOString())
     .order('start_time', { ascending: true })
     .limit(5)
+    .then(res => ({ data: res.data as OnCallAssignment[] | null }))
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>On-Call Schedule</CardTitle>
+        <CardTitle>Current On-Call</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {onCallAssignments?.map((assignment) => (
+          {assignments?.map((assignment) => (
             <div
               key={assignment.id}
               className="flex items-center justify-between rounded-lg border p-3"
             >
               <div>
                 <p className="font-medium">
-                  {assignment.employees.first_name} {assignment.employees.last_name}
+                  {assignment.employees?.first_name} {assignment.employees?.last_name}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {new Date(assignment.start_time).toLocaleDateString()} - {new Date(assignment.end_time).toLocaleDateString()}
+                  {formatDistanceToNow(new Date(assignment.start_time), {
+                    addSuffix: true,
+                  })}
                 </p>
               </div>
               <Button variant="ghost" size="sm" asChild>
@@ -287,43 +312,45 @@ async function OnCallAssignments() {
 // Metrics Section
 async function Metrics() {
   const supabase = createClient()
+  const now = new Date()
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString()
 
-  const [
-    { data: totalHours },
-    { data: overtimeHours },
-    { data: staffingLevels },
-    { data: pendingRequests },
-  ] = await Promise.all([
-    supabase.rpc('get_total_scheduled_hours'),
-    supabase.rpc('get_total_overtime_hours'),
-    supabase.rpc('get_current_staffing_levels'),
-    supabase.rpc('get_pending_requests_count'),
-  ])
+  try {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return null
 
-  return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      <MetricCard
-        title="Total Scheduled Hours"
-        value={totalHours || 0}
-        description="This week"
-      />
-      <MetricCard
-        title="Overtime Hours"
-        value={overtimeHours || 0}
-        description="This week"
-      />
-      <MetricCard
-        title="Current Staffing"
-        value={`${staffingLevels?.current || 0}/${staffingLevels?.required || 0}`}
-        description="Current shift"
-      />
-      <MetricCard
-        title="Pending Requests"
-        value={pendingRequests || 0}
-        description="Across all categories"
-      />
-    </div>
-  )
+    const [totalHoursResult, overtimeHoursResult] = await Promise.all([
+      supabase.rpc('get_total_scheduled_hours', {
+        employee_id: session.user.id,
+        start_date: startOfMonth,
+        end_date: endOfMonth,
+      }),
+      supabase.rpc('get_total_overtime_hours', {
+        employee_id: session.user.id,
+        start_date: startOfMonth,
+        end_date: endOfMonth,
+      }),
+    ])
+
+    return (
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <MetricCard
+          title="Total Hours"
+          value={totalHoursResult.data ?? 0}
+          description="This month"
+        />
+        <MetricCard
+          title="Overtime Hours"
+          value={overtimeHoursResult.data ?? 0}
+          description="This month"
+        />
+      </div>
+    )
+  } catch (error) {
+    console.error('Error fetching metrics:', error)
+    return null
+  }
 }
 
 // Loading States
@@ -359,89 +386,56 @@ export default async function ManagePage() {
   const supabase = createClient()
 
   try {
-    // Verify authentication and role
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError) {
-      throw handleError(authError)
-    }
-
-    if (!user) {
+    const { data: { session } } = await supabase.auth.getSession()
+    
+    if (!session) {
       redirect('/login')
     }
 
-    // Fetch user role
-    const { data: userRole } = await supabase
+    const { data: employee, error: employeeError } = await supabase
       .from('employees')
-      .select('role')
-      .eq('auth_id', user.id)
-      .single()
+      .select('role, is_active')
+      .eq('auth_id', session.user.id)
+      .single() as { 
+        data: Pick<Database['public']['Tables']['employees']['Row'], 'role' | 'is_active'> | null
+        error: unknown 
+      }
 
-    if (!userRole || !['MANAGER', 'SUPERVISOR'].includes(userRole.role)) {
+    if (employeeError || !employee) {
+      console.error('Error fetching employee:', employeeError)
+      redirect('/error')
+    }
+
+    if (!employee.is_active) {
+      redirect('/account-inactive')
+    }
+
+    if (!['admin', 'manager', 'supervisor'].includes(employee.role)) {
       redirect('/unauthorized')
     }
 
     return (
-      <div className="space-y-6 p-6">
-        <h1 className="text-2xl font-bold">Management Dashboard</h1>
-        <QuickActions />
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold">Management Dashboard</h1>
+        </div>
+
         <ErrorBoundary>
           <Suspense fallback={<LoadingState />}>
-            <Metrics />
+            <div className="grid gap-6">
+              <Metrics />
+              <QuickActions />
+              <div className="grid gap-6 md:grid-cols-2">
+                <PendingRequests />
+                <OnCallAssignments />
+              </div>
+            </div>
           </Suspense>
         </ErrorBoundary>
-        <div className="grid gap-6 md:grid-cols-2">
-          <ErrorBoundary>
-            <Suspense
-              fallback={
-                <Card>
-                  <CardHeader>
-                    <CardTitle>
-                      <Skeleton className="h-6 w-[200px]" />
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {Array.from({ length: 3 }).map((_, i) => (
-                        <Skeleton key={i} className="h-20 w-full" />
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              }
-            >
-              <PendingRequests />
-            </Suspense>
-          </ErrorBoundary>
-          <ErrorBoundary>
-            <Suspense
-              fallback={
-                <Card>
-                  <CardHeader>
-                    <CardTitle>
-                      <Skeleton className="h-6 w-[200px]" />
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {Array.from({ length: 3 }).map((_, i) => (
-                        <Skeleton key={i} className="h-20 w-full" />
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              }
-            >
-              <OnCallAssignments />
-            </Suspense>
-          </ErrorBoundary>
-        </div>
       </div>
     )
   } catch (error) {
-    throw handleError(error)
+    console.error('Error in ManagePage:', error)
+    redirect('/error')
   }
 }

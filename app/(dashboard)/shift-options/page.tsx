@@ -2,14 +2,14 @@
 
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
-import { createClient } from '@/lib/supabase/server'
-import { handleError } from '@/lib/utils'
+import { createClient } from '@/app/lib/supabase/server'
+import { handleError } from '@/app/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ShiftOptionsDataTable } from './data-table'
 import { ShiftOptionsTableSkeleton } from './loading'
 import { CreateShiftOptionButton } from './create-button'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
-import type { Database } from '@/types/database'
+import type { Database } from '@/types/supabase/database'
 
 type ShiftOption = Database['public']['Tables']['shift_options']['Row']
 

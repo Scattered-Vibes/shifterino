@@ -30,7 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/app/lib/supabase/client'
 import { useToast } from '@/components/ui/use-toast'
 import { PlusIcon } from '@radix-ui/react-icons'
 
@@ -44,9 +44,9 @@ const employeeFormSchema = z.object({
   email: z.string().email({
     message: 'Please enter a valid email address.',
   }),
-  role: z.enum(['DISPATCHER', 'SUPERVISOR']),
-  shift_pattern: z.enum(['PATTERN_A', 'PATTERN_B']),
-  preferred_shift_category: z.enum(['EARLY', 'DAY', 'SWING', 'GRAVEYARD']),
+  role: z.enum(['dispatcher', 'supervisor']),
+  shift_pattern: z.enum(['pattern_a', 'pattern_b']),
+  preferred_shift_category: z.enum(['early', 'day', 'swing', 'graveyard']),
   weekly_hours_cap: z.number().min(0).max(60),
   max_overtime_hours: z.number().min(0).max(20),
 })
@@ -100,7 +100,7 @@ export function CreateEmployeeButton() {
         <DialogHeader>
           <DialogTitle>Add New Employee</DialogTitle>
           <DialogDescription>
-            Create a new employee record. Click save when you're done.
+            Create a new employee record. Click save when you&apos;re done.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -160,8 +160,8 @@ export function CreateEmployeeButton() {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="DISPATCHER">Dispatcher</SelectItem>
-                      <SelectItem value="SUPERVISOR">Supervisor</SelectItem>
+                      <SelectItem value="dispatcher">Dispatcher</SelectItem>
+                      <SelectItem value="supervisor">Supervisor</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -184,10 +184,10 @@ export function CreateEmployeeButton() {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="PATTERN_A">
+                      <SelectItem value="pattern_a">
                         Pattern A (4x10)
                       </SelectItem>
-                      <SelectItem value="PATTERN_B">
+                      <SelectItem value="pattern_b">
                         Pattern B (3x12 + 1x4)
                       </SelectItem>
                     </SelectContent>
@@ -212,10 +212,10 @@ export function CreateEmployeeButton() {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="EARLY">Early (5AM-3PM)</SelectItem>
-                      <SelectItem value="DAY">Day (9AM-7PM)</SelectItem>
-                      <SelectItem value="SWING">Swing (3PM-1AM)</SelectItem>
-                      <SelectItem value="GRAVEYARD">
+                      <SelectItem value="early">Early (5AM-3PM)</SelectItem>
+                      <SelectItem value="day">Day (9AM-7PM)</SelectItem>
+                      <SelectItem value="swing">Swing (3PM-1AM)</SelectItem>
+                      <SelectItem value="graveyard">
                         Graveyard (9PM-7AM)
                       </SelectItem>
                     </SelectContent>

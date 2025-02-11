@@ -2,8 +2,8 @@
 
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
-import { createClient } from '@/lib/supabase/server'
-import { handleError } from '@/lib/utils/error-handler'
+import { createClient } from '@/app/lib/supabase/server'
+import { handleError } from '@/app/lib/utils/error-handler'
 import { OvertimeDataTable } from './data-table'
 import { OvertimeTableSkeleton } from './loading'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'

@@ -1,0 +1,415 @@
+---
+description: Scheduling System Rules
+globs: 
+---
+ # Scheduling System Rules
+
+## Core Requirements
+
+1. **Staffing Levels**
+   ```typescript
+   interface StaffingRequirement {
+     timeRange: {
+       start: string // 24-hour format
+       end: string
+     }
+     minimumStaff: number
+     requiresSupervisor: boolean
+   }
+
+   const STAFFING_REQUIREMENTS: StaffingRequirement[] = [
+     {
+       timeRange: { start: '05:00', end: '09:00' },
+       minimumStaff: 6,
+       requiresSupervisor: true
+     },
+     {
+       timeRange: { start: '09:00', end: '21:00' },
+       minimumStaff: 8,
+       requiresSupervisor: true
+     },
+     {
+       timeRange: { start: '21:00', end: '01:00' },
+       minimumStaff: 7,
+       requiresSupervisor: true
+     },
+     {
+       timeRange: { start: '01:00', end: '05:00' },
+       minimumStaff: 6,
+       requiresSupervisor: true
+     }
+   ]
+   ```
+
+2. **Shift Patterns**
+   ```typescript
+   type ShiftPattern = 'pattern_a' | 'pattern_b'
+
+   interface ShiftDefinition {
+     pattern: ShiftPattern
+     shifts: {
+       duration: number // in hours
+       count: number
+     }[]
+   }
+
+   const SHIFT_PATTERNS: Record<ShiftPattern, ShiftDefinition> = {
+     pattern_a: {
+       pattern: 'pattern_a',
+       shifts: [{ duration: 10, count: 4 }]
+     },
+     pattern_b: {
+       pattern: 'pattern_b',
+       shifts: [
+         { duration: 12, count: 3 },
+         { duration: 4, count: 1 }
+       ]
+     }
+   }
+   ```
+
+3. **Schedule Validation**
+   ```typescript
+   interface ScheduleValidation {
+     isValid: boolean
+     errors: {
+       type: 'UNDERSTAFFED' | 'MISSING_SUPERVISOR' | 'PATTERN_VIOLATION' | 'OVERTIME'
+       message: string
+       timeRange?: {
+         start: Date
+         end: Date
+       }
+     }[]
+   }
+
+   async function validateSchedule(
+     scheduleId: string,
+     startDate: Date,
+     endDate: Date
+   ): Promise<ScheduleValidation> {
+     const supabase = await createServerClient()
+     
+     // Fetch schedule data
+     const { data: shifts, error } = await supabase
+       .from('shifts')
+       .select(`
+         *,
+         employee:employees(
+           id,
+           role,
+           shift_pattern
+         )
+       `)
+       .gte('start_time', startDate.toISOString())
+       .lte('end_time', endDate.toISOString())
+
+     if (error) throw error
+
+     // Validate staffing levels
+     const staffingErrors = validateStaffingLevels(shifts)
+     
+     // Validate supervisor coverage
+     const supervisorErrors = validateSupervisorCoverage(shifts)
+     
+     // Validate shift patterns
+     const patternErrors = validateShiftPatterns(shifts)
+     
+     // Validate overtime
+     const overtimeErrors = validateOvertime(shifts)
+
+     return {
+       isValid: ![
+         ...staffingErrors,
+         ...supervisorErrors,
+         ...patternErrors,
+         ...overtimeErrors
+       ].length,
+       errors: [
+         ...staffingErrors,
+         ...supervisorErrors,
+         ...patternErrors,
+         ...overtimeErrors
+       ]
+     }
+   }
+   ```
+
+4. **Time Off Management**
+   ```typescript
+   interface TimeOffRequest {
+     id: string
+     employeeId: string
+     startDate: Date
+     endDate: Date
+     status: 'PENDING' | 'APPROVED' | 'DENIED'
+     type: 'VACATION' | 'SICK' | 'PERSONAL'
+   }
+
+   async function handleTimeOffRequest(request: TimeOffRequest) {
+     const supabase = await createServerClient()
+     
+     // Check for schedule conflicts
+     const { data: conflicts } = await supabase
+       .from('shifts')
+       .select('*')
+       .eq('employee_id', request.employeeId)
+       .overlaps('start_time', request.startDate, request.endDate)
+
+     if (conflicts?.length) {
+       throw new Error('Time off request conflicts with scheduled shifts')
+     }
+
+     // Check staffing levels
+     const staffingValidation = await validateStaffingLevels(
+       request.startDate,
+       request.endDate
+     )
+
+     if (!staffingValidation.isValid) {
+       throw new Error('Time off would result in understaffing')
+     }
+
+     // Approve request if all checks pass
+     const { error } = await supabase
+       .from('time_off_requests')
+       .update({ status: 'APPROVED' })
+       .eq('id', request.id)
+
+     if (error) throw error
+   }
+   ```
+
+5. **Shift Swaps**
+   ```typescript
+   interface ShiftSwap {
+     id: string
+     requestingEmployeeId: string
+     targetEmployeeId: string
+     shiftId: string
+     status: 'PENDING' | 'APPROVED' | 'DENIED'
+   }
+
+   async function handleShiftSwap(swap: ShiftSwap) {
+     const supabase = await createServerClient()
+     
+     // Validate employee eligibility
+     const { data: employees } = await supabase
+       .from('employees')
+       .select('*')
+       .in('id', [swap.requestingEmployeeId, swap.targetEmployeeId])
+
+     // Check pattern compatibility
+     const patternValidation = validatePatternCompatibility(
+       employees[0],
+       employees[1],
+       swap.shiftId
+     )
+
+     if (!patternValidation.isValid) {
+       throw new Error('Shift swap violates shift patterns')
+     }
+
+     // Check qualifications (supervisor coverage)
+     const qualificationValidation = validateQualifications(
+       employees[0],
+       employees[1],
+       swap.shiftId
+     )
+
+     if (!qualificationValidation.isValid) {
+       throw new Error('Target employee lacks required qualifications')
+     }
+
+     // Approve swap if all checks pass
+     const { error } = await supabase
+       .from('shift_swaps')
+       .update({ status: 'APPROVED' })
+       .eq('id', swap.id)
+
+     if (error) throw error
+   }
+   ```
+
+6. **Schedule Generation**
+   ```typescript
+   interface ScheduleGenerationOptions {
+     startDate: Date
+     endDate: Date
+     employees: Employee[]
+     preferences: EmployeePreference[]
+     timeOffRequests: TimeOffRequest[]
+   }
+
+   async function generateSchedule(options: ScheduleGenerationOptions) {
+     // Initialize schedule with minimum requirements
+     let schedule = initializeSchedule(options)
+
+     // Assign supervisors first
+     schedule = assignSupervisors(schedule, options)
+
+     // Assign remaining staff
+     schedule = assignStaff(schedule, options)
+
+     // Validate final schedule
+     const validation = await validateSchedule(
+       schedule.id,
+       options.startDate,
+       options.endDate
+     )
+
+     if (!validation.isValid) {
+       throw new Error('Generated schedule does not meet requirements')
+     }
+
+     return schedule
+   }
+   ```
+
+7. **Real-time Updates**
+   ```typescript
+   // components/schedule/realtime-schedule.tsx
+   'use client'
+
+   import { useEffect } from 'react'
+   import { createClient } from '@/lib/supabase/client'
+
+   export function RealtimeSchedule() {
+     const supabase = createClient()
+
+     useEffect(() => {
+       const channel = supabase
+         .channel('schedule-changes')
+         .on(
+           'postgres_changes',
+           {
+             event: '*',
+             schema: 'public',
+             table: 'shifts',
+           },
+           (payload) => {
+             // Update UI based on change type
+             switch (payload.eventType) {
+               case 'INSERT':
+                 handleNewShift(payload.new)
+                 break
+               case 'UPDATE':
+                 handleShiftUpdate(payload.old, payload.new)
+                 break
+               case 'DELETE':
+                 handleShiftDelete(payload.old)
+                 break
+             }
+           }
+         )
+         .subscribe()
+
+       return () => {
+         supabase.removeChannel(channel)
+       }
+     }, [])
+
+     return <ScheduleDisplay />
+   }
+   ```
+
+8. **Conflict Resolution**
+   ```typescript
+   interface ScheduleConflict {
+     type: 'UNDERSTAFFED' | 'MISSING_SUPERVISOR' | 'PATTERN_VIOLATION'
+     severity: 'HIGH' | 'MEDIUM' | 'LOW'
+     timeRange: {
+       start: Date
+       end: Date
+     }
+     suggestedResolutions: {
+       type: 'SWAP' | 'OVERTIME' | 'SPLIT_SHIFT'
+       description: string
+       impact: string
+     }[]
+   }
+
+   async function resolveConflict(
+     conflict: ScheduleConflict,
+     resolution: Resolution
+   ) {
+     const supabase = await createServerClient()
+
+     // Start a transaction
+     const { error } = await supabase.rpc('resolve_schedule_conflict', {
+       conflict_data: conflict,
+       resolution_data: resolution
+     })
+
+     if (error) throw error
+   }
+   ```
+
+9. **Schedule Optimization**
+   ```typescript
+   interface OptimizationCriteria {
+     minimizeOvertime: boolean
+     balanceWorkload: boolean
+     respectPreferences: boolean
+     minimizeNightShifts: boolean
+   }
+
+   async function optimizeSchedule(
+     scheduleId: string,
+     criteria: OptimizationCriteria
+   ) {
+     const supabase = await createServerClient()
+
+     // Calculate current schedule metrics
+     const currentMetrics = await calculateScheduleMetrics(scheduleId)
+
+     // Generate optimization suggestions
+     const suggestions = await generateOptimizationSuggestions(
+       scheduleId,
+       currentMetrics,
+       criteria
+     )
+
+     return suggestions
+   }
+   ```
+
+10. **Schedule Export**
+    ```typescript
+    interface ExportOptions {
+      format: 'PDF' | 'CSV' | 'ICS'
+      dateRange: {
+        start: Date
+        end: Date
+      }
+      includeDetails: boolean
+    }
+
+    async function exportSchedule(
+      scheduleId: string,
+      options: ExportOptions
+    ) {
+      const supabase = await createServerClient()
+
+      // Fetch schedule data
+      const { data: schedule } = await supabase
+        .from('schedules')
+        .select(`
+          *,
+          shifts (
+            *,
+            employee:employees (
+              id,
+              name,
+              role
+            )
+          )
+        `)
+        .eq('id', scheduleId)
+        .single()
+
+      // Generate export file
+      const exportData = await generateExport(schedule, options)
+
+      return exportData
+    }
+    ```

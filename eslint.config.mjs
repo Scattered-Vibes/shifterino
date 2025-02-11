@@ -16,18 +16,32 @@ export default [
     root: true,
     extends: [
       'next/core-web-vitals',
+      'prettier',
       'plugin:@typescript-eslint/recommended',
       'plugin:tailwindcss/recommended',
     ],
-    plugins: ['@typescript-eslint'],
+    plugins: ['@typescript-eslint', 'tailwindcss'],
     parser: '@typescript-eslint/parser',
     rules: {
       '@typescript-eslint/no-unused-vars': ['error', {
         argsIgnorePattern: '^_',
         varsIgnorePattern: '^_',
       }],
+      '@next/next/no-html-link-for-pages': 'off',
+      'react/jsx-key': 'warn',
       'tailwindcss/classnames-order': 'error',
-      'tailwindcss/no-custom-classname': 'warn',
+      'tailwindcss/no-custom-classname': 'off',
+      'tailwindcss/enforces-shorthand': 'off',
+      'tailwindcss/no-unnecessary-arbitrary-value': 'off'
     },
+    settings: {
+      tailwindcss: {
+        callees: ['cn', 'cva'],
+        config: './tailwind.config.ts'
+      },
+      next: {
+        rootDir: true
+      }
+    }
   }),
 ]

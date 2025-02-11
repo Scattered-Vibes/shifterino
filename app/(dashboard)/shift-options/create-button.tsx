@@ -33,7 +33,7 @@ import {
 } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/components/ui/use-toast'
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/app/lib/supabase/client'
 import { PlusIcon } from '@radix-ui/react-icons'
 
 const shiftOptionSchema = z.object({

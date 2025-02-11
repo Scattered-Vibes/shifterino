@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import { ExclamationTriangleIcon } from '@radix-ui/react-icons'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { getUserFriendlyMessage, ErrorCode } from '@/lib/utils/error-handler'
+import { getUserFriendlyMessage, ErrorCode } from '@/app/lib/utils/error-handler'
 
 export default function GlobalError({
   error,

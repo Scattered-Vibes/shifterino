@@ -1,0 +1,316 @@
+---
+description: Testing Patterns
+globs: 
+---
+ # Testing Patterns
+
+## Core Testing Principles
+
+1. **Test Co-location**
+   ```typescript
+   // app/(dashboard)/schedule/page.tsx
+   export default function SchedulePage() {
+     return <ScheduleView />
+   }
+
+   // app/(dashboard)/schedule/page.test.tsx
+   import { render, screen } from '@testing-library/react'
+   import SchedulePage from './page'
+
+   describe('SchedulePage', () => {
+     it('renders schedule view', () => {
+       render(<SchedulePage />)
+       expect(screen.getByRole('main')).toBeInTheDocument()
+     })
+   })
+   ```
+
+2. **Supabase Mocking**
+   ```typescript
+   // __tests__/helpers/supabase-mock.ts
+   import { createClient } from '@supabase/ssr'
+   import { vi } from 'vitest'
+
+   export const mockSupabase = {
+     from: vi.fn(() => ({
+       select: vi.fn().mockReturnThis(),
+       insert: vi.fn().mockReturnThis(),
+       update: vi.fn().mockReturnThis(),
+       delete: vi.fn().mockReturnThis(),
+       eq: vi.fn().mockReturnThis(),
+       single: vi.fn().mockReturnThis(),
+     })),
+     auth: {
+       getSession: vi.fn(),
+       signInWithPassword: vi.fn(),
+       signOut: vi.fn(),
+     },
+   }
+
+   vi.mock('@supabase/ssr', () => ({
+     createClient: () => mockSupabase,
+   }))
+   ```
+
+3. **Component Testing**
+   ```typescript
+   // components/schedule/schedule-calendar.test.tsx
+   import { render, screen, fireEvent } from '@testing-library/react'
+   import { ScheduleCalendar } from './schedule-calendar'
+   import { mockSupabase } from '@/tests/helpers/supabase-mock'
+
+   describe('ScheduleCalendar', () => {
+     beforeEach(() => {
+       mockSupabase.from.mockClear()
+     })
+
+     it('loads shifts for selected date', async () => {
+       const shifts = [
+         {
+           id: '1',
+           start_time: '2025-01-01T09:00:00Z',
+           end_time: '2025-01-01T17:00:00Z',
+         },
+       ]
+
+       mockSupabase.from().select().mockResolvedValueOnce({ data: shifts })
+
+       render(<ScheduleCalendar />)
+
+       const dateCell = screen.getByText('1')
+       fireEvent.click(dateCell)
+
+       expect(mockSupabase.from).toHaveBeenCalledWith('shifts')
+       expect(screen.getByText('9:00 AM - 5:00 PM')).toBeInTheDocument()
+     })
+   })
+   ```
+
+4. **Server Action Testing**
+   ```typescript
+   // app/(dashboard)/schedule/actions.test.ts
+   import { createShift } from './actions'
+   import { mockSupabase } from '@/tests/helpers/supabase-mock'
+   import { revalidatePath } from 'next/cache'
+
+   vi.mock('next/cache', () => ({
+     revalidatePath: vi.fn(),
+   }))
+
+   describe('createShift', () => {
+     it('creates a new shift and revalidates path', async () => {
+       const formData = new FormData()
+       formData.append('start_time', '2025-01-01T09:00')
+       formData.append('end_time', '2025-01-01T17:00')
+       formData.append('employee_id', '123')
+
+       mockSupabase.from().insert().mockResolvedValueOnce({ data: null })
+
+       await createShift(formData)
+
+       expect(mockSupabase.from).toHaveBeenCalledWith('shifts')
+       expect(revalidatePath).toHaveBeenCalledWith('/schedule')
+     })
+   })
+   ```
+
+5. **RLS Policy Testing**
+   ```sql
+   -- supabase/tests/database/policies.test.sql
+   BEGIN;
+   SELECT plan(6);
+
+   -- Test supervisor read access
+   SELECT results_eq(
+     'SELECT count(*) FROM employees',
+     ARRAY[10::bigint],
+     'Supervisors should see all employees'
+   );
+
+   -- Test employee read access
+   SELECT results_eq(
+     'SELECT count(*) FROM employees WHERE user_id = auth.uid()',
+     ARRAY[1::bigint],
+     'Employees should only see their own data'
+   );
+
+   SELECT finish();
+   ROLLBACK;
+   ```
+
+6. **E2E Testing**
+   ```typescript
+   // e2e/schedule.spec.ts
+   import { test, expect } from '@playwright/test'
+
+   test('supervisor can create and manage shifts', async ({ page }) => {
+     // Login as supervisor
+     await page.goto('/login')
+     await page.fill('[name="email"]', 'supervisor@example.com')
+     await page.fill('[name="password"]', 'password')
+     await page.click('button[type="submit"]')
+
+     // Navigate to schedule
+     await page.goto('/dashboard/schedule')
+
+     // Create new shift
+     await page.click('button:text("Create Shift")')
+     await page.fill('[name="start_time"]', '2025-01-01T09:00')
+     await page.fill('[name="end_time"]', '2025-01-01T17:00')
+     await page.selectOption('[name="employee_id"]', '123')
+     await page.click('button:text("Save")')
+
+     // Verify shift was created
+     await expect(page.getByText('9:00 AM - 5:00 PM')).toBeVisible()
+   })
+   ```
+
+7. **Real-time Testing**
+   ```typescript
+   // components/schedule/realtime-schedule.test.tsx
+   import { render, act } from '@testing-library/react'
+   import { RealtimeSchedule } from './realtime-schedule'
+   import { mockSupabase } from '@/tests/helpers/supabase-mock'
+
+   describe('RealtimeSchedule', () => {
+     let channel: any
+
+     beforeEach(() => {
+       channel = {
+         on: vi.fn().mockReturnThis(),
+         subscribe: vi.fn().mockReturnThis(),
+       }
+       mockSupabase.channel.mockReturnValue(channel)
+     })
+
+     it('subscribes to schedule changes', () => {
+       render(<RealtimeSchedule />)
+
+       expect(mockSupabase.channel).toHaveBeenCalledWith('schedule-changes')
+       expect(channel.on).toHaveBeenCalledWith(
+         'postgres_changes',
+         {
+           event: '*',
+           schema: 'public',
+           table: 'shifts',
+         },
+         expect.any(Function)
+       )
+     })
+
+     it('handles real-time updates', () => {
+       render(<RealtimeSchedule />)
+
+       const handler = channel.on.mock.calls[0][2]
+
+       act(() => {
+         handler({
+           eventType: 'INSERT',
+           new: {
+             id: '1',
+             start_time: '2025-01-01T09:00:00Z',
+             end_time: '2025-01-01T17:00:00Z',
+           },
+         })
+       })
+
+       // Verify UI updates
+     })
+   })
+   ```
+
+8. **Performance Testing**
+   ```typescript
+   // __tests__/performance/schedule-load.test.ts
+   import { test, expect } from '@playwright/test'
+
+   test('schedule page loads within performance budget', async ({ page }) => {
+     const startTime = performance.now()
+
+     await page.goto('/dashboard/schedule')
+     await page.waitForSelector('[data-testid="schedule-grid"]')
+
+     const loadTime = performance.now() - startTime
+     expect(loadTime).toBeLessThan(1000) // 1 second budget
+
+     // Test Core Web Vitals
+     const lcp = await page.evaluate(() => {
+       return new Promise((resolve) => {
+         new PerformanceObserver((list) => {
+           const entries = list.getEntries()
+           resolve(entries[entries.length - 1].startTime)
+         }).observe({ entryTypes: ['largest-contentful-paint'] })
+       })
+     })
+
+     expect(lcp).toBeLessThan(2500) // 2.5 seconds LCP budget
+   })
+   ```
+
+9. **Integration Testing**
+   ```typescript
+   // __tests__/integration/schedule-workflow.test.ts
+   import { test, expect } from '@playwright/test'
+   import { setupTestDatabase, cleanupTestDatabase } from '../helpers/db'
+
+   test.describe('Schedule Workflow', () => {
+     test.beforeEach(async () => {
+       await setupTestDatabase()
+     })
+
+     test.afterEach(async () => {
+       await cleanupTestDatabase()
+     })
+
+     test('complete scheduling workflow', async ({ page }) => {
+       // Login
+       await page.goto('/login')
+       await page.fill('[name="email"]', 'supervisor@example.com')
+       await page.click('button[type="submit"]')
+
+       // Create schedule
+       await page.goto('/dashboard/schedule/new')
+       await page.fill('[name="start_date"]', '2025-01-01')
+       await page.fill('[name="end_date"]', '2025-01-31')
+       await page.click('button:text("Generate Schedule")')
+
+       // Verify minimum staffing
+       const staffingLevels = await page.$$('[data-testid="staffing-level"]')
+       for (const level of staffingLevels) {
+         const count = await level.textContent()
+         expect(parseInt(count || '0')).toBeGreaterThanOrEqual(6)
+       }
+
+       // Verify supervisor coverage
+       const supervisorShifts = await page.$$('[data-testid="supervisor-shift"]')
+       expect(supervisorShifts.length).toBeGreaterThan(0)
+     })
+   })
+   ```
+
+10. **Snapshot Testing**
+    ```typescript
+    // components/schedule/schedule-grid.test.tsx
+    import { render } from '@testing-library/react'
+    import { ScheduleGrid } from './schedule-grid'
+
+    describe('ScheduleGrid', () => {
+      it('matches snapshot', () => {
+        const shifts = [
+          {
+            id: '1',
+            start_time: '2025-01-01T09:00:00Z',
+            end_time: '2025-01-01T17:00:00Z',
+            employee: {
+              id: '123',
+              name: 'John Doe',
+              role: 'dispatcher',
+            },
+          },
+        ]
+
+        const { container } = render(<ScheduleGrid shifts={shifts} />)
+        expect(container).toMatchSnapshot()
+      })
+    })
+    ```

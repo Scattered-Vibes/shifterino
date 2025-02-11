@@ -8,8 +8,8 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 
-import { createClient } from '@/lib/supabase/server'
-import { handleError, ErrorCode } from '@/lib/utils/error-handler'
+import { createClient } from '@/app/lib/supabase/server'
+import { handleError, ErrorCode } from '@/app/lib/utils/error-handler'
 import {
   loginSchema,
   signupSchema,
@@ -19,7 +19,7 @@ import {
   type SignupInput,
   type ResetPasswordInput,
   type UpdatePasswordInput,
-} from '@/lib/validations/schemas'
+} from '@/app/lib/validations/auth'
 
 export async function login(data: LoginInput) {
   try {
@@ -33,19 +33,19 @@ export async function login(data: LoginInput) {
 
     if (error) {
       const appError = handleError(error)
-      return { error: appError.message }
+      return { error: appError.message, code: appError.code }
     }
 
     revalidatePath('/', 'layout')
-    redirect('/dashboard')
+    redirect('/overview')
   } catch (error) {
-    const appError = handleError(error)
     if (error instanceof z.ZodError) {
       return { 
         error: 'Invalid email or password format',
         code: ErrorCode.VALIDATION_ERROR
       }
     }
+    const appError = handleError(error)
     return { error: appError.message, code: appError.code }
   }
 }
@@ -53,32 +53,32 @@ export async function login(data: LoginInput) {
 export async function signup(data: SignupInput) {
   try {
     const validatedFields = signupSchema.parse(data)
-
     const supabase = createClient()
-    const { error } = await supabase.auth.signUp({
+
+    const { error: signUpError } = await supabase.auth.signUp({
       email: validatedFields.email,
       password: validatedFields.password,
       options: {
         data: {
           role: validatedFields.role,
+          first_name: validatedFields.first_name,
+          last_name: validatedFields.last_name
         },
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/complete-profile`
       },
     })
 
-    if (error) {
-      const appError = handleError(error)
-      return { error: appError.message }
-    }
+    if (signUpError) throw signUpError
 
-    redirect('/signup/check-email')
+    redirect('/auth/check-email')
   } catch (error) {
-    const appError = handleError(error)
     if (error instanceof z.ZodError) {
       return { 
         error: 'Invalid form data',
         code: ErrorCode.VALIDATION_ERROR
       }
     }
+    const appError = handleError(error)
     return { error: appError.message, code: appError.code }
   }
 }
@@ -90,7 +90,7 @@ export async function signOut() {
     
     if (error) {
       const appError = handleError(error)
-      return { error: appError.message }
+      return { error: appError.message, code: appError.code }
     }
     
     revalidatePath('/', 'layout')
@@ -112,18 +112,18 @@ export async function resetPassword(data: ResetPasswordInput) {
 
     if (error) {
       const appError = handleError(error)
-      return { error: appError.message }
+      return { error: appError.message, code: appError.code }
     }
 
     return { success: true }
   } catch (error) {
-    const appError = handleError(error)
     if (error instanceof z.ZodError) {
       return { 
         error: 'Invalid email format',
         code: ErrorCode.VALIDATION_ERROR
       }
     }
+    const appError = handleError(error)
     return { error: appError.message, code: appError.code }
   }
 }
@@ -139,19 +139,19 @@ export async function updatePassword(data: UpdatePasswordInput) {
 
     if (error) {
       const appError = handleError(error)
-      return { error: appError.message }
+      return { error: appError.message, code: appError.code }
     }
 
     revalidatePath('/', 'layout')
     redirect('/overview')
   } catch (error) {
-    const appError = handleError(error)
     if (error instanceof z.ZodError) {
       return { 
         error: 'Invalid password format',
         code: ErrorCode.VALIDATION_ERROR
       }
     }
+    const appError = handleError(error)
     return { error: appError.message, code: appError.code }
   }
 }

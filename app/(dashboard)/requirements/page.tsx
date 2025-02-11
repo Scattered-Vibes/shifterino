@@ -2,14 +2,14 @@
 
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
-import { createClient } from '@/lib/supabase/server'
-import { handleError } from '@/lib/utils'
+import { createClient } from '@/app/lib/supabase/server'
+import { handleError } from '@/app/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { RequirementsDataTable } from './data-table'
 import { RequirementsTableSkeleton } from './loading'
 import { CreateRequirementButton } from './create-button'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
-import type { Database } from '@/types/database'
+import type { Database } from '@/types/supabase/database'
 
 type StaffingRequirement = Database['public']['Tables']['staffing_requirements']['Row']
 

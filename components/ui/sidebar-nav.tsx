@@ -2,13 +2,16 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { cn } from '@/lib/utils'
+import { cn } from '@/app/lib/utils'
 import {
   CalendarIcon,
   PersonIcon,
   ClockIcon,
   GearIcon,
   BarChartIcon,
+  LayersIcon,
+  MixerHorizontalIcon,
+  DashboardIcon,
 } from '@radix-ui/react-icons'
 
 interface SidebarNavProps {
@@ -17,19 +20,37 @@ interface SidebarNavProps {
 
 const routes = [
   {
-    href: '/dashboard',
+    href: '/overview',
     label: 'Overview',
     icon: BarChartIcon,
   },
   {
-    href: '/schedule',
-    label: 'Schedule',
+    href: '/manage',
+    label: 'Management',
+    icon: DashboardIcon,
+    adminOnly: true,
+  },
+  {
+    href: '/schedules',
+    label: 'Schedules',
     icon: CalendarIcon,
   },
   {
     href: '/employees',
     label: 'Employees',
     icon: PersonIcon,
+    adminOnly: true,
+  },
+  {
+    href: '/requirements',
+    label: 'Staffing Requirements',
+    icon: LayersIcon,
+    adminOnly: true,
+  },
+  {
+    href: '/shift-options',
+    label: 'Shift Options',
+    icon: MixerHorizontalIcon,
     adminOnly: true,
   },
   {
@@ -47,7 +68,10 @@ const routes = [
 
 export function SidebarNav({ userRole }: SidebarNavProps) {
   const pathname = usePathname()
-  const isAdmin = userRole === 'SUPERVISOR' || userRole === 'MANAGER'
+  const isAdmin = userRole === 'supervisor' || userRole === 'manager'
+  
+  console.log('SidebarNav - User Role:', userRole)
+  console.log('SidebarNav - Is Admin:', isAdmin)
 
   return (
     <nav className="grid items-start gap-2">
@@ -66,7 +90,7 @@ export function SidebarNav({ userRole }: SidebarNavProps) {
               isActive ? 'bg-accent text-accent-foreground' : 'transparent'
             )}
           >
-            <Icon className="mr-2 h-4 w-4" />
+            <Icon className="mr-2 size-4" />
             <span>{route.label}</span>
           </Link>
         )

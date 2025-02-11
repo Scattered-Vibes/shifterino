@@ -3,12 +3,12 @@
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { createClient } from '@/lib/supabase/server'
-import { handleError } from '@/lib/utils'
+import { createClient } from '@/app/lib/supabase/server'
+import { handleError } from '@/app/lib/utils'
 import { ShiftSwapsDataTable } from './data-table'
 import { CalendarView } from './calendar-view'
 import { ShiftSwapsTableSkeleton } from './loading'
-import type { Database } from '@/types/database'
+import type { Database } from '@/types/supabase/database'
 
 type ShiftSwapRequest = Database['public']['Tables']['shift_swap_requests']['Row'] & {
   requester: Database['public']['Tables']['employees']['Row']

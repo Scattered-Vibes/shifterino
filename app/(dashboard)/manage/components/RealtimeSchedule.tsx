@@ -2,8 +2,8 @@
 
 import { useEffect } from 'react'
 
-import type { Database } from '@/types/database'
-import { createClient } from '@/lib/supabase/client'
+import type { Database } from '@/types/supabase/database'
+import { createClient } from '@/app/lib/supabase/client'
 import { toast } from '@/components/ui/use-toast'
 
 type Schedule = Database['public']['Tables']['schedules']['Row']

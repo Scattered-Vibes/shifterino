@@ -1,10 +1,9 @@
-import { getUser } from '@/lib/auth'
+import { requireAuth } from '@/app/lib/auth'
 import type { Metadata } from 'next'
-import { redirect } from 'next/navigation'
 import { MainNav } from '@/components/ui/main-nav'
 import { UserNav } from '@/components/ui/user-nav'
 import { SidebarNav } from '@/components/ui/sidebar-nav'
-import { ThemeProvider } from '@/components/theme-provider'
+import { ThemeProvider } from '@/app/providers/theme-provider'
 import { Toaster } from '@/components/ui/toaster'
 
 export const metadata: Metadata = {
@@ -19,12 +18,8 @@ interface DashboardLayoutProps {
 export default async function DashboardLayout({
   children,
 }: DashboardLayoutProps) {
-  const user = await getUser();
+  const user = await requireAuth();
   
-  if (!user || !user.email || !user.role) {
-    redirect('/login');
-  }
-
   const userInfo = {
     email: user.email,
     role: user.role

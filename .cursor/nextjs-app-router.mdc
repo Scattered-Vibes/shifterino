@@ -1,0 +1,298 @@
+---
+description: Next.js App Router Rules
+globs: 
+---
+ # Next.js App Router Rules
+
+## Route Structure
+
+1. **Route Groups**
+   ```
+   app/
+   ├── (auth)/
+   │   ├── login/
+   │   │   └── page.tsx
+   │   ├── signup/
+   │   │   └── page.tsx
+   │   └── layout.tsx
+   ├── (dashboard)/
+   │   ├── schedule/
+   │   │   ├── page.tsx
+   │   │   └── loading.tsx
+   │   ├── employees/
+   │   │   └── page.tsx
+   │   └── layout.tsx
+   └── layout.tsx
+   ```
+
+2. **Parallel Routes**
+   ```typescript
+   // app/(dashboard)/@schedule/page.tsx
+   export default function ScheduleSlot() {
+     return <ScheduleView />
+   }
+
+   // app/(dashboard)/@sidebar/page.tsx
+   export default function SidebarSlot() {
+     return <ScheduleControls />
+   }
+
+   // app/(dashboard)/layout.tsx
+   export default function DashboardLayout({
+     children,
+     schedule,
+     sidebar,
+   }: {
+     children: React.ReactNode
+     schedule: React.ReactNode
+     sidebar: React.ReactNode
+   }) {
+     return (
+       <div className="grid grid-cols-[1fr_250px]">
+         <main>{children}</main>
+         <aside>{sidebar}</aside>
+       </div>
+     )
+   }
+   ```
+
+3. **Loading States**
+   ```typescript
+   // app/(dashboard)/schedule/loading.tsx
+   export default function Loading() {
+     return (
+       <div className="animate-pulse">
+         <div className="h-8 bg-gray-200 rounded w-1/4 mb-4" />
+         <div className="space-y-3">
+           <div className="h-4 bg-gray-200 rounded w-3/4" />
+           <div className="h-4 bg-gray-200 rounded w-1/2" />
+           <div className="h-4 bg-gray-200 rounded w-5/6" />
+         </div>
+       </div>
+     )
+   }
+   ```
+
+4. **Error Handling**
+   ```typescript
+   // app/(dashboard)/schedule/error.tsx
+   'use client'
+
+   export default function Error({
+     error,
+     reset,
+   }: {
+     error: Error
+     reset: () => void
+   }) {
+     return (
+       <div className="rounded-md bg-red-50 p-4">
+         <h3 className="text-sm font-medium text-red-800">
+           {error.message}
+         </h3>
+         <button
+           onClick={reset}
+           className="mt-4 text-sm text-red-800 underline"
+         >
+           Try again
+         </button>
+       </div>
+     )
+   }
+   ```
+
+5. **Metadata**
+   ```typescript
+   // app/layout.tsx
+   import { Metadata } from 'next'
+
+   export const metadata: Metadata = {
+     title: {
+       template: '%s | Dispatch Scheduler',
+       default: 'Dispatch Scheduler',
+     },
+     description: '24/7 Dispatch Center Scheduling System',
+   }
+
+   // app/(dashboard)/schedule/page.tsx
+   export const metadata: Metadata = {
+     title: 'Schedule Management',
+   }
+   ```
+
+6. **Server Actions**
+   ```typescript
+   // app/(dashboard)/schedule/actions.ts
+   'use server'
+
+   import { createServerClient } from '@/lib/supabase/server'
+   import { revalidatePath } from 'next/cache'
+
+   export async function createShift(formData: FormData) {
+     const supabase = await createServerClient()
+     
+     const { error } = await supabase
+       .from('shifts')
+       .insert({
+         start_time: formData.get('start_time'),
+         end_time: formData.get('end_time'),
+         employee_id: formData.get('employee_id'),
+       })
+
+     if (error) throw error
+
+     revalidatePath('/schedule')
+   }
+
+   // Usage in component
+   export default function CreateShiftForm() {
+     return (
+       <form action={createShift}>
+         <input name="start_time" type="datetime-local" />
+         <input name="end_time" type="datetime-local" />
+         <input name="employee_id" type="hidden" />
+         <button type="submit">Create Shift</button>
+       </form>
+     )
+   }
+   ```
+
+7. **Route Handlers**
+   ```typescript
+   // app/api/schedule/route.ts
+   import { createServerClient } from '@/lib/supabase/server'
+   import { NextResponse } from 'next/server'
+
+   export async function GET(request: Request) {
+     const { searchParams } = new URL(request.url)
+     const start = searchParams.get('start')
+     const end = searchParams.get('end')
+
+     const supabase = await createServerClient()
+     
+     const { data, error } = await supabase
+       .from('shifts')
+       .select('*')
+       .gte('start_time', start)
+       .lte('end_time', end)
+
+     if (error) {
+       return NextResponse.json({ error: error.message }, { status: 500 })
+     }
+
+     return NextResponse.json(data)
+   }
+   ```
+
+8. **Streaming**
+   ```typescript
+   // app/(dashboard)/schedule/page.tsx
+   import { Suspense } from 'react'
+   import { ScheduleCalendar } from './schedule-calendar'
+   import { StaffingOverview } from './staffing-overview'
+
+   export default function SchedulePage() {
+     return (
+       <div>
+         <Suspense fallback={<div>Loading calendar...</div>}>
+           <ScheduleCalendar />
+         </Suspense>
+         <Suspense fallback={<div>Loading overview...</div>}>
+           <StaffingOverview />
+         </Suspense>
+       </div>
+     )
+   }
+   ```
+
+9. **Client Components**
+   ```typescript
+   // components/ui/calendar.tsx
+   'use client'
+
+   import { useState } from 'react'
+   import { Calendar } from '@/components/ui/calendar'
+   import { createClient } from '@/lib/supabase/client'
+
+   export function ScheduleCalendar() {
+     const [date, setDate] = useState<Date>()
+     const supabase = createClient()
+
+     // Client-side interactions
+     const handleSelect = async (date: Date) => {
+       setDate(date)
+       // Handle date selection
+     }
+
+     return (
+       <Calendar
+         mode="single"
+         selected={date}
+         onSelect={handleSelect}
+         className="rounded-md border"
+       />
+     )
+   }
+   ```
+
+10. **Middleware**
+    ```typescript
+    // middleware.ts
+    import { createServerClient } from '@supabase/ssr'
+    import { NextResponse } from 'next/server'
+    import type { NextRequest } from 'next/server'
+
+    export async function middleware(request: NextRequest) {
+      const response = NextResponse.next()
+      const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          cookies: {
+            get(name: string) {
+              return request.cookies.get(name)?.value
+            },
+            set(name: string, value: string, options: CookieOptions) {
+              request.cookies.set({
+                name,
+                value,
+                ...options,
+              })
+              response.cookies.set({
+                name,
+                value,
+                ...options,
+              })
+            },
+            remove(name: string, options: CookieOptions) {
+              request.cookies.set({
+                name,
+                value: '',
+                ...options,
+              })
+              response.cookies.set({
+                name,
+                value: '',
+                ...options,
+              })
+            },
+          },
+        }
+      )
+
+      const { data: { session } } = await supabase.auth.getSession()
+
+      // Protect dashboard routes
+      if (!session && request.nextUrl.pathname.startsWith('/dashboard')) {
+        return NextResponse.redirect(new URL('/login', request.url))
+      }
+
+      return response
+    }
+
+    export const config = {
+      matcher: [
+        '/((?!_next/static|_next/image|favicon.ico).*)',
+      ],
+    }
+    ```

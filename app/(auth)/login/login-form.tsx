@@ -2,7 +2,7 @@
 
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { loginSchema, type LoginInput } from '@/lib/validations/schemas'
+import { loginSchema, type LoginInput } from '@/app/lib/validations/schemas'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/components/ui/use-toast'
@@ -53,6 +53,7 @@ export function LoginForm() {
           {...register('email')}
           disabled={isSubmitting}
           aria-describedby="email-error"
+          autoComplete="username"
         />
         {errors.email && (
           <p id="email-error" className="text-sm text-red-500">
@@ -70,6 +71,7 @@ export function LoginForm() {
           {...register('password')}
           disabled={isSubmitting}
           aria-describedby="password-error"
+          autoComplete="current-password"
         />
         {errors.password && (
           <p id="password-error" className="text-sm text-red-500">

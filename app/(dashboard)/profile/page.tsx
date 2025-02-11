@@ -1,12 +1,12 @@
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/app/lib/supabase/server'
 import { ProfileForm } from './profile-form'
 import { PasswordForm } from './password-form'
 import { ProfileSkeleton } from './loading'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import type { Database } from '@/types/database'
+import type { Database } from '@/types/supabase/database'
 
 type Employee = Database['public']['Tables']['employees']['Row']
 

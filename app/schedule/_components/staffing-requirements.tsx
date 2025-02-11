@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import type { Shift } from '@/types/shift'
+import type { Shift } from '@/app/types/shift'
 import {
   Card,
   CardContent,
