@@ -1,9 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useShifts } from '@/hooks/use-shifts'
-import { useTimeOff } from '@/hooks/use-time-off'
-import { useShiftSwaps } from '@/hooks/use-shift-swaps'
+import { useShifts, useTimeOff, useShiftSwaps } from '@/lib/hooks'
 import { ShiftCalendar } from './shift-calendar'
 import { ShiftUpdateForm } from './shift-update-form'
 import { ErrorBoundary } from '@/components/ui/error-boundary'

@@ -1,73 +1,53 @@
-import { createBrowserClient } from '@supabase/ssr'
+'use client'
 
-export function createClient() {
-  return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+import { createClient } from '@/lib/supabase/client'
+import { type Database } from '@/types/supabase/database'
+
+export type UserRole = Database['public']['Enums']['employee_role']
+
+export interface AuthenticatedUser {
+  userId: string
+  employeeId: string
+  role: UserRole
+  email: string
+  isNewUser: boolean
+}
+
+export async function getUser() {
+  const supabase = createClient()
+  const { data: { user }, error } = await supabase.auth.getUser()
+  if (error) throw error
+  return user
 }
 
 export async function signOut() {
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
-
-  const { error } = await supabase.auth.signOut()
-  
-  if (error) {
-    throw error
-  }
-
-  // The redirect to /login will be handled by the middleware
-  window.location.href = '/login'
+  const supabase = createClient()
+  await supabase.auth.signOut()
 }
 
-export async function signInWithEmail(email: string, password: string) {
+export async function verifyEmployee(userId: string): Promise<{
+  employeeId: string
+  role: UserRole
+  isNewUser: boolean
+}> {
   const supabase = createClient()
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  })
+  const { data: employee, error } = await supabase
+    .from('employees')
+    .select('id, role, first_name, last_name')
+    .eq('auth_id', userId)
+    .single()
 
-  if (error) {
-    return { error: { message: error.message } }
+  if (error || !employee) {
+    return {
+      employeeId: '',
+      role: 'dispatcher',
+      isNewUser: true
+    }
   }
 
-  return { data }
+  return {
+    employeeId: employee.id,
+    role: employee.role,
+    isNewUser: !employee.first_name || !employee.last_name
+  }
 }
-
-export async function signUpWithEmail(email: string, password: string) {
-  const supabase = createClient()
-  
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      emailRedirectTo: `${location.origin}/auth/callback`,
-      data: {
-        profile_incomplete: true
-      }
-    },
-  })
-  
-  if (error) {
-    return { error: { message: error.message } }
-  }
-  
-  return { data }
-}
-
-export async function resetPassword(email: string) {
-  const supabase = createClient()
-  
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${location.origin}/auth/callback?next=/reset-password`,
-  })
-  
-  if (error) {
-    return { error: { message: error.message } }
-  }
-  
-  return { data: null }
-} 

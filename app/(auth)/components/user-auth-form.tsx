@@ -70,7 +70,7 @@ export function UserAuthForm({ className }: UserAuthFormProps) {
       }
 
       router.refresh()
-      router.push('/dashboard')
+      router.push('/overview')
       
       toast({
         title: 'Welcome back!',

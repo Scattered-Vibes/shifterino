@@ -6,6 +6,7 @@ import type {
 } from '@/app/types/models/shift'
 import type { Employee } from '@/app/types/models/employee'
 import type { ScheduleConflict } from '@/app/types/models/schedule'
+import type { Schedule } from '@/types/scheduling/schedule'
 
 export function validateShiftConflicts(
   shift: IndividualShift,
@@ -92,27 +93,123 @@ export async function checkShiftConflicts(
   }
 }
 
-export function resolveConflicts(
-  conflicts: ShiftConflict[],
-  _employee: Employee, // TODO: Implement employee-specific conflict resolution
-  _shiftOption: ShiftOption // TODO: Implement shift option validation
-): { canProceed: boolean; requiresOverride: boolean; message: string } {
-  // Check if there are any hard conflicts that cannot be overridden
-  const hasHardConflict = conflicts.some(
-    conflict => conflict.type === 'overlap'
-  )
+interface Conflict {
+  type: 'overlap' | 'insufficient_rest' | 'overtime'
+  employeeId: string
+  shifts: string[]
+  description: string
+}
 
-  if (hasHardConflict) {
-    return {
-      canProceed: false,
-      requiresOverride: false,
-      message: 'Cannot proceed due to hard conflicts (overlapping shifts)'
+interface Resolution {
+  action: 'reassign' | 'remove' | 'adjust'
+  shiftId: string
+  newEmployeeId?: string
+  adjustedTime?: string
+}
+
+interface ConflictResolution {
+  conflicts: Conflict[]
+  resolutions: Resolution[]
+}
+
+export async function resolveConflicts(schedule: Schedule[]): Promise<ConflictResolution> {
+  const conflicts: Conflict[] = []
+  const resolutions: Resolution[] = []
+
+  // Group shifts by employee
+  const employeeShifts = schedule.reduce((acc, shift) => {
+    if (!acc[shift.employeeId]) {
+      acc[shift.employeeId] = []
+    }
+    acc[shift.employeeId].push(shift)
+    return acc
+  }, {} as Record<string, Schedule[]>)
+
+  // Check for conflicts
+  for (const [employeeId, shifts] of Object.entries(employeeShifts)) {
+    // Check for overlapping shifts
+    const overlaps = findOverlappingShifts(shifts)
+    if (overlaps.length > 0) {
+      conflicts.push({
+        type: 'overlap',
+        employeeId,
+        shifts: overlaps.map(s => s.id),
+        description: `Employee ${employeeId} has overlapping shifts`
+      })
+
+      // Resolve overlap by reassigning one shift
+      resolutions.push({
+        action: 'reassign',
+        shiftId: overlaps[0].id
+      })
+    }
+
+    // Check for insufficient rest
+    const insufficientRest = findInsufficientRest(shifts)
+    if (insufficientRest.length > 0) {
+      conflicts.push({
+        type: 'insufficient_rest',
+        employeeId,
+        shifts: insufficientRest.map(s => s.id),
+        description: `Employee ${employeeId} has insufficient rest between shifts`
+      })
+
+      // Resolve by adjusting shift time
+      resolutions.push({
+        action: 'adjust',
+        shiftId: insufficientRest[1].id,
+        adjustedTime: calculateAdjustedTime(insufficientRest[0], insufficientRest[1])
+      })
+    }
+
+    // Check for overtime
+    const weeklyHours = calculateWeeklyHours(shifts)
+    if (weeklyHours > 40) {
+      const overtimeShifts = findOvertimeShifts(shifts)
+      conflicts.push({
+        type: 'overtime',
+        employeeId,
+        shifts: overtimeShifts.map(s => s.id),
+        description: `Employee ${employeeId} exceeds 40 hours per week`
+      })
+
+      // Resolve by reassigning overtime shifts
+      resolutions.push({
+        action: 'reassign',
+        shiftId: overtimeShifts[0].id
+      })
     }
   }
 
-  return {
-    canProceed: true,
-    requiresOverride: false,
-    message: 'No hard conflicts found'
-  }
+  return { conflicts, resolutions }
+}
+
+function findOverlappingShifts(shifts: Schedule[]): Schedule[] {
+  // Find shifts that overlap in time
+  // This is a placeholder implementation
+  return []
+}
+
+function findInsufficientRest(shifts: Schedule[]): Schedule[] {
+  // Find shifts with less than 8 hours between them
+  // This is a placeholder implementation
+  return []
+}
+
+function calculateWeeklyHours(shifts: Schedule[]): number {
+  // Calculate total hours for the week
+  // This is a placeholder implementation
+  return 0
+}
+
+function findOvertimeShifts(shifts: Schedule[]): Schedule[] {
+  // Find shifts that cause overtime
+  // This is a placeholder implementation
+  return []
+}
+
+function calculateAdjustedTime(shift1: Schedule, shift2: Schedule): string {
+  // Calculate adjusted time to ensure sufficient rest
+  // This is a placeholder implementation
+  return new Date().toISOString()
 } 

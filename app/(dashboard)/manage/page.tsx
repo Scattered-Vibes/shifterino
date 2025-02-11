@@ -16,10 +16,9 @@ import {
   UpdateIcon,
 } from '@radix-ui/react-icons'
 import { createClient } from '@/app/lib/supabase/server'
-import { handleError } from '@/app/lib/utils/error-handler'
 import { formatDistanceToNow } from 'date-fns'
 import Link from 'next/link'
-import type { Database, Tables } from '@/types/supabase'
+import type { Tables } from '@/types/supabase'
 
 type EmployeeInfo = Pick<Tables['employees']['Row'], 'first_name' | 'last_name'>
 
@@ -386,28 +385,31 @@ export default async function ManagePage() {
   const supabase = createClient()
 
   try {
-    const { data: { session } } = await supabase.auth.getSession()
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
     
-    if (!session) {
+    if (userError) {
+      console.error('Error fetching user:', userError)
+      redirect('/login')
+    }
+
+    if (!user) {
       redirect('/login')
     }
 
     const { data: employee, error: employeeError } = await supabase
       .from('employees')
-      .select('role, is_active')
-      .eq('auth_id', session.user.id)
-      .single() as { 
-        data: Pick<Database['public']['Tables']['employees']['Row'], 'role' | 'is_active'> | null
-        error: unknown 
-      }
+      .select('role')
+      .eq('auth_id', user.id)
+      .maybeSingle()
 
-    if (employeeError || !employee) {
+    if (employeeError) {
       console.error('Error fetching employee:', employeeError)
       redirect('/error')
     }
 
-    if (!employee.is_active) {
-      redirect('/account-inactive')
+    if (!employee) {
+      console.warn('No employee record found for user:', user.id)
+      redirect('/complete-profile')
     }
 
     if (!['admin', 'manager', 'supervisor'].includes(employee.role)) {

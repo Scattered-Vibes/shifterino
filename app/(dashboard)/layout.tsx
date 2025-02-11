@@ -1,8 +1,8 @@
-import { requireAuth } from '@/app/lib/auth'
+import { type ReactNode } from 'react'
+import { requireAuth } from '@/lib/auth'
 import type { Metadata } from 'next'
 import { MainNav } from '@/components/ui/main-nav'
 import { UserNav } from '@/components/ui/user-nav'
-import { SidebarNav } from '@/components/ui/sidebar-nav'
 import { ThemeProvider } from '@/app/providers/theme-provider'
 import { Toaster } from '@/components/ui/toaster'
 
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 }
 
 interface DashboardLayoutProps {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 export default async function DashboardLayout({
@@ -20,11 +20,6 @@ export default async function DashboardLayout({
 }: DashboardLayoutProps) {
   const user = await requireAuth();
   
-  const userInfo = {
-    email: user.email,
-    role: user.role
-  };
-
   return (
     <ThemeProvider
       attribute="class"
@@ -32,27 +27,19 @@ export default async function DashboardLayout({
       enableSystem
       disableTransitionOnChange
     >
-      <div className="flex min-h-screen flex-col">
-        <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="container flex h-14 items-center">
+      <div className="flex min-h-screen flex-col space-y-6">
+        <header className="sticky top-0 z-40 border-b bg-background">
+          <div className="container flex h-16 items-center justify-between py-4">
             <MainNav />
-            <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
-              <div className="w-full flex-1 md:w-auto md:flex-none">
-                {/* Add search here if needed */}
-              </div>
-              <UserNav user={userInfo} />
-            </div>
+            <UserNav
+              user={{
+                email: user.email,
+                role: user.role,
+              }}
+            />
           </div>
         </header>
-
-        <div className="container grid flex-1 gap-12 md:grid-cols-[200px_1fr]">
-          <aside className="hidden w-[200px] flex-col md:flex">
-            <SidebarNav userRole={userInfo.role} />
-          </aside>
-          <main className="flex w-full flex-1 flex-col overflow-hidden">
-            {children}
-          </main>
-        </div>
+        <main className="container flex-1">{children}</main>
       </div>
       <Toaster />
     </ThemeProvider>

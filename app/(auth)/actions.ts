@@ -90,14 +90,13 @@ export async function signOut() {
     
     if (error) {
       const appError = handleError(error)
-      return { error: appError.message, code: appError.code }
+      return { error: appError.message }
     }
-    
-    revalidatePath('/', 'layout')
+
     redirect('/login')
   } catch (error) {
     const appError = handleError(error)
-    return { error: appError.message, code: appError.code }
+    return { error: appError.message }
   }
 }
 

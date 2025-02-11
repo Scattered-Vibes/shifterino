@@ -1,8 +1,4 @@
----
-description: Scheduling System Rules
-globs: 
----
- # Scheduling System Rules
+# Scheduling System Rules
 
 ## Core Requirements
 
@@ -412,4 +408,4 @@ globs:
 
       return exportData
     }
-    ```
+    ``` 

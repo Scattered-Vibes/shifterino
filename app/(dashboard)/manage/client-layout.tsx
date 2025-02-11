@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useMediaQuery } from '@/hooks/use-media-query'
+import { useMediaQuery } from '@/lib/hooks'
 
 interface Tab {
   value: string

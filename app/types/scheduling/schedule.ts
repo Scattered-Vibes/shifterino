@@ -1,23 +1,21 @@
-import type { ID, ISO8601DateTime } from '../shared/common';
-import type { Shift } from './shift';
-
 export interface Schedule {
-  id: ID;
-  name: string;
-  startDate: ISO8601DateTime;
-  endDate: ISO8601DateTime;
-  status: ScheduleStatus;
-  description?: string;
-  shifts: Shift[];
-  isPublished: boolean;
-  publishedAt?: ISO8601DateTime;
-  lastModifiedBy: ID;
+  id: string;
+  employeeId: string;
+  shiftId: string;
+  date: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-export type ScheduleStatus = 'draft' | 'published' | 'archived';
+export interface ScheduleResponse {
+  success: boolean;
+  data?: Schedule;
+  error?: string;
+}
 
 export interface ScheduleTemplate {
-  id: ID;
+  id: string;
   name: string;
   description?: string;
   patternDuration: number; // in days
@@ -33,13 +31,41 @@ export interface TemplateShift {
 }
 
 export interface ScheduleGenerationOptions {
-  startDate: ISO8601DateTime;
-  endDate: ISO8601DateTime;
-  templateId?: ID;
+  startDate: string;
+  endDate: string;
+  timeZone?: string;
   constraints: {
     maxHoursPerWeek: number;
     minRestHours: number;
     preferredShiftPatterns: boolean;
     balanceWorkload: boolean;
   };
+}
+
+export interface StaffingRequirement {
+  id: string;
+  timeSlotId: string;
+  minTotalStaff: number;
+  minSupervisors: number;
+  preferredRoles?: string[];
+  priority: number;
+}
+
+export interface TimeSlot {
+  id: string;
+  startTime: string; // HH:mm format
+  endTime: string; // HH:mm format
+  daysOfWeek: number[]; // 0-6, where 0 is Sunday
+}
+
+export interface ShiftPattern {
+  id: string;
+  name: string;
+  description?: string;
+  shifts: {
+    dayOffset: number;
+    duration: number; // in hours
+  }[];
+  totalHours: number;
+  daysInPattern: number;
 } 

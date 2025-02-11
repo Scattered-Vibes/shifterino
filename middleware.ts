@@ -1,8 +1,24 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+// Routes that don't require authentication
+const PUBLIC_ROUTES = [
+  '/login',
+  '/signup',
+  '/reset-password',
+  '/auth/callback',
+  '/auth/confirm',
+]
+
+// Routes that require manager role
+const MANAGER_ROUTES = [
+  '/manage/employees',
+  '/manage/settings',
+  '/manage/requirements',
+]
+
 export async function middleware(request: NextRequest) {
-  const response = NextResponse.next({
+  let response = NextResponse.next({
     request: {
       headers: request.headers,
     },
@@ -17,72 +33,77 @@ export async function middleware(request: NextRequest) {
           return request.cookies.get(name)?.value
         },
         set(name: string, value: string, options: CookieOptions) {
-          response.cookies.set({ name, value, ...options })
+          request.cookies.set({
+            name,
+            value,
+            ...options,
+          })
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          })
+          response.cookies.set({
+            name,
+            value,
+            ...options,
+          })
         },
         remove(name: string, options: CookieOptions) {
-          response.cookies.set({ name, value: '', ...options })
+          request.cookies.set({
+            name,
+            value: '',
+            ...options,
+          })
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          })
+          response.cookies.set({
+            name,
+            value: '',
+            ...options,
+          })
         },
       },
     }
   )
 
+  const { pathname } = request.nextUrl
+
+  // Refresh session if expired - required for Server Components
   const { data: { session } } = await supabase.auth.getSession()
 
-  // Get the pathname
-  const path = request.nextUrl.pathname
+  // Allow public routes
+  if (PUBLIC_ROUTES.some(route => pathname.startsWith(route))) {
+    if (session) {
+      // Redirect authenticated users away from auth pages
+      return NextResponse.redirect(new URL('/overview', request.url))
+    }
+    return response
+  }
 
-  // Define public routes that don't require authentication
-  const isAuthRoute = path.startsWith('/login') || 
-                     path.startsWith('/signup') || 
-                     path.startsWith('/reset-password') ||
-                     path.startsWith('/auth/')
-
-  // Handle authentication
-  if (!session && !isAuthRoute) {
+  // Check if user is authenticated
+  if (!session) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // Redirect authenticated users away from auth pages
-  if (session && isAuthRoute) {
-    return NextResponse.redirect(new URL('/overview', request.url))
-  }
-
-  // Handle role-based access
-  if (session) {
+  // Check manager routes
+  if (MANAGER_ROUTES.some(route => pathname.startsWith(route))) {
     try {
-      const { data: employee, error: employeeError } = await supabase
+      const { data: employee } = await supabase
         .from('employees')
-        .select('role, is_active')
+        .select('role')
         .eq('auth_id', session.user.id)
         .single()
 
-      if (employeeError) {
-        console.error('Error fetching employee:', employeeError)
-        return NextResponse.redirect(new URL('/error', request.url))
-      }
-
-      if (!employee?.is_active) {
-        return NextResponse.redirect(new URL('/account-inactive', request.url))
-      }
-
-      const isAdminRoute = path.startsWith('/admin')
-      const isManagerRoute = path.startsWith('/manage')
-      const isScheduleRoute = path.startsWith('/schedule')
-      
-      if (isAdminRoute && employee?.role !== 'admin') {
-        return NextResponse.redirect(new URL('/unauthorized', request.url))
-      }
-
-      if (isManagerRoute && !['admin', 'manager', 'supervisor'].includes(employee?.role || '')) {
-        return NextResponse.redirect(new URL('/unauthorized', request.url))
-      }
-
-      if (isScheduleRoute && !['admin', 'manager', 'supervisor', 'dispatcher'].includes(employee?.role || '')) {
-        return NextResponse.redirect(new URL('/unauthorized', request.url))
+      if (employee?.role !== 'manager') {
+        return NextResponse.redirect(new URL('/overview', request.url))
       }
     } catch (error) {
-      console.error('Middleware error:', error)
-      return NextResponse.redirect(new URL('/error', request.url))
+      console.error('Error checking user role:', error)
+      return NextResponse.redirect(new URL('/overview', request.url))
     }
   }
 
@@ -97,6 +118,7 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - public folder
+     * - public files
      */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],

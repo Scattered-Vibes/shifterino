@@ -1,7 +1,7 @@
 import React from 'react';
 import { renderHook, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import { useEmployeeSchedule } from '@/hooks/use-employee-schedule';
+import { useEmployeeSchedule } from '@/lib/hooks';
 import { createMockSupabaseClient } from '@/test/helpers/supabase-mock';
 import { mockData } from '@/test/mocks/data';
 import { Providers } from '@/test/utils/test-utils';

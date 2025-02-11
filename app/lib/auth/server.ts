@@ -1,67 +1,48 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
-import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+import { type Database } from '@/types/supabase/database'
 
-export type UserRole = 'dispatcher' | 'supervisor' | 'manager'
+export type UserRole = Database['public']['Enums']['employee_role']
 
-function getClient() {
-  const cookieStore = cookies()
-  
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          cookieStore.set({ name, value, ...options })
-        },
-        remove(name: string, options: CookieOptions) {
-          cookieStore.set({ name, value: '', ...options })
-        },
-      },
-    }
-  )
+export interface AuthenticatedUser {
+  userId: string
+  employeeId: string
+  role: UserRole
+  email: string
+  isNewUser: boolean
 }
 
 export async function getUser() {
-  const supabase = getClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const supabase = createClient()
+  const { data: { user }, error } = await supabase.auth.getUser()
+  if (error) throw error
   return user
 }
 
-export async function getSession() {
-  const supabase = getClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  return session
-}
-
 async function verifyEmployee(userId: string): Promise<{
-  employeeId: string;
-  role: UserRole;
-  isNewUser: boolean;
+  employeeId: string
+  role: UserRole
+  isNewUser: boolean
 }> {
-  const supabase = getClient()
+  const supabase = createClient()
   const { data: employee, error } = await supabase
     .from('employees')
-    .select('id, role')
+    .select('id, role, first_name, last_name')
     .eq('auth_id', userId)
     .single()
 
   if (error || !employee) {
     return {
       employeeId: '',
-      role: 'dispatcher' as const,
+      role: 'dispatcher',
       isNewUser: true
     }
   }
 
   return {
     employeeId: employee.id,
-    role: employee.role as UserRole,
-    isNewUser: false
+    role: employee.role,
+    isNewUser: !employee.first_name || !employee.last_name
   }
 }
 
@@ -72,17 +53,22 @@ export async function requireAuth(allowIncomplete = false): Promise<Authenticate
     redirect('/login')
   }
 
-  const { employeeId, role, isNewUser } = await verifyEmployee(user.id)
+  try {
+    const { employeeId, role, isNewUser } = await verifyEmployee(user.id)
 
-  if (isNewUser && !allowIncomplete) {
-    redirect('/complete-profile')
-  }
+    if (isNewUser && !allowIncomplete) {
+      redirect('/complete-profile')
+    }
 
-  return {
-    userId: user.id,
-    employeeId,
-    role,
-    email: user.email || '',
-    isNewUser
+    return {
+      userId: user.id,
+      employeeId,
+      role,
+      email: user.email || '',
+      isNewUser
+    }
+  } catch (error) {
+    console.error('Error in requireAuth:', error)
+    throw error
   }
-} 
+}

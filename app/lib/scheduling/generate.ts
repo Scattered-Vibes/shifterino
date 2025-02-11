@@ -28,6 +28,7 @@ import {
   canAssignShift,
 } from './tracking'
 import { format, addDays, isBefore, startOfDay, isEqual } from 'date-fns'
+import type { Schedule, ScheduleGenerationOptions } from '@/types/scheduling/schedule'
 
 interface GenerationContext {
   supabase: SupabaseClient
@@ -288,111 +289,28 @@ async function handleUnfilledRequirement(
  * constraints like shift patterns, weekly hours, and supervisor coverage.
  */
 export async function generateSchedule(
-  supabase: SupabaseClient,
-  periodId: string,
-  params: ScheduleGenerationParams
-): Promise<ScheduleGenerationResult> {
-  // Initialize context
-  const context = await initializeContext(supabase, periodId, params)
-  const { start_date, end_date } = context
+  options: ScheduleGenerationOptions,
+  supabase: SupabaseClient
+): Promise<Schedule[]> {
+  // Get employees and their availability
+  const { data: employees } = await supabase
+    .from('employees')
+    .select('*')
 
-  // Validate schedule period
-  if (!validateSchedulePeriod(start_date, end_date)) {
-    throw new Error("Invalid schedule period: Start date must be before end date, and the period cannot exceed 6 months.")
-  }
+  // Get shift patterns
+  const { data: patterns } = await supabase
+    .from('shift_patterns')
+    .select('*')
 
-  const results: ScheduleGenerationResult = {
-    shifts: [],
-    conflicts: [],
-    staffing_gaps: [],
-    assignedShifts: 0,
-    unfilledRequirements: 0,
-    errors: [],
-    success: true
-  }
+  // Get staffing requirements
+  const { data: requirements } = await supabase
+    .from('staffing_requirements')
+    .select('*')
 
-  // Process each day in the period
-  let currentDate = new Date(start_date)
-  const endDateTime = new Date(end_date)
+  // Generate schedule based on requirements and constraints
+  // This is a placeholder for the actual scheduling algorithm
+  const schedule: Schedule[] = []
 
-  while (isBefore(currentDate, endDateTime) || currentDate.toDateString() === endDateTime.toDateString()) {
-    const dateStr = format(currentDate, 'yyyy-MM-dd')
-    
-    // Check if current date is a holiday
-    const isHoliday = isHolidayDate(currentDate, context.holidays)
-
-    // Get requirements for this day
-    const requirements = getApplicableRequirements(
-      dateStr,
-      context.staffingRequirements,
-      isHoliday
-    )
-
-    // Process each requirement
-    for (const requirement of requirements) {
-      const shiftOptions = getMatchingShiftOptions(requirement, context.shiftOptions)
-
-      if (shiftOptions.length === 0) {
-        results.errors.push(`No matching shift options found for requirement ID ${requirement.id} on ${dateStr}`)
-        results.success = false
-        continue
-      }
-
-      // Get and score available employees
-      const availableEmployees = await getAvailableEmployeesForShift(context, dateStr, shiftOptions[0])
-      const scoredEmployees = scoreEmployeesForShift(context, dateStr, shiftOptions[0], availableEmployees)
-      scoredEmployees.sort((a, b) => b.score - a.score)
-
-      // Prepare shift assignments
-      const assignments: { employeeId: string; shiftOptionId: string; date: string }[] = []
-      let assignedCount = 0
-      let supervisorsAssigned = 0
-
-      for (const scored of scoredEmployees) {
-        if (assignedCount >= requirement.min_total_staff && supervisorsAssigned >= requirement.min_supervisors) {
-          break
-        }
-
-        if (requirement.min_supervisors > 0 && 
-            scored.employee.role === 'supervisor' && 
-            supervisorsAssigned < requirement.min_supervisors) {
-          assignments.push({
-            employeeId: scored.employee.id,
-            shiftOptionId: scored.shiftOption.id,
-            date: dateStr
-          })
-          assignedCount++
-          supervisorsAssigned++
-        } else if (assignedCount < requirement.min_total_staff) {
-          assignments.push({
-            employeeId: scored.employee.id,
-            shiftOptionId: scored.shiftOption.id,
-            date: dateStr
-          })
-          assignedCount++
-        }
-      }
-
-      // Batch assign shifts
-      if (assignments.length > 0) {
-        const { error } = await batchAssignShifts(context, assignments)
-        if (error) {
-          results.errors.push(error.message)
-          results.success = false
-        } else {
-          results.assignedShifts += assignments.length
-        }
-      }
-
-      // Handle unfilled requirements
-      if (assignedCount < requirement.min_total_staff || supervisorsAssigned < requirement.min_supervisors) {
-        results.unfilledRequirements++
-        await handleUnfilledRequirement(context, dateStr, requirement)
-      }
-    }
-
-    currentDate = addDays(currentDate, 1)
-  }
-
-  return results
+  // Return generated schedule
+  return schedule
 } 

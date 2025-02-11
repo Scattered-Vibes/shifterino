@@ -1,8 +1,4 @@
----
-description: Next.js App Router Rules
-globs: 
----
- # Next.js App Router Rules
+# Next.js App Router Rules
 
 ## Route Structure
 
@@ -283,7 +279,7 @@ globs:
       const { data: { session } } = await supabase.auth.getSession()
 
       // Protect dashboard routes
-      if (!session && request.nextUrl.pathname.startsWith('/dashboard')) {
+      if (!session && request.nextUrl.pathname.startsWith('/overview')) {
         return NextResponse.redirect(new URL('/login', request.url))
       }
 
@@ -295,4 +291,4 @@ globs:
         '/((?!_next/static|_next/image|favicon.ico).*)',
       ],
     }
-    ```
+    ``` 

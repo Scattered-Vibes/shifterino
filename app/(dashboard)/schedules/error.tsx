@@ -1,10 +1,10 @@
 'use client'
 
 import { useEffect } from 'react'
-import { ExclamationTriangleIcon } from '@radix-ui/react-icons'
-
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { XCircle } from 'lucide-react'
 
 export default function SchedulesError({
   error,
@@ -19,22 +19,26 @@ export default function SchedulesError({
   }, [error])
 
   return (
-    <Alert variant="destructive">
-      <ExclamationTriangleIcon className="h-4 w-4" />
-      <AlertTitle>Something went wrong!</AlertTitle>
-      <AlertDescription className="mt-4 flex flex-col gap-4">
-        <p className="text-sm">
-          {error.message || 'Failed to load schedules'}
-          {error.digest && (
-            <span className="block text-xs text-muted-foreground">
-              Error ID: {error.digest}
-            </span>
-          )}
-        </p>
-        <Button variant="outline" size="sm" onClick={() => reset()}>
-          Try again
-        </Button>
-      </AlertDescription>
-    </Alert>
+    <div className="flex min-h-[50vh] flex-col items-center justify-center p-4">
+      <Alert variant="destructive" className="max-w-lg">
+        <XCircle className="h-4 w-4" />
+        <AlertTitle>Schedule Error</AlertTitle>
+        <AlertDescription>
+          <div className="mt-2">
+            <p className="text-sm text-muted-foreground">
+              {error.message || 'There was an error loading the schedules.'}
+            </p>
+            <div className="mt-4 space-x-4">
+              <Button onClick={reset} variant="secondary">
+                Try again
+              </Button>
+              <Button asChild variant="outline">
+                <Link href="/overview">Return to Overview</Link>
+              </Button>
+            </div>
+          </div>
+        </AlertDescription>
+      </Alert>
+    </div>
   )
 }

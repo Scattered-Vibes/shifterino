@@ -1,8 +1,8 @@
 ---
-description: Testing Patterns
+description: 
 globs: 
 ---
- # Testing Patterns
+# Testing Patterns
 
 ## Core Testing Principles
 
@@ -151,7 +151,7 @@ globs:
      await page.click('button[type="submit"]')
 
      // Navigate to schedule
-     await page.goto('/dashboard/schedule')
+     await page.goto('/overview/schedule')
 
      // Create new shift
      await page.click('button:text("Create Shift")')
@@ -227,7 +227,7 @@ globs:
    test('schedule page loads within performance budget', async ({ page }) => {
      const startTime = performance.now()
 
-     await page.goto('/dashboard/schedule')
+     await page.goto('/overview/schedule')
      await page.waitForSelector('[data-testid="schedule-grid"]')
 
      const loadTime = performance.now() - startTime
@@ -269,7 +269,7 @@ globs:
        await page.click('button[type="submit"]')
 
        // Create schedule
-       await page.goto('/dashboard/schedule/new')
+       await page.goto('/overview/schedule/new')
        await page.fill('[name="start_date"]', '2025-01-01')
        await page.fill('[name="end_date"]', '2025-01-31')
        await page.click('button:text("Generate Schedule")')
@@ -313,4 +313,4 @@ globs:
         expect(container).toMatchSnapshot()
       })
     })
-    ```
+    ``` 

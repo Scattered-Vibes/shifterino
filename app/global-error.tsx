@@ -4,7 +4,6 @@ import { useEffect } from 'react'
 import { ExclamationTriangleIcon } from '@radix-ui/react-icons'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { getUserFriendlyMessage, ErrorCode } from '@/app/lib/utils/error-handler'
 
 export default function GlobalError({
   error,
@@ -27,7 +26,7 @@ export default function GlobalError({
             <AlertTitle>Critical Error</AlertTitle>
             <AlertDescription className="mt-4 flex flex-col gap-4">
               <p className="text-sm text-muted-foreground">
-                {getUserFriendlyMessage(ErrorCode.UNKNOWN_ERROR)}
+                An unexpected error occurred. Please try again later.
               </p>
               {process.env.NODE_ENV === 'development' && (
                 <pre className="mt-2 rounded-md bg-slate-950 p-4 text-sm text-white">

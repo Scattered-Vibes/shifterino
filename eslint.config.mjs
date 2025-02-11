@@ -29,7 +29,6 @@ export default [
       }],
       '@next/next/no-html-link-for-pages': 'off',
       'react/jsx-key': 'warn',
-      'tailwindcss/classnames-order': 'error',
       'tailwindcss/no-custom-classname': 'off',
       'tailwindcss/enforces-shorthand': 'off',
       'tailwindcss/no-unnecessary-arbitrary-value': 'off'

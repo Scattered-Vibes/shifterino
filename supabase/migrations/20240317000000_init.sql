@@ -21,6 +21,30 @@ EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
 
+-- --- Enum Types ---
+DO $$ BEGIN
+    DROP TYPE IF EXISTS public.employee_role CASCADE;
+    DROP TYPE IF EXISTS public.shift_pattern CASCADE;
+    DROP TYPE IF EXISTS public.shift_category CASCADE;
+    DROP TYPE IF EXISTS public.time_off_status CASCADE;
+    DROP TYPE IF EXISTS public.shift_status CASCADE;
+    DROP TYPE IF EXISTS public.swap_request_status CASCADE;
+    DROP TYPE IF EXISTS public.on_call_status CASCADE;
+    DROP TYPE IF EXISTS holiday_type CASCADE;
+    DROP TYPE IF EXISTS schedule_status CASCADE;
+
+    -- Create enums with correct values
+    CREATE TYPE public.employee_role AS ENUM ('dispatcher', 'supervisor', 'manager');
+    CREATE TYPE holiday_type AS ENUM ('FEDERAL', 'COMPANY', 'OTHER');
+    CREATE TYPE public.shift_pattern AS ENUM ('4_10', '3_12_4', 'CUSTOM');
+    CREATE TYPE public.shift_category AS ENUM ('DAY', 'SWING', 'NIGHT');
+    CREATE TYPE public.shift_status AS ENUM ('scheduled', 'completed', 'cancelled', 'no_show');
+    CREATE TYPE public.schedule_status AS ENUM ('draft', 'published', 'archived');
+    CREATE TYPE public.time_off_status AS ENUM ('pending', 'approved', 'rejected');
+    CREATE TYPE public.swap_request_status AS ENUM ('pending', 'approved', 'rejected', 'cancelled');
+    CREATE TYPE public.on_call_status AS ENUM ('scheduled', 'active', 'completed', 'cancelled');
+END $$;
+
 -- Create auth.users table if it doesn't exist
 CREATE TABLE IF NOT EXISTS auth.users (
     instance_id uuid,
@@ -146,30 +170,6 @@ GRANT SELECT ON TABLE auth.mfa_factors TO anon, authenticated;
 GRANT SELECT ON TABLE auth.mfa_challenges TO anon, authenticated;
 GRANT SELECT ON TABLE auth.mfa_amr_claims TO anon, authenticated;
 
--- --- Enum Types ---
-DO $$ BEGIN
-    DROP TYPE IF EXISTS public.employee_role CASCADE;
-    DROP TYPE IF EXISTS public.shift_pattern CASCADE;
-    DROP TYPE IF EXISTS public.shift_category CASCADE;
-    DROP TYPE IF EXISTS public.time_off_status CASCADE;
-    DROP TYPE IF EXISTS public.shift_status CASCADE;
-    DROP TYPE IF EXISTS public.swap_request_status CASCADE;
-    DROP TYPE IF EXISTS public.on_call_status CASCADE;
-    DROP TYPE IF EXISTS holiday_type CASCADE;
-    DROP TYPE IF EXISTS schedule_status CASCADE;
-
-    -- Create enums with correct values
-    CREATE TYPE public.employee_role AS ENUM ('dispatcher', 'supervisor', 'manager');
-    CREATE TYPE holiday_type AS ENUM ('FEDERAL', 'COMPANY', 'OTHER');
-    CREATE TYPE public.shift_pattern AS ENUM ('4_10', '3_12_4', 'CUSTOM');
-    CREATE TYPE public.shift_category AS ENUM ('DAY', 'SWING', 'NIGHT');
-    CREATE TYPE public.shift_status AS ENUM ('scheduled', 'completed', 'cancelled', 'no_show');
-    CREATE TYPE public.schedule_status AS ENUM ('draft', 'published', 'archived');
-    CREATE TYPE public.time_off_status AS ENUM ('pending', 'approved', 'rejected');
-    CREATE TYPE public.swap_request_status AS ENUM ('pending', 'approved', 'rejected', 'cancelled');
-    CREATE TYPE public.on_call_status AS ENUM ('scheduled', 'active', 'completed', 'cancelled');
-END $$;
-
 -- --- Helper Functions ---
 
 -- Function to get the currently authenticated user's ID
@@ -267,13 +267,13 @@ BEGIN
         NEW.raw_user_meta_data->>'last_name',
         NEW.email,
         LOWER(NEW.raw_user_meta_data->>'role')::employee_role,
-        false,
+        true,
         NOW(),
         NOW()
     );
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- Grant necessary permissions
 GRANT USAGE ON SCHEMA public TO postgres, anon, authenticated, service_role;
@@ -305,7 +305,7 @@ CREATE TABLE IF NOT EXISTS public.employees (
     role employee_role NOT NULL,
     weekly_hours_cap integer NOT NULL DEFAULT 40,
     max_overtime_hours integer DEFAULT 0,
-    profile_completed boolean DEFAULT false,
+    profile_completed boolean DEFAULT true,
     is_active boolean NOT NULL DEFAULT true,
     team_id uuid,
     created_at timestamptz NOT NULL DEFAULT now(),
@@ -1519,3 +1519,56 @@ BEGIN
     RETURN extensions.crypt(password, extensions.gen_salt('bf', 10));
 END;
 $function$;
+
+-- Function to confirm users (development only)
+CREATE OR REPLACE FUNCTION auth.confirm_user(user_id uuid, email text)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = auth, public
+AS $$
+BEGIN
+    -- Only allow this in development
+    IF current_setting('app.settings.environment', TRUE) != 'development' THEN
+        RAISE EXCEPTION 'This function can only be used in development';
+    END IF;
+
+    -- Update the user's email_confirmed_at
+    UPDATE auth.users
+    SET email_confirmed_at = NOW(),
+        updated_at = NOW()
+    WHERE id = user_id
+    AND email = email
+    AND email_confirmed_at IS NULL;
+END;
+$$;
+
+-- Grant execute permission on the confirm_user function
+GRANT EXECUTE ON FUNCTION auth.confirm_user TO authenticated;
+GRANT EXECUTE ON FUNCTION auth.confirm_user TO service_role;
+
+-- Function to confirm emails (development only)
+CREATE OR REPLACE FUNCTION auth.confirm_email(user_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = auth, public
+AS $$
+BEGIN
+    -- Only allow this in development
+    IF current_setting('app.settings.environment', TRUE) != 'development' THEN
+        RAISE EXCEPTION 'This function can only be used in development';
+    END IF;
+
+    -- Update the user's email_confirmed_at
+    UPDATE auth.users
+    SET email_confirmed_at = NOW(),
+        updated_at = NOW()
+    WHERE id = user_id
+    AND email_confirmed_at IS NULL;
+END;
+$$;
+
+-- Grant execute permission on the confirm_email function
+GRANT EXECUTE ON FUNCTION auth.confirm_email TO authenticated;
+GRANT EXECUTE ON FUNCTION auth.confirm_email TO service_role;

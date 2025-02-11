@@ -22,7 +22,7 @@ import { CalendarIcon } from '@radix-ui/react-icons'
 import { cn } from '@/app/lib/utils'
 import { shiftSchema } from '@/app/lib/validations/shift'
 import type { ShiftEvent, ShiftUpdateData } from '@/app/types/shift'
-import { useShiftConflicts } from '@/hooks/use-shifts'
+import { useShiftConflicts } from '@/lib/hooks'
 import { toast } from '@/components/ui/use-toast'
 
 interface ShiftUpdateFormProps {

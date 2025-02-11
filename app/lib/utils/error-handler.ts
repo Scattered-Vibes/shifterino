@@ -1,58 +1,77 @@
+import { PostgrestError } from '@supabase/supabase-js'
+
 export enum ErrorCode {
-  UNKNOWN = 'UNKNOWN',
-  INVALID_CREDENTIALS = 'INVALID_CREDENTIALS',
-  USER_NOT_FOUND = 'USER_NOT_FOUND',
-  EMAIL_IN_USE = 'EMAIL_IN_USE',
-  INVALID_TOKEN = 'INVALID_TOKEN',
-  EXPIRED_TOKEN = 'EXPIRED_TOKEN',
-  SERVER_ERROR = 'SERVER_ERROR',
+  UNKNOWN_ERROR = 'UNKNOWN_ERROR',
   VALIDATION_ERROR = 'VALIDATION_ERROR',
-  UNAUTHORIZED = 'UNAUTHORIZED',
-  FORBIDDEN = 'FORBIDDEN',
+  AUTHENTICATION_ERROR = 'AUTHENTICATION_ERROR',
+  AUTHORIZATION_ERROR = 'AUTHORIZATION_ERROR',
+  NOT_FOUND = 'NOT_FOUND',
+  CONFLICT = 'CONFLICT',
+  RATE_LIMIT = 'RATE_LIMIT',
+  SERVER_ERROR = 'SERVER_ERROR',
 }
 
-export interface AppError extends Error {
+export interface AppError {
   code: ErrorCode
-  status: number
-  details?: unknown
+  message: string
+  originalError?: unknown
+}
+
+function isPostgrestError(error: unknown): error is PostgrestError {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    'message' in error &&
+    'details' in error
+  )
 }
 
 export function handleError(error: unknown): AppError {
   console.error('Error:', error)
 
   if (error instanceof Error) {
-    const appError: AppError = {
-      name: error.name,
-      message: error.message,
-      code: ErrorCode.UNKNOWN,
-      status: 500,
-      stack: error.stack,
-    }
-
     // Handle Supabase errors
-    if (error.message.includes('Invalid login credentials')) {
-      appError.code = ErrorCode.INVALID_CREDENTIALS
-      appError.status = 401
-    } else if (error.message.includes('User not found')) {
-      appError.code = ErrorCode.USER_NOT_FOUND
-      appError.status = 404
-    } else if (error.message.includes('Email already in use')) {
-      appError.code = ErrorCode.EMAIL_IN_USE
-      appError.status = 409
+    if ('code' in error && typeof error.code === 'string') {
+      switch (error.code) {
+        case 'auth/invalid-email':
+        case 'auth/user-not-found':
+        case 'auth/wrong-password':
+          return {
+            code: ErrorCode.AUTHENTICATION_ERROR,
+            message: 'Invalid email or password',
+            originalError: error,
+          }
+        case 'auth/email-already-in-use':
+          return {
+            code: ErrorCode.CONFLICT,
+            message: 'Email already in use',
+            originalError: error,
+          }
+        case 'auth/too-many-requests':
+          return {
+            code: ErrorCode.RATE_LIMIT,
+            message: 'Too many attempts. Please try again later',
+            originalError: error,
+          }
+      }
     }
 
-    return appError
+    return {
+      code: ErrorCode.UNKNOWN_ERROR,
+      message: error.message || 'An unexpected error occurred',
+      originalError: error,
+    }
   }
 
   return {
-    name: 'UnknownError',
-    message: 'An unknown error occurred',
-    code: ErrorCode.UNKNOWN,
-    status: 500,
-  } as AppError
+    code: ErrorCode.UNKNOWN_ERROR,
+    message: 'An unexpected error occurred',
+    originalError: error,
+  }
 }
 
-function isAppError(error: unknown): error is AppError {
+export function isAppError(error: unknown): error is AppError {
   return (
     typeof error === 'object' &&
     error !== null &&
@@ -63,47 +82,22 @@ function isAppError(error: unknown): error is AppError {
   )
 }
 
-function isSupabaseError(error: unknown): error is { message: string; code?: string } {
+export function isSupabaseError(error: unknown): error is PostgrestError {
   return (
     typeof error === 'object' &&
     error !== null &&
+    'code' in error &&
     'message' in error &&
-    typeof error.message === 'string'
+    'details' in error &&
+    'hint' in error
   )
 }
 
-function mapSupabaseError(error: { message: string; code?: string }): AppError {
-  switch (error.code) {
-    case 'auth/invalid-email':
-    case 'auth/user-not-found':
-    case 'auth/wrong-password':
-      return {
-        name: 'AuthError',
-        code: ErrorCode.INVALID_CREDENTIALS,
-        message: 'Invalid email or password',
-        status: 401,
-      }
-    case '23505': // unique_violation
-      return {
-        name: 'AuthError',
-        code: ErrorCode.EMAIL_IN_USE,
-        message: 'Email already in use',
-        status: 409,
-      }
-    case '23503': // foreign_key_violation
-      return {
-        name: 'AuthError',
-        code: ErrorCode.USER_NOT_FOUND,
-        message: 'User not found',
-        status: 404,
-      }
-    default:
-      return {
-        name: 'ServerError',
-        code: ErrorCode.SERVER_ERROR,
-        message: error.message,
-        status: 500,
-      }
+export function mapSupabaseError(error: PostgrestError): AppError {
+  return {
+    message: error.message,
+    code: ErrorCode.SERVER_ERROR,
+    details: error.details,
   }
 }
 
@@ -111,18 +105,18 @@ export function getUserFriendlyMessage(code: ErrorCode): string {
   switch (code) {
     case ErrorCode.VALIDATION_ERROR:
       return 'Please check your input and try again'
-    case ErrorCode.INVALID_CREDENTIALS:
-      return 'Invalid email or password'
-    case ErrorCode.USER_NOT_FOUND:
-      return 'User not found'
-    case ErrorCode.EMAIL_IN_USE:
-      return 'Email already in use'
-    case ErrorCode.INVALID_TOKEN:
-      return 'Invalid token'
-    case ErrorCode.EXPIRED_TOKEN:
-      return 'Token expired'
+    case ErrorCode.AUTHENTICATION_ERROR:
+      return 'Please sign in to continue'
+    case ErrorCode.AUTHORIZATION_ERROR:
+      return 'You do not have permission to perform this action'
+    case ErrorCode.NOT_FOUND:
+      return 'The requested resource was not found'
+    case ErrorCode.CONFLICT:
+      return 'This operation conflicts with existing data'
+    case ErrorCode.RATE_LIMIT:
+      return 'Too many attempts. Please try again later'
     case ErrorCode.SERVER_ERROR:
-      return 'A server error occurred'
+      return 'Server error. Please try again later'
     default:
       return 'An unexpected error occurred'
   }
@@ -130,17 +124,30 @@ export function getUserFriendlyMessage(code: ErrorCode): string {
 
 export function getHttpStatus(code: ErrorCode): number {
   switch (code) {
+    // 4xx Client Errors
     case ErrorCode.VALIDATION_ERROR:
-      return 400
-    case ErrorCode.INVALID_CREDENTIALS:
-      return 401
-    case ErrorCode.USER_NOT_FOUND:
-      return 404
-    case ErrorCode.EMAIL_IN_USE:
-      return 409
+      return 400 // Bad Request
+
+    case ErrorCode.AUTHENTICATION_ERROR:
+      return 401 // Unauthorized
+
+    case ErrorCode.AUTHORIZATION_ERROR:
+      return 403 // Forbidden
+
+    case ErrorCode.NOT_FOUND:
+      return 404 // Not Found
+
+    case ErrorCode.CONFLICT:
+      return 409 // Conflict
+
+    case ErrorCode.RATE_LIMIT:
+      return 429 // Too Many Requests
+
+    // 5xx Server Errors
     case ErrorCode.SERVER_ERROR:
-      return 500
+      return 500 // Internal Server Error
+
     default:
       return 500
   }
-} 
+}

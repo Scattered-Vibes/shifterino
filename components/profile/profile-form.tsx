@@ -53,9 +53,8 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
       const { error: employeeError } = await supabase
         .from('employees')
         .update({
-          first_name: formData.get('first_name'),
-          last_name: formData.get('last_name'),
-          profile_completed: true,
+          first_name: formData.get('first_name')?.toString() || '',
+          last_name: formData.get('last_name')?.toString() || '',
           updated_at: new Date().toISOString(),
         })
         .eq('auth_id', initialData.auth_id)
@@ -65,9 +64,8 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
       // Update the user metadata
       const { error: metadataError } = await supabase.auth.updateUser({
         data: {
-          profile_incomplete: false,
-          first_name: formData.get('first_name'),
-          last_name: formData.get('last_name'),
+          first_name: formData.get('first_name')?.toString() || '',
+          last_name: formData.get('last_name')?.toString() || '',
         },
       })
 
@@ -75,7 +73,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
 
       toast({
         title: 'Profile updated',
-        description: 'Your profile has been completed successfully.',
+        description: 'Your profile has been updated successfully.',
       })
 
       // Force a refresh to update the UI
@@ -118,7 +116,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
         <Label htmlFor="email">Email</Label>
         <Input id="email" name="email" value={initialData.email} disabled />
       </div>
-      <Button type="submit">Complete Profile</Button>
+      <Button type="submit">Update Profile</Button>
     </form>
   )
 }

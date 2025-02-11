@@ -41,8 +41,8 @@ export function useEmployees() {
   })
 }
 
-// Hook for fetching shifts
-export function useShifts(scheduleId: string) {
+// Hook for fetching shifts by schedule
+export function useScheduleShifts(scheduleId: string) {
   return useQuery({
     queryKey: ['shifts', scheduleId],
     queryFn: async () => {

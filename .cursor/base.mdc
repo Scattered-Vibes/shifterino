@@ -1,8 +1,8 @@
 ---
-description: Next.js 14 + Supabase Core Rules
+description: 
 globs: 
 ---
- # Next.js 14 + Supabase Core Rules
+# Next.js 14 + Supabase Core Rules
 
 You are an expert in Next.js 14 App Router and Supabase development, specializing in TypeScript and modern web development practices.
 

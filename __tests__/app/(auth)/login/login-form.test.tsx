@@ -1,32 +1,30 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { LoginForm } from '@/app/(auth)/login/login-form'
-import { AuthProvider } from '@/components/providers/AuthProvider'
+import { renderWithProviders, mockRouter, resetMocks } from '../../../helpers/test-utils'
+import { mockServerAction } from '../../../helpers/test-utils'
+import { login } from '@/app/(auth)/actions'
+
+// Mock the server action
+vi.mock('@/app/(auth)/actions', () => ({
+  login: mockServerAction(async () => ({ data: { redirectTo: '/overview' } }))
+}))
 
 describe('LoginForm', () => {
+  beforeEach(() => {
+    resetMocks()
+  })
+
   it('renders login form', () => {
-    render(
-      <AuthProvider initialUser={null}>
-        <LoginForm />
-      </AuthProvider>
-    )
+    renderWithProviders(<LoginForm />)
 
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument()
   })
 
-  it('handles form submission', async () => {
-    const mockSignIn = vi.fn()
-    vi.mock('@/app/lib/auth', () => ({
-      signInWithEmail: mockSignIn,
-    }))
-
-    render(
-      <AuthProvider initialUser={null}>
-        <LoginForm />
-      </AuthProvider>
-    )
+  it('handles successful form submission', async () => {
+    renderWithProviders(<LoginForm />)
 
     fireEvent.change(screen.getByLabelText(/email/i), {
       target: { value: 'test@example.com' },
@@ -37,21 +35,20 @@ describe('LoginForm', () => {
     fireEvent.click(screen.getByRole('button', { name: /sign in/i }))
 
     await waitFor(() => {
-      expect(mockSignIn).toHaveBeenCalledWith('test@example.com', 'password123')
+      expect(login).toHaveBeenCalledWith({
+        email: 'test@example.com',
+        password: 'password123',
+      })
     })
   })
 
   it('displays error message on failed login', async () => {
-    const mockSignIn = vi.fn().mockRejectedValue(new Error('Invalid credentials'))
-    vi.mock('@/app/lib/auth', () => ({
-      signInWithEmail: mockSignIn,
-    }))
+    // Override the mock for this test
+    vi.mocked(login).mockResolvedValueOnce({
+      error: 'Invalid credentials',
+    })
 
-    render(
-      <AuthProvider initialUser={null}>
-        <LoginForm />
-      </AuthProvider>
-    )
+    renderWithProviders(<LoginForm />)
 
     fireEvent.change(screen.getByLabelText(/email/i), {
       target: { value: 'test@example.com' },
