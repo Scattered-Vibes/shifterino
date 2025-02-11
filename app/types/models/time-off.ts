@@ -1,4 +1,4 @@
-import type { Database } from '@/app/types/supabase/database'
+import type { Database } from '@/types/supabase/database'
 import type { EmployeeBasic } from './employee'
 
 // Database types

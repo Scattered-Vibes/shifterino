@@ -1,8 +1,6 @@
 import { vi } from 'vitest'
-import { createClient } from '@supabase/supabase-js'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Database } from '@/types/database'
-import type { SupabaseDatabase } from '@/types/supabase/database'
+import type { Database } from '@/types/supabase/database'
 
 // Mock data
 export const mockUser = {
@@ -24,6 +22,17 @@ export const mockSession = {
 
 // Create mock Supabase client
 export function createMockSupabaseClient() {
+  const mockFrom = vi.fn().mockReturnValue({
+    select: vi.fn().mockReturnThis(),
+    insert: vi.fn().mockReturnThis(),
+    update: vi.fn().mockReturnThis(),
+    delete: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    single: vi.fn().mockReturnThis(),
+    order: vi.fn().mockReturnThis(),
+    then: vi.fn().mockImplementation((callback) => callback({ data: [], error: null }))
+  })
+
   return {
     auth: {
       getSession: vi.fn().mockResolvedValue({ data: { session: mockSession }, error: null }),
@@ -33,20 +42,11 @@ export function createMockSupabaseClient() {
       onAuthStateChange: vi.fn().mockImplementation((callback) => {
         callback('SIGNED_IN', mockSession)
         return { data: { subscription: { unsubscribe: vi.fn() } } }
-      }),
-      updateUser: vi.fn().mockResolvedValue({ data: { user: mockUser }, error: null })
+      })
     },
-    from: vi.fn().mockReturnValue({
-      select: vi.fn().mockReturnThis(),
-      insert: vi.fn().mockReturnThis(),
-      update: vi.fn().mockReturnThis(),
-      delete: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      single: vi.fn().mockReturnThis(),
-      order: vi.fn().mockReturnThis(),
-      then: vi.fn().mockImplementation((callback) => callback({ data: [], error: null }))
-    })
-  }
+    from: mockFrom,
+    rpc: vi.fn()
+  } as unknown as SupabaseClient<Database>
 }
 
 // Mock both client and server Supabase instances

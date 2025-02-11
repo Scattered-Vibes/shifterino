@@ -30,11 +30,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { createClient } from '@/app/lib/supabase/client'
+import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/use-toast'
 import { Pencil2Icon } from '@radix-ui/react-icons'
-import type { Database } from '@/app/types/supabase/database'
-type Employee = Database['public']['Tables']['employees']['Row']
+import type { Employee } from '@/types/models/employee'
 
 const employeeFormSchema = z.object({
   first_name: z.string().min(2, {

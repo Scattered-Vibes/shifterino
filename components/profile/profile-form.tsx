@@ -2,14 +2,12 @@
 
 import { useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/app/lib/supabase/client'
+import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from '@/components/ui/use-toast'
-import type { Database } from '@/app/types/supabase/database'
-
-type Employee = Database['public']['Tables']['employees']['Row']
+import type { Employee } from '@/types/models/employee'
 
 interface ProfileFormProps {
   initialData: {

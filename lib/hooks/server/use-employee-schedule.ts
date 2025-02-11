@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useToast } from '@/components/ui/use-toast'
-import { createClient } from '@/app/lib/supabase/client'
+import { createClient } from '@/lib/supabase/client'
 
 export function useEmployeeSchedule(employeeId: string) {
   const supabase = createClient()

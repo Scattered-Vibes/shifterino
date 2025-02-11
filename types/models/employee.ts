@@ -1,52 +1,60 @@
-import type { Database } from '../database'
+import type { Database } from '@/types/supabase/database'
 
-export type EmployeeRole = Database['public']['Tables']['employees']['Row']['role']
-export type ShiftPattern = Database['public']['Tables']['employees']['Row']['shift_pattern']
+// Database types
+type Tables = Database['public']['Tables']
+type Enums = Database['public']['Enums']
 
-export type EmployeeRow = Database['public']['Tables']['employees']['Row']
+// Base employee type from database
+export type Employee = Tables['employees']['Row']
+export type EmployeeRole = Enums['employee_role']
+export type ShiftPattern = Enums['shift_pattern']
+export type ShiftCategory = Enums['shift_category']
 
-export interface Employee {
+// Minimal employee type for relationships
+export interface EmployeeBasic {
   id: string
   auth_id: string
   first_name: string
   last_name: string
   email: string
   role: EmployeeRole
-  shift_pattern: ShiftPattern
-  preferred_shift_category: string | null
-  max_hours_per_week: number
   created_at: string
   updated_at: string
-  full_name?: string
 }
 
-export type EmployeeCreate = Database['public']['Tables']['employees']['Insert']
-export type EmployeeUpdate = Database['public']['Tables']['employees']['Update']
-
-export interface EmployeeBasic {
-  id: string
-  first_name: string
-  last_name: string
-  email: string
-  role: EmployeeRole
-}
-
-export interface EmployeeWithSchedule extends Employee {
-  schedule: {
-    id: string
-    start_date: string
-    end_date: string
-  } | null
+// Extended types for business logic
+export interface EmployeeSchedulePreferences {
+  preferred_shift_category: ShiftCategory | null
+  max_overtime_hours: number | null
+  weekly_hours_cap: number
 }
 
 export interface EmployeeStats {
-  totalHours: number
-  overtimeHours: number
-  regularHours: number
-  averageHoursPerWeek: number
-  upcomingTimeOff: {
-    start_date: string
-    end_date: string
-    type: string
-  }[]
+  consecutive_shifts_count: number
+  total_hours_current_week: number
+  last_shift_date: string | null
+}
+
+// Create/Update types
+export type EmployeeCreate = Omit<Employee, 'id' | 'created_at' | 'updated_at'> & {
+  auth_id: string
+  email: string
+  first_name: string
+  last_name: string
+  role: EmployeeRole
+  weekly_hours_cap: number
+}
+
+export type EmployeeUpdate = Partial<Omit<EmployeeCreate, 'auth_id'>>
+
+// Additional types
+export interface EmployeeAvailability {
+  id: string
+  employee_id: string
+  start_date: string
+  end_date: string
+  is_available: boolean
+  reason?: string
+  created_at: string
+  updated_at: string
 } 

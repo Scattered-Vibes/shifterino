@@ -1,84 +1,131 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { createClient } from '@/app/lib/supabase/client'
-import type { Tables } from '@/app/lib/supabase/client'
+import { createClient } from '@/lib/supabase/client'
+import type { StaffingRequirement, StaffingGap } from '@/types/models/schedule'
+import type { IndividualShift } from '@/types/models/shift'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
+import { cn } from '@/lib/utils'
 
-type StaffingRequirement = Tables['staffing_requirements']['Row']
-type IndividualShift = Tables['individual_shifts']['Row']
+interface StaffingOverviewProps {
+  date: Date
+}
 
-export function StaffingOverview() {
+export function StaffingOverview({ date }: StaffingOverviewProps) {
   const supabase = createClient()
 
-  const { data: requirements } = useQuery({
-    queryKey: ['staffing-requirements'],
+  const { data: staffingLevels } = useQuery({
+    queryKey: ['staffing-levels', date.toISOString()],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('staffing_requirements')
-        .select('*')
-        .order('time_block_start', { ascending: true })
+      const [requirementsResult, shiftsResult] = await Promise.all([
+        supabase
+          .from('staffing_requirements')
+          .select('*')
+          .eq('day_of_week', date.getDay())
+          .order('time_block_start'),
+        supabase
+          .from('individual_shifts')
+          .select('*, shift_option:shift_options(*)')
+          .eq('date', date.toISOString().split('T')[0])
+      ])
 
-      if (error) throw error
-      return data as StaffingRequirement[]
-    },
+      if (requirementsResult.error) throw requirementsResult.error
+      if (shiftsResult.error) throw shiftsResult.error
+
+      const requirements = requirementsResult.data as unknown as StaffingRequirement[]
+      const shifts = shiftsResult.data as unknown as IndividualShift[]
+
+      return calculateStaffingLevels(requirements, shifts)
+    }
   })
 
-  const { data: currentShifts } = useQuery({
-    queryKey: ['current-shifts'],
-    queryFn: async () => {
-      const now = new Date().toISOString()
-      const { data, error } = await supabase
-        .from('individual_shifts')
-        .select('*')
-        .eq('date', now.split('T')[0])
-        .order('date', { ascending: true })
-
-      if (error) throw error
-      return data as IndividualShift[]
-    },
-  })
-
-  if (!requirements || !currentShifts) {
-    return <div>Loading...</div>
+  if (!staffingLevels) {
+    return null
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      {requirements.map((req) => {
-        const currentStaffCount = currentShifts.filter((shift) => {
-          const shiftTime = new Date(shift.date + 'T' + shift.start_time)
-          return shiftTime >= new Date(req.time_block_start) && 
-                 shiftTime <= new Date(req.time_block_end)
-        }).length
-
-        const staffingPercentage = (currentStaffCount / req.min_total_staff) * 100
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {staffingLevels.map((level) => {
+        const percentage = (level.actual_count / level.required_count) * 100
+        let progressClass = 'bg-red-500'
+        
+        if (percentage >= 100) {
+          progressClass = 'bg-green-500'
+        } else if (percentage >= 75) {
+          progressClass = 'bg-yellow-500'
+        }
 
         return (
-          <Card key={req.id}>
+          <Card key={`${level.time_block_start}-${level.time_block_end}`}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                {new Date(req.time_block_start).toLocaleTimeString()} - 
-                {new Date(req.time_block_end).toLocaleTimeString()}
+                {formatTimeRange(level.time_block_start, level.time_block_end)}
               </CardTitle>
+              <span className={level.missing_supervisor ? 'text-red-500' : 'text-green-500'}>
+                {level.missing_supervisor ? 'No Supervisor' : 'Supervisor Present'}
+              </span>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {currentStaffCount} / {req.min_total_staff}
+                {level.actual_count} / {level.required_count}
               </div>
-              <Progress
-                value={staffingPercentage}
-                className="mt-2"
-                indicatorColor={staffingPercentage >= 100 ? 'bg-green-500' : 'bg-red-500'}
+              <Progress 
+                value={percentage} 
+                className={cn("mt-2", progressClass)}
               />
-              <p className="text-xs text-muted-foreground mt-2">
-                {staffingPercentage >= 100 ? 'Fully Staffed' : 'Understaffed'}
-              </p>
             </CardContent>
           </Card>
         )
       })}
     </div>
   )
+}
+
+function calculateStaffingLevels(
+  requirements: StaffingRequirement[],
+  shifts: IndividualShift[]
+): StaffingGap[] {
+  return requirements.map(req => {
+    const shiftsInPeriod = shifts.filter(shift => 
+      isShiftInPeriod(shift, req.time_block_start, req.time_block_end)
+    )
+
+    const supervisorPresent = shiftsInPeriod.some(shift => 
+      shift.shift_option?.requires_supervisor
+    )
+
+    return {
+      time_block_start: req.time_block_start,
+      time_block_end: req.time_block_end,
+      required_count: req.min_total_staff,
+      actual_count: shiftsInPeriod.length,
+      missing_supervisor: !supervisorPresent && req.min_supervisors > 0
+    }
+  })
+}
+
+function isShiftInPeriod(
+  shift: IndividualShift,
+  periodStart: string,
+  periodEnd: string
+): boolean {
+  const shiftStart = new Date(`1970-01-01T${shift.shift_option?.start_time}`)
+  const shiftEnd = new Date(`1970-01-01T${shift.shift_option?.end_time}`)
+  const start = new Date(`1970-01-01T${periodStart}`)
+  const end = new Date(`1970-01-01T${periodEnd}`)
+
+  return shiftStart <= end && shiftEnd >= start
+}
+
+function formatTimeRange(start: string, end: string): string {
+  return `${formatTime(start)} - ${formatTime(end)}`
+}
+
+function formatTime(time: string): string {
+  return new Date(`1970-01-01T${time}`).toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  })
 } 

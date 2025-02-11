@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/client'
-import { type UserRole } from './auth/server'
+import { type UserRole } from '@/types/auth'
+import { redirect } from 'next/navigation'
 
 export type AuthenticatedUser = {
   userId: string
@@ -32,4 +33,14 @@ export async function getAuthenticatedUser(): Promise<AuthenticatedUser | null> 
     role: employee.role as UserRole,
     email: user.email || ''
   }
+}
+
+export async function requireAuth(): Promise<AuthenticatedUser> {
+  const user = await getAuthenticatedUser()
+  
+  if (!user) {
+    redirect('/login')
+  }
+  
+  return user
 } 

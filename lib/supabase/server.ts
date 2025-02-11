@@ -1,7 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { cache } from 'react'
-import type { Database } from '@/app/types/supabase/database'
+import type { Database } from '@/types/supabase/database'
 
 // Create the cached server client
 const createClient = cache(() => {

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/use-toast'
-import { signOut } from '@/lib/auth/actions'
+import { signOut } from '../../app/(auth)/actions'
 
 export function SignOutButton() {
   const { toast } = useToast()
@@ -17,6 +17,10 @@ export function SignOutButton() {
       if (result?.error) {
         throw new Error(result.error)
       }
+
+      // No need for router.refresh() or router.push()
+      // The server action handles the redirect
+
     } catch (error) {
       console.error('Sign out error:', error)
       toast({
@@ -35,7 +39,7 @@ export function SignOutButton() {
       onClick={handleSignOut}
       disabled={isLoading}
     >
-      {isLoading ? 'Signing out...' : 'Sign out'}
+      {isLoading ? 'Signing out...' : 'Sign Out'}
     </Button>
   )
 }

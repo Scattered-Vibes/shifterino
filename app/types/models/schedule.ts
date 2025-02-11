@@ -1,4 +1,4 @@
-import type { Database } from '@/app/types/supabase/database'
+import type { Database } from '@/types/supabase/database'
 import type { IndividualShift, ShiftOption } from './shift'
 import type { EmployeeBasic, Employee } from './employee'
 import type { TimeBlock, ValidationResult, BaseConflict } from '../shared/common'

@@ -1,45 +1,82 @@
-export type ErrorCode = 
-  | 'AUTH_ERROR'
-  | 'DATABASE_ERROR'
-  | 'VALIDATION_ERROR'
-  | 'NOT_FOUND'
-  | 'FORBIDDEN'
-  | 'SERVER_ERROR';
-
-export interface AppError extends Error {
-  code: ErrorCode;
-  message: string;
+export enum ErrorCode {
+  UNKNOWN_ERROR = 'UNKNOWN_ERROR',
+  VALIDATION_ERROR = 'VALIDATION_ERROR',
+  AUTHENTICATION_ERROR = 'AUTHENTICATION_ERROR',
+  AUTHORIZATION_ERROR = 'AUTHORIZATION_ERROR',
+  NOT_FOUND = 'NOT_FOUND',
+  CONFLICT = 'CONFLICT',
+  SERVER_ERROR = 'SERVER_ERROR'
 }
 
-export function isAppError(error: unknown): error is AppError {
-  return (
-    error !== null &&
-    typeof error === 'object' &&
-    'code' in error &&
-    'message' in error
-  )
+export interface AppError {
+  message: string
+  code: ErrorCode
+  details?: unknown
 }
 
-export function getUserFriendlyMessage(error: Error | AppError): string {
-  if (isAppError(error)) {
-    switch (error.code) {
-      case 'AUTH_ERROR':
-        return 'Authentication failed. Please check your credentials and try again.';
-      case 'DATABASE_ERROR':
-        return 'There was an error accessing the database. Please try again later.';
-      case 'VALIDATION_ERROR':
-        return error.message || 'Invalid input provided. Please check your data and try again.';
-      case 'NOT_FOUND':
-        return 'The requested resource was not found.';
-      case 'FORBIDDEN':
-        return 'You do not have permission to perform this action.';
-      case 'SERVER_ERROR':
-        return 'An unexpected error occurred. Please try again later.';
-      default:
-        return 'An unexpected error occurred. Please try again later.';
+export function handleError(error: unknown): AppError {
+  console.error('Error:', error)
+
+  if (error instanceof Error) {
+    // Handle known error types
+    if ('code' in error) {
+      const { code } = error as { code: string }
+      
+      switch (code) {
+        case 'PGRST301':
+          return {
+            message: 'Resource not found',
+            code: ErrorCode.NOT_FOUND
+          }
+        case 'PGRST409':
+          return {
+            message: 'Conflict with existing resource',
+            code: ErrorCode.CONFLICT
+          }
+        case '42501':
+          return {
+            message: 'You do not have permission to perform this action',
+            code: ErrorCode.AUTHORIZATION_ERROR
+          }
+        case 'PGRST204':
+          return {
+            message: 'Invalid input data',
+            code: ErrorCode.VALIDATION_ERROR
+          }
+      }
+    }
+
+    return {
+      message: error.message || 'An unexpected error occurred',
+      code: ErrorCode.UNKNOWN_ERROR,
+      details: error
     }
   }
-  return error.message || 'An unexpected error occurred. Please try again later.';
+
+  return {
+    message: 'An unexpected error occurred',
+    code: ErrorCode.UNKNOWN_ERROR,
+    details: error
+  }
+}
+
+export function getUserFriendlyMessage(error: AppError): string {
+  switch (error.code) {
+    case ErrorCode.VALIDATION_ERROR:
+      return 'Please check your input and try again'
+    case ErrorCode.AUTHENTICATION_ERROR:
+      return 'Please sign in to continue'
+    case ErrorCode.AUTHORIZATION_ERROR:
+      return 'You do not have permission to perform this action'
+    case ErrorCode.NOT_FOUND:
+      return 'The requested resource was not found'
+    case ErrorCode.CONFLICT:
+      return 'This action conflicts with existing data'
+    case ErrorCode.SERVER_ERROR:
+      return 'A server error occurred. Please try again later'
+    default:
+      return error.message || 'An unexpected error occurred'
+  }
 }
 
 export function createAppError(code: ErrorCode, message: string): AppError {

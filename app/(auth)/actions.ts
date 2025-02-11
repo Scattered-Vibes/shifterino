@@ -8,7 +8,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 
-import { createClient } from '@/app/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { handleError, ErrorCode } from '@/app/lib/utils/error-handler'
 import {
   loginSchema,
@@ -19,7 +19,7 @@ import {
   type SignupInput,
   type ResetPasswordInput,
   type UpdatePasswordInput,
-} from '@/app/lib/validations/auth'
+} from '@/lib/validations/auth'
 
 export async function login(data: LoginInput) {
   try {
@@ -89,14 +89,12 @@ export async function signOut() {
     const { error } = await supabase.auth.signOut()
     
     if (error) {
-      const appError = handleError(error)
-      return { error: appError.message }
+      return { error: 'Failed to sign out' }
     }
 
-    redirect('/login')
+    return { success: true }
   } catch (error) {
-    const appError = handleError(error)
-    return { error: appError.message }
+    return handleError(error as Error, ErrorCode.AUTH_ERROR)
   }
 }
 

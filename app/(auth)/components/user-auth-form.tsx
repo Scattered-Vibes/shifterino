@@ -1,11 +1,10 @@
 'use client'
 
-import * as React from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
-import type { z } from 'zod'
-
+import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -17,10 +16,10 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/components/ui/use-toast'
-import { createClient } from '@/app/lib/supabase/client'
+import { createClient } from '@/lib/supabase/client'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { loginSchema, signupSchema, type SignupInput } from '@/app/lib/validations/auth'
-import { handleError } from '@/app/lib/utils/error-handler'
+import { loginSchema, signupSchema, type SignupInput } from '@/lib/validations/auth'
+import { handleError } from '@/lib/utils/error-handler'
 
 interface UserAuthFormProps {
   className?: string

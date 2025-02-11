@@ -1,12 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
-import { createClient } from '@/app/lib/supabase/client'
-import type { Database } from '@/app/types/supabase/database'
+import { createClient, type Tables, type Enums } from '@/lib/supabase/client'
+import type { Database } from '@/types/supabase/database'
 
 const supabase = createClient()
-
-type Tables = Database['public']['Tables']
-type Enums = Database['public']['Enums']
 
 // Hook for fetching schedules
 export function useSchedules(date: Date) {

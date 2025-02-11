@@ -20,13 +20,15 @@
       }
     ],
     "paths": {
-      "@/*": ["./app/*"],
+      "@/*": ["./*"],
+      "@/lib/*": ["./lib/*"],
       "@/components/*": ["./components/*"],
-      "@/lib/*": ["./app/lib/*"],
+      "@/ui/*": ["./components/ui/*"],
       "@/types/*": ["./types/*"],
-      "@/hooks/*": ["./app/lib/hooks/*"],
-      "@/utils/*": ["./app/lib/utils/*"],
-      "@/supabase/*": ["./app/lib/supabase/*"]
+      "@/app/*": ["./app/*"],
+      "@/hooks/*": ["./hooks/*"],
+      "@/styles/*": ["./styles/*"],
+      "@/api/*": ["./api/*"]
     },
     "baseUrl": ".",
     "types": ["vitest/globals", "@testing-library/jest-dom"]

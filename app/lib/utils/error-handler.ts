@@ -1,11 +1,16 @@
 import { PostgrestError } from '@supabase/supabase-js'
 
 export enum ErrorCode {
+  UNKNOWN = 'UNKNOWN',
+  NOT_FOUND = 'NOT_FOUND',
+  UNAUTHORIZED = 'UNAUTHORIZED',
+  FORBIDDEN = 'FORBIDDEN',
+  VALIDATION = 'VALIDATION',
+  DATABASE = 'DATABASE',
+  AUTH_ERROR = 'AUTH_ERROR',
   UNKNOWN_ERROR = 'UNKNOWN_ERROR',
-  VALIDATION_ERROR = 'VALIDATION_ERROR',
   AUTHENTICATION_ERROR = 'AUTHENTICATION_ERROR',
   AUTHORIZATION_ERROR = 'AUTHORIZATION_ERROR',
-  NOT_FOUND = 'NOT_FOUND',
   CONFLICT = 'CONFLICT',
   RATE_LIMIT = 'RATE_LIMIT',
   SERVER_ERROR = 'SERVER_ERROR',
@@ -27,47 +32,12 @@ function isPostgrestError(error: unknown): error is PostgrestError {
   )
 }
 
-export function handleError(error: unknown): AppError {
+export function handleError(error: Error, code: ErrorCode = ErrorCode.UNKNOWN): AppError {
   console.error('Error:', error)
-
-  if (error instanceof Error) {
-    // Handle Supabase errors
-    if ('code' in error && typeof error.code === 'string') {
-      switch (error.code) {
-        case 'auth/invalid-email':
-        case 'auth/user-not-found':
-        case 'auth/wrong-password':
-          return {
-            code: ErrorCode.AUTHENTICATION_ERROR,
-            message: 'Invalid email or password',
-            originalError: error,
-          }
-        case 'auth/email-already-in-use':
-          return {
-            code: ErrorCode.CONFLICT,
-            message: 'Email already in use',
-            originalError: error,
-          }
-        case 'auth/too-many-requests':
-          return {
-            code: ErrorCode.RATE_LIMIT,
-            message: 'Too many attempts. Please try again later',
-            originalError: error,
-          }
-      }
-    }
-
-    return {
-      code: ErrorCode.UNKNOWN_ERROR,
-      message: error.message || 'An unexpected error occurred',
-      originalError: error,
-    }
-  }
-
+  
   return {
-    code: ErrorCode.UNKNOWN_ERROR,
-    message: 'An unexpected error occurred',
-    originalError: error,
+    code,
+    message: error.message || 'An unexpected error occurred'
   }
 }
 
@@ -103,7 +73,7 @@ export function mapSupabaseError(error: PostgrestError): AppError {
 
 export function getUserFriendlyMessage(code: ErrorCode): string {
   switch (code) {
-    case ErrorCode.VALIDATION_ERROR:
+    case ErrorCode.VALIDATION:
       return 'Please check your input and try again'
     case ErrorCode.AUTHENTICATION_ERROR:
       return 'Please sign in to continue'
@@ -125,7 +95,7 @@ export function getUserFriendlyMessage(code: ErrorCode): string {
 export function getHttpStatus(code: ErrorCode): number {
   switch (code) {
     // 4xx Client Errors
-    case ErrorCode.VALIDATION_ERROR:
+    case ErrorCode.VALIDATION:
       return 400 // Bad Request
 
     case ErrorCode.AUTHENTICATION_ERROR:

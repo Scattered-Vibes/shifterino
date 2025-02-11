@@ -1,85 +1,49 @@
-import type { Database } from '../database'
+import type { Database } from '@/types/supabase/database'
 import type { EmployeeBasic } from './employee'
+import type { Schedule, ShiftOption } from './schedule'
 
-export type ShiftStatus = 'scheduled' | 'in_progress' | 'completed' | 'missed' | 'cancelled'
-export type ShiftType = 'regular' | 'overtime' | 'training' | 'meeting'
-export type ShiftPattern = 'pattern_a' | 'pattern_b' | 'custom'
+// Base types from database
+export type IndividualShift = Database['public']['Tables']['individual_shifts']['Row'] & {
+  shift_option?: ShiftOption
+}
+export type ShiftStatus = Database['public']['Enums']['shift_status']
+export type ShiftCategory = Database['public']['Enums']['shift_category']
 
-export interface IndividualShift {
-  id: string
+// Extended types
+export interface ShiftWithEmployee extends IndividualShift {
+  employee: EmployeeBasic
+}
+
+export interface ShiftWithSchedule extends IndividualShift {
+  schedule: Schedule
+}
+
+// Create/Update types
+export type ShiftCreate = Omit<IndividualShift, 'id' | 'created_at' | 'updated_at'> & {
   employee_id: string
-  schedule_id: string
-  start_time: string
-  end_time: string
-  actual_start_time: string | null
-  actual_end_time: string | null
-  actual_hours_worked: number | null
-  break_duration_minutes: number | null
-  break_start_time: string | null
-  break_end_time: string | null
-  shift_type: ShiftType
-  status: ShiftStatus
-  notes: string | null
-  is_supervisor: boolean
-  is_overtime: boolean
-  is_regular_schedule: boolean
-  fatigue_level: number | null
+  shift_option_id: string
   date: string
-  created_at: string
-  updated_at: string
+  notes?: string
 }
 
-export interface ShiftEvent extends Omit<IndividualShift, 'start_time' | 'end_time'> {
-  title: string
-  start: string
-  end: string
-  allDay?: boolean
-  extendedProps: {
-    employeeId: string
-    shiftType: ShiftType
-    status: ShiftStatus
-    shiftOptionId?: string
-  }
-}
+export type ShiftUpdate = Partial<Omit<ShiftCreate, 'shift_option_id' | 'employee_id'>>
 
-export type ShiftCreate = Omit<IndividualShift, 'id' | 'created_at' | 'updated_at'>
-
-export type ShiftUpdate = Partial<Omit<IndividualShift, 'id' | 'created_at' | 'updated_at'>>
-
-export interface ShiftOption {
-  id: string
-  name: string
-  start_time: string
-  end_time: string
-  duration_hours: number
-  category: string
-  is_supervisor_shift: boolean
-  created_at: string
-  updated_at: string
-}
-
+// Additional types for shift management
 export interface ShiftSwapRequest {
   id: string
   requester_id: string
-  requested_shift_id: string
-  proposed_shift_id: string | null
-  status: Database['public']['Enums']['swap_request_status']
-  reason: string | null
-  reviewer_id: string | null
-  reviewed_at: string | null
+  requested_employee_id: string
+  shift_id: string
+  proposed_shift_id?: string
+  status: Database['public']['Enums']['time_off_status']
+  notes?: string
   created_at: string
-  updated_at: string
+  updated_at: string | null
 }
 
-export interface ShiftSwapRequestWithDetails extends ShiftSwapRequest {
-  requester: EmployeeBasic
-  reviewer: EmployeeBasic | null
-  requested_shift: IndividualShift
-  proposed_shift: IndividualShift | null
+export interface ShiftStats {
+  total_hours: number
+  consecutive_days: number
+  last_shift_end: string | null
+  next_shift_start: string | null
 }
-
-export interface ShiftValidation {
-  isValid: boolean
-  errors: string[]
-  warnings: string[]
-} 
