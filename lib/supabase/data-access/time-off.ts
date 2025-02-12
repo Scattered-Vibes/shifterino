@@ -1,24 +1,57 @@
-import { createClient } from '@/app/lib/supabase/client'
-import type { Database } from '@/types/supabase/database'
-import { handleError } from '@/app/lib/utils/error-handler'
-import type { SupabaseClient } from '@supabase/supabase-js'
-
-type TimeOffStatus = 'pending' | 'approved' | 'rejected'
-type DatabaseTables = Database['public']['Tables']
-type TimeOffRequest = DatabaseTables['time_off_requests']['Row']
+import { createClient } from '@/lib/supabase/client'
+import type { TimeOffRequest, TimeOffStatus } from '@/types'
+import { handleError } from '@/lib/utils/error-handler'
 
 const supabase = createClient()
 
-export async function getTimeOffRequests() {
+interface QueryOptions {
+  page?: number
+  limit?: number
+  search?: {
+    column: string
+    query: string
+  }
+  startDate?: Date
+  endDate?: Date
+  status?: TimeOffStatus
+  employeeId?: string
+}
+
+export async function getTimeOffRequests(options?: QueryOptions) {
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('time_off_requests')
       .select(`
         *,
         employee:employees(*),
         reviewer:employees(*)
       `)
-      .order('created_at', { ascending: false })
+
+    if (options?.status) {
+      query = query.eq('status', options.status)
+    }
+
+    if (options?.employeeId) {
+      query = query.eq('employee_id', options.employeeId)
+    }
+
+    if (options?.startDate) {
+      query = query.gte('start_date', options.startDate.toISOString())
+    }
+
+    if (options?.endDate) {
+      query = query.lte('end_date', options.endDate.toISOString())
+    }
+
+    if (typeof options?.page === 'number' && typeof options?.limit === 'number') {
+      const start = options.page * options.limit
+      const end = start + options.limit - 1
+      query = query.range(start, end)
+    }
+
+    query = query.order('created_at', { ascending: false })
+
+    const { data, error } = await query
 
     if (error) throw error
     return data as TimeOffRequest[]
@@ -52,7 +85,7 @@ export async function createTimeOffRequest(request: Omit<TimeOffRequest, 'id' | 
   try {
     const { data, error } = await supabase
       .from('time_off_requests')
-      .insert([{ ...request, status: 'pending' }])
+      .insert([{ ...request, status: 'pending' as const }])
       .select()
       .single()
 
@@ -96,7 +129,7 @@ export async function deleteTimeOffRequest(id: string) {
   }
 }
 
-export async function reviewTimeOffRequest(id: string, status: string, reviewerId: string) {
+export async function reviewTimeOffRequest(id: string, status: TimeOffStatus, reviewerId: string) {
   try {
     const { data, error } = await supabase
       .from('time_off_requests')
@@ -117,102 +150,9 @@ export async function reviewTimeOffRequest(id: string, status: string, reviewerI
   }
 }
 
-interface QueryOptions {
-  page?: number
-  limit?: number
-  search?: {
-    column: string
-    query: string
-  }
-  startDate?: Date
-  endDate?: Date
-  status?: TimeOffStatus
-  employeeId?: string
-}
-
-interface CreateTimeOffData {
-  employee_id: string
-  start_date: string
-  end_date: string
-  reason: string
-  status: TimeOffStatus
-  notes?: string
-  created_by: string
-  updated_by: string
-}
-
-interface UpdateTimeOffData extends Partial<Omit<CreateTimeOffData, 'created_by'>> {
-  updated_by: string
-}
-
-// Type for Supabase query builder
-type GenericQuery = ReturnType<ReturnType<SupabaseClient<Database>['from']>['select']>
-
-const queryBuilder = {
-  withPagination: (query: GenericQuery, page = 0, limit = 10) => 
-    query.range(page * limit, (page + 1) * limit - 1),
-  
-  withSearch: (query: GenericQuery, column: string, searchQuery: string) =>
-    query.ilike(column, `%${searchQuery}%`),
-  
-  withDateRange: (query: GenericQuery, startDate?: Date, endDate?: Date) => {
-    let modifiedQuery = query
-    
-    if (startDate) {
-      modifiedQuery = modifiedQuery.gte('start_date', startDate.toISOString())
-    }
-    if (endDate) {
-      modifiedQuery = modifiedQuery.lte('end_date', endDate.toISOString())
-    }
-    
-    return modifiedQuery
-  },
-  
-  applyOptions: (query: GenericQuery, options: QueryOptions = {}) => {
-    let modifiedQuery = query
-
-    if (options.search) {
-      modifiedQuery = queryBuilder.withSearch(
-        modifiedQuery, 
-        options.search.column, 
-        options.search.query
-      )
-    }
-
-    if (options.startDate || options.endDate) {
-      modifiedQuery = queryBuilder.withDateRange(
-        modifiedQuery,
-        options.startDate,
-        options.endDate
-      )
-    }
-
-    if (options.status) {
-      modifiedQuery = modifiedQuery.eq('status', options.status)
-    }
-
-    if (options.employeeId) {
-      modifiedQuery = modifiedQuery.eq('employee_id', options.employeeId)
-    }
-
-    if (typeof options.page === 'number' && typeof options.limit === 'number') {
-      modifiedQuery = queryBuilder.withPagination(
-        modifiedQuery,
-        options.page,
-        options.limit
-      )
-    }
-
-    return modifiedQuery
-  }
-}
-
 export const timeOffQueries = {
   async searchTimeOffRequests(options?: QueryOptions) {
-    const supabase = createClient()
     try {
-      const builder = queryBuilder
-      
       let query = supabase
         .from('time_off_requests')
         .select(`
@@ -224,9 +164,30 @@ export const timeOffQueries = {
             role
           )
         `)
-        .order('start_date', { ascending: true })
 
-      query = builder.applyOptions(query, options)
+      if (options?.status) {
+        query = query.eq('status', options.status)
+      }
+
+      if (options?.employeeId) {
+        query = query.eq('employee_id', options.employeeId)
+      }
+
+      if (options?.startDate) {
+        query = query.gte('start_date', options.startDate.toISOString())
+      }
+
+      if (options?.endDate) {
+        query = query.lte('end_date', options.endDate.toISOString())
+      }
+
+      if (typeof options?.page === 'number' && typeof options?.limit === 'number') {
+        const start = options.page * options.limit
+        const end = start + options.limit - 1
+        query = query.range(start, end)
+      }
+
+      query = query.order('start_date', { ascending: true })
       
       const { data, error } = await query
 
@@ -241,7 +202,6 @@ export const timeOffQueries = {
   },
 
   async getTimeOffConflicts(employeeId: string, startDate: Date, endDate: Date) {
-    const supabase = createClient()
     try {
       const { data, error } = await supabase
         .from('time_off_requests')

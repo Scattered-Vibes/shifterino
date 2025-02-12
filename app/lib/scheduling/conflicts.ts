@@ -3,9 +3,9 @@ import type {
   IndividualShift,
   ShiftOption,
   ShiftConflict
-} from '@/app/types/models/shift'
-import type { Employee } from '@/app/types/models/employee'
-import type { ScheduleConflict } from '@/app/types/models/schedule'
+} from '@/types/models/shift'
+import type { Employee } from '@/types/models/employee'
+import type { ScheduleConflict } from '@/types/models/schedule'
 import type { Schedule } from '@/types/scheduling/schedule'
 
 export function validateShiftConflicts(

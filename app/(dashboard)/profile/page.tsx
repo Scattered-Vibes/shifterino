@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
-import { createClient } from '@/app/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { ProfileForm } from './profile-form'
 import { PasswordForm } from './password-form'
 import { ProfileSkeleton } from './loading'

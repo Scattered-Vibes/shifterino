@@ -1,50 +1,75 @@
 'use client'
 
-import { ResetPasswordForm } from './reset-password-form'
+import { useFormState } from 'react-dom'
+import { useFormStatus } from 'react-dom'
+import Link from 'next/link'
+import { resetPassword } from '@/app/(auth)/actions'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Icons } from '@/components/ui/icons'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { type ResetPasswordState } from '@/app/(auth)/auth'
+
+function ResetPasswordButton() {
+  const { pending } = useFormStatus()
+ 
+  return (
+    <Button type="submit" className="w-full" disabled={pending}>
+      {pending ? (
+        <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+      ) : null}
+      Reset Password
+    </Button>
+  )
+}
 
 export default function ResetPasswordPage() {
+  const [state, formAction] = useFormState<ResetPasswordState | null, FormData>(resetPassword, null)
+
   return (
-    <div className="container relative grid h-screen flex-col items-center justify-center lg:max-w-none lg:grid-cols-2 lg:px-0">
-      <div className="relative hidden h-full flex-col bg-muted p-10 text-white dark:border-r lg:flex">
-        <div className="absolute inset-0 bg-zinc-900" />
-        <div className="relative z-20 flex items-center text-lg font-medium">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="mr-2 h-6 w-6"
-          >
-            <path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3" />
-          </svg>
-          Shifterino
-        </div>
-        <div className="relative z-20 mt-auto">
-          <blockquote className="space-y-2">
-            <p className="text-lg">
-              &ldquo;Reset your password to regain access to your
-              account.&rdquo;
-            </p>
-          </blockquote>
-        </div>
-      </div>
-      <div className="lg:p-8">
-        <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
-          <div className="flex flex-col space-y-2 text-center">
-            <h1 className="text-2xl font-semibold tracking-tight">
-              Reset your password
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Enter your email address and we&apos;ll send you a link to reset
-              your password
-            </p>
+    <Card>
+      <CardHeader>
+        <CardTitle>Reset Password</CardTitle>
+        <CardDescription>
+          Enter your email address and we&apos;ll send you a link to reset your password
+        </CardDescription>
+      </CardHeader>
+      <form action={formAction}>
+        <CardContent className="space-y-4">
+          {state?.error ? (
+            <div className="text-sm text-red-500">
+              {state.error.message}
+            </div>
+          ) : null}
+          {state?.message ? (
+            <div className="text-sm text-green-500">
+              {state.message}
+            </div>
+          ) : null}
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              placeholder="name@example.com"
+              required
+            />
           </div>
-          <ResetPasswordForm />
-        </div>
-      </div>
-    </div>
+        </CardContent>
+        <CardFooter className="flex flex-col space-y-4">
+          <ResetPasswordButton />
+          <div className="text-sm text-muted-foreground text-center">
+            <Link
+              href="/login"
+              className="hover:text-primary underline underline-offset-4"
+            >
+              Back to login
+            </Link>
+          </div>
+        </CardFooter>
+      </form>
+    </Card>
   )
 }

@@ -25,8 +25,8 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { useToast } from '@/components/ui/use-toast'
-import { cn } from '@/app/lib/utils'
-import { createClient } from '@/app/lib/supabase/client'
+import { cn } from '@/lib/utils/index'
+import { createClient } from '@/lib/supabase/client'
 
 const formSchema = z.object({
   startDate: z.date(),

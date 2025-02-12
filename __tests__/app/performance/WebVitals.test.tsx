@@ -1,16 +1,46 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 import { Suspense } from 'react'
-import { createMockServerComponentClient } from '../../../test/supabase-mock'
-import ServerComponent from '@/app/components/ServerComponent'
+import { createMockServerComponentClient } from '@/test/supabase-mock'
+import ServerComponent from '@/components/ServerComponent'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Metric } from 'web-vitals'
+import type { CLSMetric, FIDMetric, LCPMetric } from 'web-vitals'
 
 // Mock web-vitals
+const mockCLSMetric: CLSMetric = {
+  value: 0.1,
+  name: 'CLS',
+  id: 'v3-1234',
+  navigationType: 'navigate',
+  rating: 'good',
+  entries: [],
+  delta: 0
+}
+
+const mockFIDMetric: FIDMetric = {
+  value: 100,
+  name: 'FID',
+  id: 'v3-1234',
+  navigationType: 'navigate',
+  rating: 'good',
+  entries: [],
+  delta: 0
+}
+
+const mockLCPMetric: LCPMetric = {
+  value: 2500,
+  name: 'LCP',
+  id: 'v3-1234',
+  navigationType: 'navigate',
+  rating: 'good',
+  entries: [],
+  delta: 0
+}
+
 const mockWebVitals = {
-  onCLS: vi.fn((cb: (metric: Metric) => void) => cb({ value: 0.1, name: 'CLS', id: '', navigationType: 'navigate' })),
-  onFID: vi.fn((cb: (metric: Metric) => void) => cb({ value: 100, name: 'FID', id: '', navigationType: 'navigate' })),
-  onLCP: vi.fn((cb: (metric: Metric) => void) => cb({ value: 2500, name: 'LCP', id: '', navigationType: 'navigate' })),
+  onCLS: vi.fn((cb: (metric: CLSMetric) => void) => cb(mockCLSMetric)),
+  onFID: vi.fn((cb: (metric: FIDMetric) => void) => cb(mockFIDMetric)),
+  onLCP: vi.fn((cb: (metric: LCPMetric) => void) => cb(mockLCPMetric))
 }
 
 vi.mock('web-vitals', () => mockWebVitals)
@@ -33,8 +63,8 @@ describe('Performance', () => {
   describe('Web Vitals', () => {
     it('measures Largest Contentful Paint', async () => {
       const mockLCP = vi.fn()
-      mockWebVitals.onLCP.mockImplementation((cb: (metric: Metric) => void) => {
-        cb({ value: 2500, name: 'LCP', id: '', navigationType: 'navigate' })
+      mockWebVitals.onLCP.mockImplementation((cb: (metric: LCPMetric) => void) => {
+        cb(mockLCPMetric)
         mockLCP()
       })
 
@@ -56,8 +86,8 @@ describe('Performance', () => {
 
     it('measures First Input Delay', async () => {
       const mockFID = vi.fn()
-      mockWebVitals.onFID.mockImplementation((cb: (metric: Metric) => void) => {
-        cb({ value: 100, name: 'FID', id: '', navigationType: 'navigate' })
+      mockWebVitals.onFID.mockImplementation((cb: (metric: FIDMetric) => void) => {
+        cb(mockFIDMetric)
         mockFID()
       })
 
@@ -79,8 +109,8 @@ describe('Performance', () => {
 
     it('measures Cumulative Layout Shift', async () => {
       const mockCLS = vi.fn()
-      mockWebVitals.onCLS.mockImplementation((cb: (metric: Metric) => void) => {
-        cb({ value: 0.1, name: 'CLS', id: '', navigationType: 'navigate' })
+      mockWebVitals.onCLS.mockImplementation((cb: (metric: CLSMetric) => void) => {
+        cb(mockCLSMetric)
         mockCLS()
       })
 

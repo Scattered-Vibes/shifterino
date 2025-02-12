@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/utils/index'
 import { buttonVariants } from '@/components/ui/button'
 import {
   CalendarIcon,

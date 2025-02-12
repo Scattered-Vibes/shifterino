@@ -57,5 +57,5 @@ export function useAuthListener(
     return () => {
       subscription.unsubscribe()
     }
-  }, [onSignIn, onSignOut])
+  }, [onSignIn, onSignOut, supabase.auth])
 } 

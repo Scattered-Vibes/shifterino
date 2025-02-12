@@ -2,8 +2,8 @@
 
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
-import { createClient } from '@/app/lib/supabase/server'
-import { handleError } from '@/app/lib/utils'
+import { createClient } from '@/lib/supabase/server'
+import { handleError } from '@/lib/utils/index'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ShiftOptionsDataTable } from './data-table'
 import { ShiftOptionsTableSkeleton } from './loading'

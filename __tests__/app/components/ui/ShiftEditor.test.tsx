@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
-import ShiftEditor from '@/app/components/ui/ShiftEditor'
+import { ShiftEditor } from '@/components/features/schedule/ShiftEditor'
 import type { Schedule } from '@/types/scheduling/schedule'
 
 describe('ShiftEditor Component', () => {

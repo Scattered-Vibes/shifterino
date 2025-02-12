@@ -3,13 +3,13 @@
 import { createClient } from '@/lib/supabase/server'
 import { handleError } from '@/lib/utils/error-handler'
 import { requireManager, requireSupervisorOrAbove, verifyTeamAccess } from '@/lib/auth/middleware'
-import type { IndividualShift } from '@/types/scheduling'
+import type { IndividualShift } from '@/types/models/shift'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import {
   ScheduleGenerationParams,
   ScheduleGenerationResult
-} from '@/types/scheduling'
+} from '@/types/models/shift'
 import { generateSchedule as generateScheduleImpl } from '@/lib/scheduling/generate'
 
 interface SchedulePeriod {

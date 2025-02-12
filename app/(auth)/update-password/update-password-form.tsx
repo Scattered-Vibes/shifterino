@@ -2,7 +2,7 @@
 
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { updatePasswordSchema, type UpdatePasswordInput } from '@/app/lib/validations/schemas'
+import { updatePasswordSchema, type UpdatePasswordInput } from '@/lib/validations/auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'

@@ -1,6 +1,6 @@
 import { vi } from 'vitest'
 import { createClient } from '@/lib/supabase/server'
-import type { AuthResult } from '@/app/lib/auth/middleware'
+import type { AuthResult } from '@/lib/auth/middleware'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/supabase/database'
 

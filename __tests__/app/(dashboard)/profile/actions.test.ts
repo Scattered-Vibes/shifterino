@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
-import { createMockSupabaseClient, createMockUser } from '@/test/helpers/supabase-mock'
-import { updateProfile } from '@/app/(dashboard)/profile/actions'
+import { createMockSupabaseClient, createMockUser } from '@/test/supabase-mock'
+import { updateProfile } from '@/(dashboard)/profile/actions'
 import { AuthApiError } from '@supabase/supabase-js'
 import type { UpdateProfileInput } from '@/types/profile'
 

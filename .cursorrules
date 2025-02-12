@@ -49,16 +49,23 @@ Follow Next.js docs for Data Fetching, Rendering, and Routing.
 *   **Description:** I need to create a schedule that provides 24/7 coverage for a 911 dispatch center. The schedule must meet strict minimum staffing requirements in defined time periods with at least one shift supervisor per period. Staffing specifics are: at least 6 employees from 5 AM to 9 AM, at least 8 employees from 9 AM to 9 PM, at least 7 employees from 9 PM to 1 AM, and at least 6 employees from 1 AM to 5 AM. Shifts can cross midnight and may cover staffing for two separate days. Additional constraints include adherence to specific employee shift patterns (either four consecutive 10‐hour shifts or three consecutive 12‐hour shifts plus one 4‐hour shift), a 40-hour weekly cap (unless manually overridden), and integration of time-off management. Managers will use this system to perform CRUD operations on schedules and related data while employees view and manage their own scheduling information.
 To develop a comprehensive 24/7 schedule for a 911 dispatch center that meets specific staffing requirements, consider the following structured approach:
 
+To develop a comprehensive 24/7 schedule for a 911 dispatch center that meets specific staffing requirements, consider the following structured approach:
 1. Staffing Requirements:
-	•	5:00 AM – 9:00 AM: Minimum of 6 employees, including 1 shift supervisor.
-	•	9:00 AM – 9:00 PM: Minimum of 8 employees, including 1 shift supervisor.
-	•	9:00 PM – 1:00 AM: Minimum of 7 employees, including 1 shift supervisor.
-	•	1:00 AM – 5:00 AM: Minimum of 6 employees, including 1 shift supervisor.
+Morning_requirement: 
+5:00 AM – 9:00 AM: Minimum of 6 employees, including 1 shift supervisor.
+Daytime_requirement: 
+9:00 AM – 9:00 PM: Minimum of 8 employees, including 1 shift supervisor.
+Evening_requirement: 
+9:00 PM – 1:00 AM: Minimum of 7 employees, including 1 shift supervisor.
+Night_requirement: 
+1:00 AM – 5:00 AM: Minimum of 6 employees, including 1 shift supervisor.
+
 2. Employee Shift Patterns:
 	•	Pattern A: Four consecutive 10-hour shifts.
 	•	Pattern B: Three consecutive 12-hour shifts plus one 4-hour shift, scheduled consecutively.
 3. Shift Options:
-	•	Day Shift Early:
+These are the shifts that are available to employees (they don’t align with Staffing Requirements which complicates scheduling )
+	•	Early Shift:
 	•	5:00 AM – 9:00 AM (4-hour shift)
 	•	5:00 AM – 3:00 PM (10-hour shift)
 	•	5:00 AM – 5:00 PM (12-hour shift)
@@ -90,6 +97,24 @@ To develop a comprehensive 24/7 schedule for a 911 dispatch center that meets sp
 	•	Flexibility: Allow for managerial adjustments.
 	•	Optimization: Minimize unfulfilled staffing requirements and overtime.
 By following this structured approach, you can create an effective schedule that ensures continuous coverage while respecting employee constraints and preferences.
+
+Scheduling Variables:
+There are a lot of variables to consider when creating a schedule:
+
+I need to create a schedule that provides 24/7 coverage for a 911 dispatch center. Minimum staffing requirements must be met for specific staffing requirements time periods. There should be at 1 shift supervisor per staffing requirements time period. There must be at least 6 employees starting at 5 am until 9 am. there must be at least 8 employees at 9 am until 9 pm. there must be at least 7 employees at 9 am until 1 am. there must be at least 6 employees at 1 am until 5 am. Some shifts cross midnight and partially fulfill staffing requirements for 2 separate days.
+
+Employees should be scheduled for 40 hours a week. No employee should be scheduled for more than 40 hours a week unless manually approved by a manager. Employee shifts should fall on consecutive days during the same default shift time each day. Employees can have Either four 10 hour shifts on consecutive days or three 12 hour shifts and one 4 hour on consecutive days. (3+1 should have 3 12 hours for the same shift on 3 consecutive days and one 4 hour shift that is the closest in time to their 12 hour shifts)
+
+schedules are in 4 month blocks, some shifts might also span the end of one schedule into the beginning of the next.
+
+The employees assigned shifts need to take into consideration any time off requests the employees have submitted. Do not schedule an employee during an approved time off period. try to avoid scheduling the employee during a requested but not yet approved time off period but can schedule the employee during that period if we can't meet staffing requirements without them.
+
+We will need an assigned-shifts table in the db to track assigned-shifts individual employees are assigned to per day.
+
+The Shifts do not have a minimum required number of assigned workers
+
+Supervisor requirement flag, and Minimum employee count should exist in the staffing requirements table not the shifts table.
+
 
 *   **Primary Goal:** Streamline the creation of compliant 24/7 schedules by automating complex staffing rules, optimizing shift assignments per employee patterns, and providing an intuitive dashboard for both managers and staff.
 

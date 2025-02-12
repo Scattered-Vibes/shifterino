@@ -1,7 +1,7 @@
-import { createClient } from '@/app/lib/supabase/client'
+import { createClient } from '@/lib/supabase/client'
 import { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 import type { Database } from '@/types/supabase/database'
-import { IndividualShift, ShiftSwapRequest, OnCallAssignment, OnCallActivation } from '@/types/scheduling'
+import { IndividualShift, ShiftSwapRequest, OnCallAssignment, OnCallActivation } from '@/types/models/shift'
 
 type DatabaseTables = Database['public']['Tables']
 type Schedule = DatabaseTables['schedules']['Row']

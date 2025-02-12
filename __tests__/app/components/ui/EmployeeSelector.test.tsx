@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
-import EmployeeSelector from '@/app/components/ui/EmployeeSelector'
+import { EmployeeSelector } from '@/components/features/employees/EmployeeSelector'
 
 interface Employee {
   id: string

@@ -1,9 +1,9 @@
 'use client'
 
-import * as React from 'react'
+import React from 'react'
 import * as AvatarPrimitive from '@radix-ui/react-avatar'
 
-import { cn } from '@/app/lib/utils'
+import { cn } from '@/lib/utils/index'
 
 const Avatar = React.forwardRef<
   React.ElementRef<typeof AvatarPrimitive.Root>,

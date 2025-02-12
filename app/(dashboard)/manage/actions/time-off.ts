@@ -24,7 +24,7 @@ export async function createTimeOffRequest(data: z.infer<typeof timeOffRequestSc
     const supabase = createClient()
     
     // Create request
-    const { error } = await supabase
+    const { data: request, error } = await supabase
       .from('time_off_requests')
       .insert({
         employee_id: auth.employeeId,
@@ -32,13 +32,15 @@ export async function createTimeOffRequest(data: z.infer<typeof timeOffRequestSc
         end_date: validated.end_date,
         reason: validated.reason,
         type: validated.type,
-        status: 'PENDING'
+        status: 'pending'
       })
+      .select()
+      .single()
     
     if (error) throw error
     
     revalidatePath('/time-off')
-    return { success: true }
+    return request
   } catch (error) {
     throw handleError(error)
   }
@@ -50,7 +52,7 @@ export async function updateTimeOffRequest(
 ) {
   try {
     // Verify authenticated
-    const auth = await requireAuth()
+    const auth = await requireSupervisorOrAbove()
     
     const supabase = createClient()
     
@@ -69,7 +71,7 @@ export async function updateTimeOffRequest(
       throw new Error('Not authorized to update this request')
     }
     
-    if (request.status !== 'PENDING') {
+    if (request.status !== 'pending') {
       throw new Error('Can only update pending requests')
     }
     
@@ -77,15 +79,17 @@ export async function updateTimeOffRequest(
     const validated = timeOffRequestSchema.partial().parse(data)
     
     // Update request
-    const { error } = await supabase
+    const { data: updatedRequest, error } = await supabase
       .from('time_off_requests')
       .update(validated)
       .eq('id', requestId)
+      .select()
+      .single()
     
     if (error) throw error
     
     revalidatePath('/time-off')
-    return { success: true }
+    return updatedRequest
   } catch (error) {
     throw handleError(error)
   }
@@ -113,7 +117,7 @@ export async function deleteTimeOffRequest(requestId: string) {
       throw new Error('Not authorized to delete this request')
     }
     
-    if (request.status !== 'PENDING') {
+    if (request.status !== 'pending') {
       throw new Error('Can only delete pending requests')
     }
     
@@ -152,20 +156,22 @@ export async function approveTimeOffRequest(requestId: string) {
     // Verify access to employee
     await verifyEmployeeAccess(auth, request.employee_id)
     
-    if (request.status !== 'PENDING') {
+    if (request.status !== 'pending') {
       throw new Error('Can only approve pending requests')
     }
     
     // Update request status
-    const { error } = await supabase
+    const { data: updatedRequest, error } = await supabase
       .from('time_off_requests')
-      .update({ status: 'APPROVED' })
+      .update({ status: 'approved' })
       .eq('id', requestId)
+      .select()
+      .single()
     
     if (error) throw error
     
     revalidatePath('/time-off')
-    return { success: true }
+    return updatedRequest
   } catch (error) {
     throw handleError(error)
   }
@@ -191,23 +197,25 @@ export async function rejectTimeOffRequest(requestId: string, reason: string) {
     // Verify access to employee
     await verifyEmployeeAccess(auth, request.employee_id)
     
-    if (request.status !== 'PENDING') {
+    if (request.status !== 'pending') {
       throw new Error('Can only reject pending requests')
     }
     
     // Update request status
-    const { error } = await supabase
+    const { data: updatedRequest, error } = await supabase
       .from('time_off_requests')
-      .update({ 
-        status: 'REJECTED',
-        rejection_reason: reason
+      .update({
+        status: 'rejected',
+        notes: reason
       })
       .eq('id', requestId)
+      .select()
+      .single()
     
     if (error) throw error
     
     revalidatePath('/time-off')
-    return { success: true }
+    return updatedRequest
   } catch (error) {
     throw handleError(error)
   }

@@ -48,7 +48,7 @@ export default function RootLayout({ children }) {
 
 ```tsx
 // Using Supabase context
-import { useSupabase } from '@/app/providers/supabase-provider'
+import { useSupabase } from '@/providers/supabase-provider'
 
 function MyComponent() {
   const { supabase, user } = useSupabase()

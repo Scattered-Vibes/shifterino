@@ -1,12 +1,13 @@
 'use client'
 
-import * as React from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { signupSchema, type SignupInput } from '@/app/lib/validations/schemas'
+import { signupSchema, type SignupInput } from '@/lib/validations/auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/components/ui/use-toast'
+import { signup } from '../actions'
+import type { SubmitHandler } from 'react-hook-form'
 import {
   Select,
   SelectContent,
@@ -14,7 +15,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { signup } from '@/app/actions/auth'
 import {
   Form,
   FormControl,
@@ -23,7 +23,6 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import type { SubmitHandler } from 'react-hook-form'
 
 export function SignupForm() {
   const { toast } = useToast()
@@ -41,13 +40,21 @@ export function SignupForm() {
 
   const onSubmit: SubmitHandler<SignupInput> = async (data) => {
     try {
-      const result = await signup(data)
+      const formData = new FormData()
+      formData.append('email', data.email)
+      formData.append('password', data.password)
+      formData.append('confirmPassword', data.confirmPassword)
+      formData.append('first_name', data.first_name)
+      formData.append('last_name', data.last_name)
+      formData.append('role', data.role)
+      
+      const result = await signup(null, formData)
       
       if (result?.error) {
         toast({
           variant: 'destructive',
           title: 'Error',
-          description: result.error,
+          description: result.error.message,
         })
         return
       }
@@ -118,13 +125,36 @@ export function SignupForm() {
               <FormLabel>Email</FormLabel>
               <FormControl>
                 <Input 
-                  type="email" 
-                  placeholder="name@example.com" 
+                  placeholder="Enter your email" 
                   {...field} 
+                  type="email"
                   autoComplete="email"
                   aria-label="Email address"
                 />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="role"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Role</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select your role" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="manager">Manager</SelectItem>
+                  <SelectItem value="supervisor">Supervisor</SelectItem>
+                  <SelectItem value="dispatcher">Dispatcher</SelectItem>
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
@@ -138,9 +168,9 @@ export function SignupForm() {
               <FormLabel>Password</FormLabel>
               <FormControl>
                 <Input 
-                  type="password" 
-                  placeholder="••••••••" 
+                  placeholder="Enter your password" 
                   {...field} 
+                  type="password"
                   autoComplete="new-password"
                   aria-label="Password"
                 />
@@ -158,9 +188,9 @@ export function SignupForm() {
               <FormLabel>Confirm Password</FormLabel>
               <FormControl>
                 <Input 
-                  type="password" 
-                  placeholder="••••••••" 
+                  placeholder="Confirm your password" 
                   {...field} 
+                  type="password"
                   autoComplete="new-password"
                   aria-label="Confirm password"
                 />
@@ -170,39 +200,8 @@ export function SignupForm() {
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="role"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Role</FormLabel>
-              <Select 
-                onValueChange={field.onChange} 
-                defaultValue={field.value}
-                aria-label="Select your role"
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select your role" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="dispatcher">Dispatcher</SelectItem>
-                  <SelectItem value="supervisor">Supervisor</SelectItem>
-                  <SelectItem value="manager">Manager</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <Button 
-          type="submit" 
-          className="w-full" 
-          disabled={form.formState.isSubmitting}
-        >
-          {form.formState.isSubmitting ? 'Creating account...' : 'Create account'}
+        <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+          {form.formState.isSubmitting ? 'Creating account...' : 'Sign Up'}
         </Button>
       </form>
     </Form>

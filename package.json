@@ -19,7 +19,8 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
-    "test:watch": "vitest watch"
+    "test:watch": "vitest watch",
+    "create-test-users": "tsx scripts/create-test-users.ts"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.15",
@@ -107,6 +108,7 @@
     "typescript": "^5",
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^1.6.1",
-    "web-vitals": "^4.2.4"
+    "web-vitals": "^4.2.4",
+    "tsx": "^4.7.1"
   }
 }

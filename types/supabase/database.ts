@@ -722,6 +722,30 @@ export type Database = {
           },
         ]
       }
+      rate_limits: {
+        Row: {
+          id: string
+          count: number
+          last_request: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          count?: number
+          last_request?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          count?: number
+          last_request?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       mv_schedule_statistics: {
@@ -745,6 +769,10 @@ export type Database = {
           session_token: string
         }
         Returns: boolean
+      }
+      cleanup_rate_limits: {
+        Args: Record<PropertyKey, never>
+        Returns: void
       }
     }
     Enums: {

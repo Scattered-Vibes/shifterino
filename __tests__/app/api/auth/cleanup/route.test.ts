@@ -1,5 +1,5 @@
-import { POST } from '@/app/api/auth/cleanup/route'
-import { createMockSupabaseClient } from '@/test/helpers/supabase-mock'
+import { POST } from '@/api/auth/cleanup/route'
+import { createMockSupabaseClient } from '@/test/supabase-mock'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 

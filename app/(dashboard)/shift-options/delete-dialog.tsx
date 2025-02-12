@@ -12,7 +12,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { useToast } from '@/components/ui/use-toast'
-import { createClient } from '@/app/lib/supabase/client'
+import { createClient } from '@/lib/supabase/client'
 import type { Database } from '@/types/supabase/database'
 
 type ShiftOption = Database['public']['Tables']['shift_options']['Row']

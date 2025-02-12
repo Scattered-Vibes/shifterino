@@ -10,6 +10,11 @@ export function createClient() {
   )
 }
 
+export function useSupabase() {
+  const supabase = createClient()
+  return { supabase }
+}
+
 export type SupabaseClient = ReturnType<typeof createClient>
 
 // Helper types

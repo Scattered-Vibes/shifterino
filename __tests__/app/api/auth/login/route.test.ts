@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { NextRequest } from 'next/server'
-import { POST } from '@/app/api/auth/login/route'
-import { mockAuthUser, mockAuthError } from '@/test/helpers/auth'
-import { rateLimit } from '@/middleware/rate-limit'
+import { POST } from '@/api/auth/login/route'
+import { mockAuthUser, mockAuthError } from '@/test/auth'
+import { rateLimit } from '@/lib/middleware/rate-limit'
 
 // Mock next/headers
 vi.mock('next/headers', () => ({
@@ -14,7 +14,7 @@ vi.mock('next/headers', () => ({
 }))
 
 // Mock rate limiting
-vi.mock('@/middleware/rate-limit', () => ({
+vi.mock('@/lib/middleware/rate-limit', () => ({
   rateLimit: vi.fn().mockResolvedValue(null)
 }))
 

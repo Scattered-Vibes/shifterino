@@ -1,13 +1,13 @@
 'use client'
 
-import * as React from 'react'
+import React from 'react'
 import { useState } from 'react'
 import type { Schedule } from '@/types/scheduling/schedule'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/utils/index'
 import { format } from 'date-fns'
 
 interface Employee {

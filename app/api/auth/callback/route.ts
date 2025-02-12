@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { handleError } from '@/lib/utils/error-handler'
+import { handleError, AppError } from '@/lib/utils/error-handler'
 
 /**
  * GET authentication callback handler.
@@ -17,18 +17,28 @@ export async function GET(request: Request) {
   try {
     const requestUrl = new URL(request.url)
     const code = requestUrl.searchParams.get('code')
+    const expectedOrigin = process.env.NEXT_PUBLIC_APP_URL
 
+    // Verify environment configuration
+    if (!expectedOrigin) {
+      throw new Error('NEXT_PUBLIC_APP_URL environment variable is not set')
+    }
+
+    // Verify request origin with strict comparison
+    if (requestUrl.origin.toLowerCase() !== expectedOrigin.toLowerCase()) {
+      throw new Error('Invalid request origin')
+    }
+
+    // Verify authorization code
     if (!code) {
-      console.error('No authorization code provided in callback')
-      return NextResponse.redirect(`${requestUrl.origin}/login?error=missing_code`)
+      throw new Error('No authorization code provided in callback')
     }
 
     const supabase = createClient()
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
     
     if (error) {
-      console.error('Error exchanging code for session:', error)
-      return NextResponse.redirect(`${requestUrl.origin}/login?error=auth_error`)
+      throw error
     }
 
     // Log successful authentication
@@ -38,41 +48,72 @@ export async function GET(request: Request) {
         .insert({
           operation: 'oauth_callback_success',
           user_id: data.user.id,
-          details: { provider: data.user.app_metadata.provider }
+          details: { 
+            provider: data.user.app_metadata.provider,
+            origin: requestUrl.origin
+          }
         })
       
       if (logError) {
-        console.error('Error logging oauth callback:', logError)
+        // Log but don't throw - this shouldn't block the auth flow
+        console.error('Failed to log authentication:', logError)
       }
     }
 
     return NextResponse.redirect(`${requestUrl.origin}/overview`)
   } catch (error) {
-    console.error('Unexpected error in auth callback:', error)
-    const requestUrl = new URL(request.url)
-    return NextResponse.redirect(`${requestUrl.origin}/login?error=server_error`)
+    try {
+      const message = error instanceof Error ? error.message : 'Unexpected error in auth callback'
+      handleError(message, error)
+    } catch (appError) {
+      if (appError instanceof AppError) {
+        const errorCode = appError.code === 'UNAUTHORIZED' ? 'auth_error' :
+                         appError.code === 'VALIDATION' ? 'invalid_request' :
+                         appError.code === 'NOT_FOUND' ? 'missing_code' :
+                         'server_error'
+        
+        const requestUrl = new URL(request.url)
+        const redirectTo = appError.code === 'FORBIDDEN' ? 
+          process.env.NEXT_PUBLIC_APP_URL : 
+          requestUrl.origin
+        
+        return NextResponse.redirect(`${redirectTo}/login?error=${errorCode}`)
+      }
+      return NextResponse.redirect(`${new URL(request.url).origin}/login?error=server_error`)
+    }
   }
 }
 
 // Only allow GET and OPTIONS
 export async function POST() {
-  return NextResponse.json({ error: 'Method not allowed' }, { status: 405 })
+  return NextResponse.json(
+    { error: 'Method not allowed' },
+    { status: 405 }
+  )
 }
 
 export async function PUT() {
-  return NextResponse.json({ error: 'Method not allowed' }, { status: 405 })
+  return NextResponse.json(
+    { error: 'Method not allowed' },
+    { status: 405 }
+  )
 }
 
 export async function DELETE() {
-  return NextResponse.json({ error: 'Method not allowed' }, { status: 405 })
+  return NextResponse.json(
+    { error: 'Method not allowed' },
+    { status: 405 }
+  )
 }
 
 // Handle OPTIONS requests for CORS
 export async function OPTIONS() {
+  const allowedOrigin = process.env.NEXT_PUBLIC_APP_URL || '*'
+  
   return new NextResponse(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': process.env.NEXT_PUBLIC_DOMAIN || '*',
+      'Access-Control-Allow-Origin': allowedOrigin,
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     },

@@ -2,9 +2,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, act } from '@testing-library/react'
 import { AuthProvider, useAuth } from '@/components/providers/AuthProvider'
 import { createClient } from '@/lib/supabase/client'
-import { type User, type Session, type Subscription } from '@supabase/supabase-js'
-import { type AuthChangeEvent } from '@supabase/supabase-js'
-import { type Database } from '@/types/supabase/database'
+import type { User, Session, Subscription, AuthChangeEvent } from '@supabase/supabase-js'
+import type { UserRole } from '@/lib/auth/client'
 
 // Mock the Supabase client
 vi.mock('@/lib/supabase/client', () => ({
@@ -90,7 +89,7 @@ describe('AuthProvider', () => {
     })
 
     const mockEmployeeData = {
-      data: { role: 'dispatcher' as Database['public']['Enums']['employee_role'] },
+      data: { role: 'dispatcher' as UserRole },
     }
 
     const mockFrom = vi.fn().mockReturnValue({

@@ -2,10 +2,13 @@
 
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { loginSchema, type LoginInput } from '@/app/lib/validations/schemas'
+import { loginSchema, type LoginInput } from '@/lib/validations/auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useToast } from '@/components/ui/use-toast'
+import { login } from '../actions'
+import type { SubmitHandler } from 'react-hook-form'
 
 interface LoginFormProps {
   onSubmit: (data: LoginInput) => Promise<void>

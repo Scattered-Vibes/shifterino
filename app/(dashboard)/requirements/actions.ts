@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { requireManager } from '@/lib/auth/middleware'
 import { handleError, ErrorCode } from '@/lib/utils/error-handler'
-import type { Database } from '@/types/database'
+import type { Database } from '@/types/supabase/database'
 
 type StaffingRequirement = Database['public']['Tables']['staffing_requirements']['Insert']
 

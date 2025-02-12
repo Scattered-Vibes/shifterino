@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
-import { createMockServerComponentClient } from '../../../test/supabase-mock'
-import ScheduleManager from '@/app/components/schedule/ScheduleManager'
+import { createMockServerComponentClient } from '@/test/supabase-mock'
+import ScheduleManager from '@/components/schedule/ScheduleManager'
 import type { Schedule, ScheduleGenerationOptions } from '@/types/scheduling/schedule'
 
 describe('End-to-End Scheduling Flow', () => {

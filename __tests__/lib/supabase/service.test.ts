@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createMockSupabaseClient } from '@/test/utils/supabase-mock';
-import { getEmployeeSchedule, updateShift, createTimeOffRequest } from '@/lib/supabase/service';
+import { createMockSupabaseClient } from '@/test/supabase-mock';
+import { getEmployeeSchedule, updateShift, createTimeOffRequest } from '@/lib/supabase/server';
 import type { Database } from '@/types/supabase/database';
 
 describe('Supabase Service', () => {

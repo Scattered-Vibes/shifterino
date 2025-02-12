@@ -42,7 +42,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { format } from 'date-fns'
-import { createClient } from '@/app/lib/supabase/client'
+import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/use-toast'
 import { CheckIcon, Cross2Icon } from '@radix-ui/react-icons'
 import type { Database } from '@/types/supabase/database'

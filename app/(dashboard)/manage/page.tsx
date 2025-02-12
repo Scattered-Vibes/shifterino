@@ -15,7 +15,8 @@ import {
   PersonIcon,
   UpdateIcon,
 } from '@radix-ui/react-icons'
-import { createClient } from '@/app/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { formatDistanceToNow } from 'date-fns'
 import Link from 'next/link'
 import type { Tables } from '@/types/supabase'

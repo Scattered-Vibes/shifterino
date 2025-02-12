@@ -20,11 +20,10 @@
 
 import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/app/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { EmployeesDataTable } from '@/components/employees/data-table'
-import { EmployeesTableSkeleton } from '@/components/employees/loading'
-import { CreateEmployeeButton } from '@/components/employees/create-button'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
+import { CreateEmployeeButton } from '@/components/employees/create-button'
 import type { Database } from '@/types/supabase/database'
 
 type Employee = Database['public']['Tables']['employees']['Row']
@@ -54,6 +53,9 @@ export default async function EmployeesPage() {
     redirect('/login')
   }
 
+  // Fetch employees data
+  const employees = await getEmployees()
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
@@ -62,8 +64,8 @@ export default async function EmployeesPage() {
       </div>
 
       <ErrorBoundary>
-        <Suspense fallback={<EmployeesTableSkeleton />}>
-          <EmployeesDataTable promise={getEmployees()} />
+        <Suspense fallback={<EmployeesDataTable data={[]} isLoading={true} />}>
+          <EmployeesDataTable data={employees} isLoading={false} />
         </Suspense>
       </ErrorBoundary>
     </div>

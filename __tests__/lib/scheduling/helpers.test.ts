@@ -5,7 +5,7 @@ import {
   getMatchingShiftOptions,
   validateSchedulePeriod
 } from '@/lib/scheduling/helpers'
-import { mockData } from '@/test/helpers/mock-data'
+import { mockData } from '@/test/mock-data'
 
 describe('scheduling/helpers', () => {
   describe('getAvailableEmployees', () => {

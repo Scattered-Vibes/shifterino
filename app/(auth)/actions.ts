@@ -4,159 +4,328 @@
 
 'use server'
 
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { z } from 'zod'
+import { handleError } from '@/lib/utils/error-handler'
+import { type Database } from '@/types/supabase/database'
+import { type LoginState, type SignUpState, type ResetPasswordState, type UpdatePasswordState } from '@/app/(auth)/auth'
+import { loginSchema, signupSchema, resetPasswordSchema, updatePasswordSchema } from '@/lib/validations/auth'
 
-import { createClient } from '@/lib/supabase/server'
-import { handleError, ErrorCode } from '@/app/lib/utils/error-handler'
-import {
-  loginSchema,
-  signupSchema,
-  resetPasswordSchema,
-  updatePasswordSchema,
-  type LoginInput,
-  type SignupInput,
-  type ResetPasswordInput,
-  type UpdatePasswordInput,
-} from '@/app/lib/validations/auth'
-
-export async function login(data: LoginInput) {
+export async function login(_prevState: LoginState | null, formData: FormData): Promise<LoginState | null> {
   try {
-    const validatedFields = loginSchema.parse(data)
+    const email = formData.get('email') as string
+    const password = formData.get('password') as string
 
-    const supabase = createClient()
+    const result = loginSchema.safeParse({ email, password })
+
+    if (!result.success) {
+      return {
+        error: {
+          message: result.error.errors[0].message,
+          code: 'VALIDATION_ERROR'
+        }
+      }
+    }
+
+    const cookieStore = cookies()
+    const supabase = createServerClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            cookieStore.set({ name, value, ...options })
+          },
+          remove(name: string, _options: CookieOptions) {
+            cookieStore.delete(name)
+          },
+        },
+      }
+    )
+
     const { error } = await supabase.auth.signInWithPassword({
-      email: validatedFields.email,
-      password: validatedFields.password,
+      email,
+      password,
     })
 
     if (error) {
-      const appError = handleError(error as Error)
-      return { error: appError.message, code: appError.code }
+      const result = handleError(error)
+      return {
+        error: {
+          message: result.message,
+          code: result.code
+        }
+      }
     }
 
     revalidatePath('/', 'layout')
-    return { success: true }
+    redirect('/dashboard')
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return { 
-        error: 'Invalid email or password format',
-        code: ErrorCode.VALIDATION
+    const result = handleError(error)
+    return {
+      error: {
+        message: result.message,
+        code: result.code
       }
     }
-    const appError = handleError(error as Error)
-    return { error: appError.message, code: appError.code }
   }
 }
 
-export async function signup(data: SignupInput) {
+export async function logout() {
   try {
-    const validatedFields = signupSchema.parse(data)
-    const supabase = createClient()
-
-    const { error: signUpError } = await supabase.auth.signUp({
-      email: validatedFields.email,
-      password: validatedFields.password,
-      options: {
-        data: {
-          role: validatedFields.role,
-          first_name: validatedFields.first_name,
-          last_name: validatedFields.last_name
+    const cookieStore = cookies()
+    const supabase = createServerClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            cookieStore.set({ name, value, ...options })
+          },
+          remove(name: string, _options: CookieOptions) {
+            cookieStore.delete(name)
+          },
         },
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/complete-profile`
+      }
+    )
+
+    const { error } = await supabase.auth.signOut()
+
+    if (error) {
+      const result = handleError(error)
+      return {
+        error: {
+          message: result.message,
+          code: result.code
+        }
+      }
+    }
+
+    revalidatePath('/', 'layout')
+    redirect('/login')
+  } catch (error) {
+    const result = handleError(error)
+    return {
+      error: {
+        message: result.message,
+        code: result.code
+      }
+    }
+  }
+}
+
+export async function signup(_prevState: SignUpState | null, formData: FormData): Promise<SignUpState | null> {
+  try {
+    const email = formData.get('email') as string
+    const password = formData.get('password') as string
+    const confirmPassword = formData.get('confirmPassword') as string
+    const first_name = formData.get('first_name') as string
+    const last_name = formData.get('last_name') as string
+    const role = formData.get('role') as 'manager' | 'supervisor' | 'dispatcher'
+
+    const result = signupSchema.safeParse({ 
+      email, 
+      password, 
+      confirmPassword,
+      first_name,
+      last_name,
+      role
+    })
+
+    if (!result.success) {
+      return {
+        error: {
+          message: result.error.errors[0].message,
+          code: 'VALIDATION_ERROR'
+        }
+      }
+    }
+
+    const cookieStore = cookies()
+    const supabase = createServerClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            cookieStore.set({ name, value, ...options })
+          },
+          remove(name: string, _options: CookieOptions) {
+            cookieStore.delete(name)
+          },
+        },
+      }
+    )
+
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+        data: {
+          first_name,
+          last_name,
+          role
+        }
       },
     })
 
-    if (signUpError) {
-      const appError = handleError(signUpError as Error)
-      return { error: appError.message, code: appError.code }
-    }
-
-    redirect('/auth/check-email')
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return { 
-        error: 'Invalid form data',
-        code: ErrorCode.VALIDATION
+    if (error) {
+      const result = handleError(error)
+      return {
+        error: {
+          message: result.message,
+          code: result.code
+        }
       }
     }
-    const appError = handleError(error as Error)
-    return { error: appError.message, code: appError.code }
-  }
-}
 
-export async function signOut() {
-  try {
-    const supabase = createClient()
-    const { error } = await supabase.auth.signOut()
-    
-    if (error) {
-      const appError = handleError(error as Error)
-      return { error: appError.message }
+    return {
+      message: 'Check your email to confirm your account'
     }
-
-    revalidatePath('/', 'layout')
-    return { success: true }
   } catch (error) {
-    if (error instanceof Error) {
-      return handleError(error, ErrorCode.AUTH_ERROR)
+    const result = handleError(error)
+    return {
+      error: {
+        message: result.message,
+        code: result.code
+      }
     }
-    return { error: 'An unexpected error occurred' }
   }
 }
 
-export async function resetPassword(data: ResetPasswordInput) {
+export async function resetPassword(_prevState: ResetPasswordState | null, formData: FormData): Promise<ResetPasswordState | null> {
   try {
-    const validatedFields = resetPasswordSchema.parse(data)
-    const supabase = createClient()
+    const email = formData.get('email') as string
 
-    const { error } = await supabase.auth.resetPasswordForEmail(validatedFields.email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/reset-password`,
+    const result = resetPasswordSchema.safeParse({ email })
+
+    if (!result.success) {
+      return {
+        error: {
+          message: result.error.errors[0].message,
+          code: 'VALIDATION_ERROR'
+        }
+      }
+    }
+
+    const cookieStore = cookies()
+    const supabase = createServerClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            cookieStore.set({ name, value, ...options })
+          },
+          remove(name: string, _options: CookieOptions) {
+            cookieStore.delete(name)
+          },
+        },
+      }
+    )
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
     })
 
     if (error) {
-      const appError = handleError(error as Error)
-      return { error: appError.message, code: appError.code }
-    }
-
-    return { success: true }
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return { 
-        error: 'Invalid email format',
-        code: ErrorCode.VALIDATION
+      const result = handleError(error)
+      return {
+        error: {
+          message: result.message,
+          code: result.code
+        }
       }
     }
-    const appError = handleError(error as Error)
-    return { error: appError.message, code: appError.code }
+
+    return {
+      message: 'Check your email to reset your password'
+    }
+  } catch (error) {
+    const result = handleError(error)
+    return {
+      error: {
+        message: result.message,
+        code: result.code
+      }
+    }
   }
 }
 
-export async function updatePassword(data: UpdatePasswordInput) {
+export async function updatePassword(_prevState: UpdatePasswordState | null, formData: FormData): Promise<UpdatePasswordState | null> {
   try {
-    const validatedFields = updatePasswordSchema.parse(data)
-    const supabase = createClient()
-    
+    const password = formData.get('password') as string
+    const confirmPassword = formData.get('confirmPassword') as string
+
+    const result = updatePasswordSchema.safeParse({ password, confirmPassword })
+
+    if (!result.success) {
+      return {
+        error: {
+          message: result.error.errors[0].message,
+          code: 'VALIDATION_ERROR'
+        }
+      }
+    }
+
+    const cookieStore = cookies()
+    const supabase = createServerClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            cookieStore.set({ name, value, ...options })
+          },
+          remove(name: string, _options: CookieOptions) {
+            cookieStore.delete(name)
+          },
+        },
+      }
+    )
+
     const { error } = await supabase.auth.updateUser({
-      password: validatedFields.password,
+      password,
     })
 
     if (error) {
-      const appError = handleError(error as Error)
-      return { error: appError.message, code: appError.code }
-    }
-
-    revalidatePath('/', 'layout')
-    redirect('/overview')
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return { 
-        error: 'Invalid password format',
-        code: ErrorCode.VALIDATION
+      const result = handleError(error)
+      return {
+        error: {
+          message: result.message,
+          code: result.code
+        }
       }
     }
-    const appError = handleError(error as Error)
-    return { error: appError.message, code: appError.code }
+
+    return {
+      message: 'Password updated successfully'
+    }
+  } catch (error) {
+    const result = handleError(error)
+    return {
+      error: {
+        message: result.message,
+        code: result.code
+      }
+    }
   }
 }

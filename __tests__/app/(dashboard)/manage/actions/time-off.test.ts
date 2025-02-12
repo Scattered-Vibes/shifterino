@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { createClient } from '@supabase/supabase-js'
-import { checkTimeOffConflicts, createTimeOffRequest } from '@/app/(dashboard)/manage/actions/time-off'
+import { checkTimeOffConflicts, createTimeOffRequest } from '@/(dashboard)/manage/actions/time-off'
 import { ErrorCode } from '@/lib/utils/error-handler'
 
 // Mock Supabase client

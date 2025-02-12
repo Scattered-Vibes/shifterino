@@ -2,10 +2,8 @@ import '@testing-library/jest-dom'
 import { expect, afterEach, beforeAll } from 'vitest'
 import { cleanup } from '@testing-library/react'
 import * as matchers from '@testing-library/jest-dom/matchers'
-import '@testing-library/jest-dom/vitest'
 import { vi } from 'vitest'
 import { TextEncoder, TextDecoder } from 'util'
-import { createMockServerClient, createMockClient } from './__tests__/helpers/supabase-mock'
 
 // Extend Vitest's expect method with methods from react-testing-library
 expect.extend(matchers)
@@ -39,15 +37,6 @@ Object.defineProperty(window, 'matchMedia', {
     dispatchEvent: vi.fn(),
   })),
 })
-
-// Mock Supabase
-vi.mock('@/lib/supabase/server', () => ({
-  createClient: vi.fn().mockImplementation(createMockServerClient)
-}))
-
-vi.mock('@/lib/supabase/client', () => ({
-  createClient: vi.fn().mockImplementation(createMockClient)
-}))
 
 // Cleanup after each test case
 afterEach(() => {

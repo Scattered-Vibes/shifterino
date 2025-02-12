@@ -1,60 +1,81 @@
-import type { Database } from '@/types/supabase/database'
+import type { Database } from '../supabase/database'
 
-// Database types
 type Tables = Database['public']['Tables']
 type Enums = Database['public']['Enums']
 
-// Base employee type from database
+// Base Types
 export type Employee = Tables['employees']['Row']
+export type EmployeeInsert = Tables['employees']['Insert']
+export type EmployeeUpdate = Tables['employees']['Update']
 export type EmployeeRole = Enums['employee_role']
-export type ShiftPattern = Enums['shift_pattern']
-export type ShiftCategory = Enums['shift_category']
 
-// Minimal employee type for relationships
-export interface EmployeeBasic {
-  id: string
-  auth_id: string
+// Extended Types
+export interface EmployeeWithSchedule extends Employee {
+  current_schedule?: Tables['schedules']['Row']
+  upcoming_shifts?: Tables['individual_shifts']['Row'][]
+}
+
+export interface EmployeeWithStats extends Employee {
+  total_hours_worked: number
+  average_hours_per_week: number
+  overtime_hours: number
+  consecutive_days_worked: number
+}
+
+export interface EmployeeWithTimeOff extends Employee {
+  time_off_requests: Tables['time_off_requests']['Row'][]
+  upcoming_time_off: Tables['time_off_requests']['Row'][]
+}
+
+// Create Types
+export interface CreateEmployeeInput {
   first_name: string
   last_name: string
   email: string
   role: EmployeeRole
-  created_at: string
-  updated_at: string
+  shift_pattern: Enums['shift_pattern']
+  preferred_shift_category: Enums['shift_category']
+  weekly_hours_cap: number
+  max_overtime_hours: number
 }
 
-// Extended types for business logic
+// Update Types
+export type UpdateEmployeeInput = Partial<CreateEmployeeInput>
+
+// Filter Types
+export interface EmployeeFilters {
+  role?: EmployeeRole
+  shift_pattern?: Enums['shift_pattern']
+  shift_category?: Enums['shift_category']
+  is_active?: boolean
+  search?: string
+}
+
+// Sort Types
+export type EmployeeSortField = 
+  | 'first_name'
+  | 'last_name'
+  | 'role'
+  | 'shift_pattern'
+  | 'weekly_hours'
+  | 'created_at'
+
+export interface EmployeeSort {
+  field: EmployeeSortField
+  direction: 'asc' | 'desc'
+}
+
+// Utility Types
 export interface EmployeeSchedulePreferences {
-  preferred_shift_category: ShiftCategory | null
-  max_overtime_hours: number | null
-  weekly_hours_cap: number
+  preferred_days: string[]
+  preferred_shifts: string[]
+  max_consecutive_shifts: number
+  min_hours_between_shifts: number
 }
 
-export interface EmployeeStats {
-  consecutive_shifts_count: number
-  total_hours_current_week: number
-  last_shift_date: string | null
-}
-
-// Create/Update types
-export type EmployeeCreate = Omit<Employee, 'id' | 'created_at' | 'updated_at'> & {
-  auth_id: string
-  email: string
-  first_name: string
-  last_name: string
-  role: EmployeeRole
-  weekly_hours_cap: number
-}
-
-export type EmployeeUpdate = Partial<Omit<EmployeeCreate, 'auth_id'>>
-
-// Additional types
 export interface EmployeeAvailability {
-  id: string
   employee_id: string
-  start_date: string
-  end_date: string
+  date: string
   is_available: boolean
   reason?: string
-  created_at: string
-  updated_at: string
 } 

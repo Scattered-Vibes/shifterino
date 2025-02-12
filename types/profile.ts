@@ -1,4 +1,4 @@
-import type { EmployeeRole, ShiftPattern, ShiftCategory } from './index'
+import type { EmployeeRole, ShiftPattern, ShiftCategory } from './models/employee'
 
 export interface UpdateProfileInput {
   id: string

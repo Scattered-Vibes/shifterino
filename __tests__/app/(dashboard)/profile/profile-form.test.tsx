@@ -1,13 +1,8 @@
-import { render, screen, fireEvent, waitFor } from '../../../utils/test-utils'
+import { render, screen, fireEvent, waitFor } from '@/test/test-utils'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { ProfileForm } from '@/app/(dashboard)/profile/profile-form'
-import { mockEmployee } from '../../../helpers/mock-data'
-import type { ProfileInput } from '@/app/lib/validations/schemas'
-
-interface UpdateProfileInput extends ProfileInput {
-  id: string
-  auth_id: string
-}
+import { ProfileForm } from '@/components/profile/profile-form'
+import { mockEmployees } from '@/test/mock-data'
+import type { UpdateProfileInput } from '@/types/profile'
 
 // Mock next/navigation
 vi.mock('next/navigation', () => ({
@@ -18,7 +13,7 @@ vi.mock('next/navigation', () => ({
 
 // Mock the server action
 const mockUpdateProfile = vi.fn()
-vi.mock('@/app/(dashboard)/profile/actions', () => ({
+vi.mock('@/(dashboard)/profile/actions', () => ({
   updateProfile: (data: UpdateProfileInput) => mockUpdateProfile(data),
 }))
 
@@ -36,15 +31,15 @@ describe('ProfileForm', () => {
   })
 
   it('renders with initial data', () => {
-    render(<ProfileForm initialData={mockEmployee} />)
+    render(<ProfileForm initialData={mockEmployees[0]} />)
     
-    expect(screen.getByRole('textbox', { name: /email/i })).toHaveValue(mockEmployee.email)
-    expect(screen.getByRole('textbox', { name: /first name/i })).toHaveValue(mockEmployee.first_name)
-    expect(screen.getByRole('textbox', { name: /last name/i })).toHaveValue(mockEmployee.last_name)
+    expect(screen.getByRole('textbox', { name: /email/i })).toHaveValue(mockEmployees[0].email)
+    expect(screen.getByRole('textbox', { name: /first name/i })).toHaveValue(mockEmployees[0].first_name)
+    expect(screen.getByRole('textbox', { name: /last name/i })).toHaveValue(mockEmployees[0].last_name)
   })
 
   it('displays validation errors for required fields', async () => {
-    render(<ProfileForm initialData={mockEmployee} />)
+    render(<ProfileForm initialData={mockEmployees[0]} />)
     
     // Clear required fields
     fireEvent.change(screen.getByRole('textbox', { name: /first name/i }), {
@@ -66,7 +61,7 @@ describe('ProfileForm', () => {
   it('handles successful profile update', async () => {
     mockUpdateProfile.mockResolvedValueOnce({ success: true })
 
-    render(<ProfileForm initialData={mockEmployee} />)
+    render(<ProfileForm initialData={mockEmployees[0]} />)
     
     // Update form fields
     fireEvent.change(screen.getByRole('textbox', { name: /first name/i }), {
@@ -81,7 +76,7 @@ describe('ProfileForm', () => {
     
     await waitFor(() => {
       expect(mockUpdateProfile).toHaveBeenCalledWith({
-        ...mockEmployee,
+        ...mockEmployees[0],
         first_name: 'Jane',
         last_name: 'Smith',
       })
@@ -97,7 +92,7 @@ describe('ProfileForm', () => {
     const errorMessage = 'Failed to update profile'
     mockUpdateProfile.mockResolvedValueOnce({ error: errorMessage })
 
-    render(<ProfileForm initialData={mockEmployee} />)
+    render(<ProfileForm initialData={mockEmployees[0]} />)
     
     // Submit form
     fireEvent.submit(screen.getByRole('form'))

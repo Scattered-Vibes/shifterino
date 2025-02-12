@@ -12,10 +12,14 @@
   },
   "aliases": {
     "components": "@/components",
-    "utils": "@/lib/utils",
-    "ui": "@/components/ui",
+    "utils": "@/utils",
+    "ui": "@/ui",
     "lib": "@/lib",
-    "hooks": "@/hooks"
+    "hooks": "@/hooks",
+    "types": "@/types",
+    "models": "@/models",
+    "shared": "@/shared",
+    "supabase": "@/supabase"
   },
   "iconLibrary": "lucide"
 }

@@ -1,10 +1,10 @@
 import { vi } from 'vitest'
 import { createMockServerActionClient } from '../../../test/supabase-mock'
-import { updateSchedule } from '@/app/actions/schedule'
+import { updateSchedule } from '@/actions/schedule'
 import type { Schedule } from '@/types/scheduling/schedule'
 
 // Mock the server action
-vi.mock('@/app/actions/schedule', () => ({
+vi.mock('@/actions/schedule', () => ({
   updateSchedule: vi.fn()
 }))
 

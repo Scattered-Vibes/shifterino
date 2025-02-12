@@ -5,9 +5,9 @@ import {
     updateSchedule, 
     createScheduleEntry, 
     deleteSchedule 
-  } from '@/app/(dashboard)/manage/actions/schedule';
+  } from '@/(dashboard)/manage/actions/schedule';
   
-  import { createMockSupabaseClient } from '@/test/helpers/supabase-mock';
+  import { createMockSupabaseClient } from '@/test/supabase-mock';
   import { vi, describe, it, expect, beforeEach } from 'vitest';
   
   vi.mock('@/lib/auth', () => ({

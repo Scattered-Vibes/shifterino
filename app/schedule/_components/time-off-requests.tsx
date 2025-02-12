@@ -13,7 +13,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { TimeOffRequest } from '@/app/types/shift'
+import { TimeOffRequest } from '@/types/shift'
 import { useToast } from '@/components/ui/use-toast'
 
 interface TimeOffRequestsProps {

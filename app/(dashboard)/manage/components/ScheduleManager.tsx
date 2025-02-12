@@ -3,15 +3,15 @@
 import { FC } from 'react'
 import { EventDropArg } from '@fullcalendar/core'
 import { EventResizeStopArg } from '@fullcalendar/interaction'
-import { ShiftCalendar } from '@/components/calendar/ShiftCalendar'
+import { ShiftCalendar } from '@/components/ui/calendar'
 import { useShifts } from '@/lib/hooks'
-import type { Shift } from '@/app/types/shift'
+import type { ShiftEvent } from '@/types/scheduling/shift'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
 import { toast } from '@/components/ui/use-toast'
-import { getUserFriendlyMessage, ErrorCode } from '@/app/lib/utils/error-handler'
+import { getUserFriendlyMessage, ErrorCode } from '@/lib/utils/error-handler'
 
 interface ScheduleManagerProps {
-  shifts: Shift[]
+  shifts: ShiftEvent[]
 }
 
 const ErrorFallback: FC<{ error: Error }> = ({ error }) => {

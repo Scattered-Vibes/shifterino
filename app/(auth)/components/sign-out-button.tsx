@@ -2,22 +2,22 @@
 
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
-import { useSupabase } from '@/app/providers/supabase-provider'
 import { useToast } from '@/components/ui/use-toast'
+import { signOut } from '../actions'
+import { getUserFriendlyMessage } from '@/lib/utils/error-handler'
 
 export function SignOutButton() {
   const router = useRouter()
-  const { supabase } = useSupabase()
   const { toast } = useToast()
 
   const handleSignOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut()
+      const result = await signOut()
       
-      if (error) {
+      if (result?.error) {
         toast({
           title: 'Error signing out',
-          description: error.message,
+          description: result.code ? getUserFriendlyMessage({ message: result.error, code: result.code }) : result.error,
           variant: 'destructive',
         })
         return

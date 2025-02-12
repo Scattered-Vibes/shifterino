@@ -1,9 +1,9 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest'
-import { createMockServerComponentClient } from '../../../test/supabase-mock'
-import type { Schedule, ScheduleGenerationOptions } from '@/types/scheduling/schedule'
+import { createMockServerComponentClient } from '@/test/supabase-mock'
+import type { Schedule, ScheduleGenerationParams } from '@/types/scheduling/schedule'
 import { generateSchedule } from '@/lib/scheduling/generate'
 import { validateSchedule } from '@/lib/scheduling/validation'
-import { resolveConflicts } from '@/lib/scheduling/conflicts'
+import { checkConflicts } from '@/lib/scheduling/conflicts'
 
 // Mock the scheduling functions
 vi.mock('@/lib/scheduling/generate', () => ({
@@ -19,44 +19,42 @@ vi.mock('@/lib/scheduling/conflicts', () => ({
 }))
 
 describe('Schedule Generation Flow', () => {
-  const mockOptions: ScheduleGenerationOptions = {
-    startDate: '2025-02-01T00:00:00Z',
-    endDate: '2025-02-28T23:59:59Z',
-    constraints: {
-      maxHoursPerWeek: 40,
-      minRestHours: 8,
-      preferredShiftPatterns: true,
-      balanceWorkload: true
-    }
+  const mockOptions: ScheduleGenerationParams = {
+    startDate: new Date('2025-02-01T00:00:00Z'),
+    endDate: new Date('2025-02-28T23:59:59Z'),
+    considerPreferences: true,
+    allowOvertime: false
   }
 
-  const mockSchedule: Schedule[] = [
-    {
-      id: '1',
-      employeeId: '123',
-      shiftId: '456',
-      date: '2025-02-01T09:00:00Z',
-      status: 'pending'
-    }
-  ]
+  const mockSchedules: Schedule[] = [{
+    id: '123',
+    employeeId: 'emp-123',
+    date: new Date('2025-02-01'),
+    status: 'pending',
+    shiftType: 'day',
+    startTime: '09:00',
+    endTime: '17:00',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }]
 
   beforeEach(() => {
     vi.clearAllMocks()
-    ;(generateSchedule as jest.Mock).mockResolvedValue(mockSchedule)
+    ;(generateSchedule as jest.Mock).mockResolvedValue(mockSchedules)
     ;(validateSchedule as jest.Mock).mockResolvedValue({ isValid: true })
-    ;(resolveConflicts as jest.Mock).mockResolvedValue({ conflicts: [] })
+    ;(checkConflicts as jest.Mock).mockResolvedValue({ conflicts: [] })
   })
 
   it('generates a valid schedule', async () => {
     const supabase = createMockServerComponentClient()
     
     // Mock successful schedule generation
-    ;(generateSchedule as jest.Mock).mockResolvedValue(mockSchedule)
+    ;(generateSchedule as jest.Mock).mockResolvedValue(mockSchedules)
 
     // Generate schedule
     const result = await generateSchedule(mockOptions, supabase)
 
-    expect(result).toEqual(mockSchedule)
+    expect(result).toEqual(mockSchedules)
     expect(generateSchedule).toHaveBeenCalledWith(mockOptions, supabase)
   })
 
@@ -100,7 +98,7 @@ describe('Schedule Generation Flow', () => {
       }
     ]
 
-    ;(resolveConflicts as jest.Mock).mockResolvedValue({
+    ;(checkConflicts as jest.Mock).mockResolvedValue({
       conflicts,
       resolutions: [
         {
@@ -113,10 +111,10 @@ describe('Schedule Generation Flow', () => {
 
     // Generate schedule and resolve conflicts
     const schedule = await generateSchedule(mockOptions, supabase)
-    const resolution = await resolveConflicts(schedule)
+    const resolution = await checkConflicts(schedule)
 
     expect(resolution.conflicts).toEqual(conflicts)
-    expect(resolveConflicts).toHaveBeenCalledWith(schedule)
+    expect(checkConflicts).toHaveBeenCalledWith(schedule)
   })
 
   it('handles time zone differences', async () => {
@@ -125,14 +123,14 @@ describe('Schedule Generation Flow', () => {
     // Mock schedule with different time zones
     const tzSchedule = [
       {
-        ...mockSchedule[0],
-        date: '2025-02-01T09:00:00-08:00' // PST
+        ...mockSchedules[0],
+        date: new Date('2025-02-01T09:00:00-08:00') // PST
       },
       {
         id: '2',
         employeeId: '456',
         shiftId: '789',
-        date: '2025-02-01T09:00:00+00:00', // UTC
+        date: new Date('2025-02-01T09:00:00+00:00'), // UTC
         status: 'pending'
       }
     ]
@@ -157,19 +155,19 @@ describe('Schedule Generation Flow', () => {
     
     // Mock schedule with staffing requirements
     const staffingSchedule = [
-      ...mockSchedule,
+      ...mockSchedules,
       {
         id: '2',
         employeeId: '456',
         shiftId: '789',
-        date: '2025-02-01T09:00:00Z',
+        date: new Date('2025-02-01T09:00:00Z'),
         status: 'pending'
       },
       {
         id: '3',
         employeeId: '789',
         shiftId: '012',
-        date: '2025-02-01T09:00:00Z',
+        date: new Date('2025-02-01T09:00:00Z'),
         status: 'pending'
       }
     ]

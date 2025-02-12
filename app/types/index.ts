@@ -119,9 +119,6 @@ export type {
 // Re-export auth types
 export type { AuthenticatedUser, AuthError } from './auth'
 
-// Re-export profile types
-export type { UpdateProfileInput, ProfileResponse } from './profile'
-
 // Re-export realtime types
 export type {
   AllowedTables,

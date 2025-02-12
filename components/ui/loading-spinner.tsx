@@ -1,5 +1,5 @@
 import { Loader2 } from 'lucide-react'
-import { cn } from '@/app/lib/utils'
+import { cn } from '@/lib/utils/index'
 
 interface LoadingSpinnerProps extends React.HTMLAttributes<HTMLDivElement> {
   size?: number

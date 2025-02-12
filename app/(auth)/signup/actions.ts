@@ -1,8 +1,8 @@
 'use server'
 
 import { redirect } from 'next/navigation'
-import { createClient } from '@/app/lib/supabase/server'
-import { signupSchema, type SignupInput } from '@/app/lib/validations/schemas'
+import { createClient } from '@/lib/supabase/server'
+import { signupSchema, type SignupInput } from '@/lib/validations/auth'
 import { z } from 'zod'
 
 interface DatabaseError extends Error {

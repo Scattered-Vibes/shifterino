@@ -1,31 +1,95 @@
-import type { StaffingRequirement } from './staffing'
+import type { Database } from '../supabase/database'
+import type { Employee } from './employee'
+import type { IndividualShift, ShiftPattern } from './shift'
 
-export type ScheduleStatus = 'draft' | 'pending_approval' | 'approved' | 'published' | 'archived'
+type Tables = Database['public']['Tables']
+type Enums = Database['public']['Enums']
 
-export interface SchedulePeriod {
-  id: string
-  name: string
-  start_date: string // YYYY-MM-DD
-  end_date: string // YYYY-MM-DD
-  status: ScheduleStatus
-  is_published: boolean
-  created_by: string
-  approved_by?: string
-  approved_at?: string
-  created_at: string
-  updated_at: string
+// Base Types
+export type Schedule = Tables['schedules']['Row']
+export type ScheduleInsert = Tables['schedules']['Insert']
+export type ScheduleUpdate = Tables['schedules']['Update']
+
+export type SchedulePeriod = Tables['schedule_periods']['Row']
+export type SchedulePeriodInsert = Tables['schedule_periods']['Insert']
+export type SchedulePeriodUpdate = Tables['schedule_periods']['Update']
+
+// Extended Types
+export interface ScheduleWithDetails extends Schedule {
+  employee: Employee
+  shifts: IndividualShift[]
 }
 
-export interface ScheduleConflict {
-  type: 'PATTERN_VIOLATION' | 'STAFFING_SHORTAGE' | 'REST_PERIOD' | 'OVERTIME'
-  message: string
-  details?: Record<string, unknown>
-  severity: 'WARNING' | 'ERROR'
-  date: string
-  employeeId?: string
-  shiftId?: string
-  requirementId?: string
+export interface SchedulePeriodWithDetails extends SchedulePeriod {
+  schedules: Schedule[]
+  shifts: IndividualShift[]
+  staffing_requirements: Tables['staffing_requirements']['Row'][]
 }
 
-// Re-export for convenience
-export type { StaffingRequirement }
+// Create Types
+export interface CreateScheduleInput {
+  employee_id: string
+  start_date: string
+  end_date: string
+  shift_pattern: ShiftPattern
+  shift_type: string
+  is_supervisor?: boolean
+}
+
+export interface CreateSchedulePeriodInput {
+  start_date: string
+  end_date: string
+  description?: string
+  is_active?: boolean
+}
+
+// Update Types
+export type UpdateScheduleInput = Partial<CreateScheduleInput>
+export type UpdateSchedulePeriodInput = Partial<CreateSchedulePeriodInput>
+
+// Filter Types
+export interface ScheduleFilters {
+  start_date?: string
+  end_date?: string
+  employee_id?: string
+  shift_pattern?: ShiftPattern
+  is_supervisor?: boolean
+}
+
+export interface SchedulePeriodFilters {
+  start_date?: string
+  end_date?: string
+  is_active?: boolean
+}
+
+// Sort Types
+export type ScheduleSortField = 
+  | 'start_date'
+  | 'end_date'
+  | 'employee_name'
+  | 'shift_pattern'
+  | 'created_at'
+
+export interface ScheduleSort {
+  field: ScheduleSortField
+  direction: 'asc' | 'desc'
+}
+
+// Utility Types
+export interface ScheduleValidation {
+  is_valid: boolean
+  errors: {
+    type: 'staffing' | 'pattern' | 'overtime' | 'availability'
+    message: string
+    date?: string
+  }[]
+}
+
+export interface ScheduleStatistics {
+  total_shifts: number
+  total_hours: number
+  overtime_hours: number
+  supervisor_coverage: number
+  staffing_requirements_met: number
+  pattern_adherence: number
+}

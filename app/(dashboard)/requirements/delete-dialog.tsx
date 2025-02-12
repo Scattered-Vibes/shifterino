@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import { useToast } from '@/components/ui/use-toast'
-import { createClient } from '@/app/lib/supabase/client'
+import { createClient } from '@/lib/supabase/client'
 import { TrashIcon } from '@radix-ui/react-icons'
 import type { Database } from '@/types/supabase/database'
 

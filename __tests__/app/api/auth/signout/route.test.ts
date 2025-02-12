@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { NextRequest } from 'next/server'
-import { POST } from '@/app/api/auth/signout/route'
-import { mockAuthUser, mockUnauthenticated } from '@/test/helpers/auth'
+import { POST } from '@/api/auth/signout/route'
+import { mockAuthUser, mockUnauthenticated } from '@/test/auth'
 
 describe('POST /api/auth/signout', () => {
   beforeEach(() => {

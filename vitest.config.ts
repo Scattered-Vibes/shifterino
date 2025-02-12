@@ -28,15 +28,22 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname),
-      '@/lib': resolve(__dirname, './lib'),
+      '@/app': resolve(__dirname, './app'),
       '@/components': resolve(__dirname, './components'),
       '@/ui': resolve(__dirname, './components/ui'),
+      '@/lib': resolve(__dirname, './lib'),
       '@/types': resolve(__dirname, './types'),
-      '@/app': resolve(__dirname, './app'),
-      '@/hooks': resolve(__dirname, './hooks'),
-      '@/styles': resolve(__dirname, './styles'),
-      '@/api': resolve(__dirname, './api'),
-      '@/test': resolve(__dirname, './__tests__/helpers')
+      '@/hooks': resolve(__dirname, './lib/hooks'),
+      '@/utils': resolve(__dirname, './lib/utils'),
+      '@/styles': resolve(__dirname, './app/styles'),
+      '@/api': resolve(__dirname, './app/api'),
+      '@/test': resolve(__dirname, './__tests__'),
+      '@/middleware': resolve(__dirname, './middleware'),
+      '@/scheduling': resolve(__dirname, './lib/scheduling'),
+      '@/validations': resolve(__dirname, './lib/validations'),
+      '@/models': resolve(__dirname, './types/models'),
+      '@/shared': resolve(__dirname, './types/shared'),
+      '@/supabase': resolve(__dirname, './lib/supabase')
     }
   }
 })

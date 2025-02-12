@@ -63,7 +63,7 @@ function CalendarView({ shifts }: { shifts: ScheduleWithDetails[] }) {
             onClick={() => setSelectedShift(shift)}
           >
             <Badge
-              variant={shift.shift_option.type === 'supervisor' ? 'default' : 'secondary'}
+              variant={shift.employee.role === 'supervisor' ? 'default' : 'secondary'}
               className="w-full truncate"
             >
               {shift.employee.first_name} {shift.employee.last_name}
@@ -114,13 +114,13 @@ function CalendarView({ shifts }: { shifts: ScheduleWithDetails[] }) {
                     <div>
                       <p className="text-sm font-medium">Start Time</p>
                       <p className="text-sm text-muted-foreground">
-                        {format(new Date(`${selectedShift.date}T${selectedShift.start_time}`), 'h:mm a')}
+                        {format(new Date(`${selectedShift.date}T${selectedShift.shift_option.start_time}`), 'h:mm a')}
                       </p>
                     </div>
                     <div>
                       <p className="text-sm font-medium">End Time</p>
                       <p className="text-sm text-muted-foreground">
-                        {format(new Date(`${selectedShift.date}T${selectedShift.end_time}`), 'h:mm a')}
+                        {format(new Date(`${selectedShift.date}T${selectedShift.shift_option.end_time}`), 'h:mm a')}
                       </p>
                     </div>
                   </div>

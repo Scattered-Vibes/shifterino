@@ -4,8 +4,8 @@ import { useState } from 'react'
 import { Calendar as CalendarIcon } from 'lucide-react'
 import { addDays, format, startOfWeek } from 'date-fns'
 import { useQuery } from '@tanstack/react-query'
-import { createClient } from '@/app/lib/supabase/client'
-import type { Tables } from '@/app/lib/supabase/client'
+import { createClient } from '@/lib/supabase/client'
+import type { Tables } from '@/lib/supabase/client'
 
 import {
   Select,
@@ -21,7 +21,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
-import { cn } from '@/app/lib/utils'
+import { cn } from '@/lib/utils/index'
 
 type IndividualShift = Tables['individual_shifts']['Row']
 type Employee = Tables['employees']['Row']

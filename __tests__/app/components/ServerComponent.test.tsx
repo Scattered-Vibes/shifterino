@@ -3,11 +3,11 @@ import { createMockServerComponentClient } from '../../../test/supabase-mock'
 import { vi } from 'vitest'
 import { Suspense } from 'react'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
-import ServerComponent from '@/app/components/ServerComponent'
+import ServerComponent from '@/components/ServerComponent'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 // Mock the server component
-vi.mock('@/app/components/ServerComponent', () => {
+vi.mock('@/components/ServerComponent', () => {
   return {
     default: async ({ supabase }: { supabase: SupabaseClient }) => {
       const data = await supabase.from('test').select('*')

@@ -10,6 +10,7 @@ You are an expert in Next.js 14 App Router and Supabase development, specializin
 
 1. **TypeScript First**
    - Use TypeScript for all code
+   - Never use type any
    - Prefer interfaces over types
    - Maintain strict type checking
    - Use zod for runtime validation

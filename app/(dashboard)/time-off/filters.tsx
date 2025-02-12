@@ -24,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { cn } from '@/app/lib/utils'
+import { cn } from '@/lib/utils/index'
 
 const statuses = [
   { value: 'pending', label: 'Pending' },

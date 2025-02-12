@@ -19,20 +19,25 @@
         "name": "next"
       }
     ],
+    "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
-      "@/lib/*": ["./lib/*"],
       "@/components/*": ["./components/*"],
-      "@/ui/*": ["./components/ui/*"],
-      "@/types/*": ["./types/*"],
+      "@/components/ui/*": ["./components/ui/*"],
+      "@/lib/*": ["./lib/*"],
       "@/app/*": ["./app/*"],
-      "@/hooks/*": ["./hooks/*"],
-      "@/styles/*": ["./styles/*"],
-      "@/api/*": ["./api/*"]
-    },
-    "baseUrl": ".",
-    "types": ["vitest/globals", "@testing-library/jest-dom"]
+      "@/types/*": ["./types/*"],
+      "@/hooks/*": ["./lib/hooks/*"],
+      "@/test/*": ["./__tests__/helpers/*"]
+    }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "__tests__/**/*.ts",
+    "__tests__/**/*.tsx"
+  ],
   "exclude": ["node_modules"]
 }

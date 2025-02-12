@@ -95,7 +95,7 @@ export interface Database {
           employee_id: string
           start_date: string
           end_date: string
-          status: 'pending' | 'approved' | 'denied'
+          status: 'pending' | 'approved' | 'rejected'
           notes: string | null
           reason: string
           created_at: string
@@ -111,7 +111,7 @@ export interface Database {
           requested_employee_id: string
           shift_id: string
           proposed_shift_id: string | null
-          status: 'pending' | 'approved' | 'denied'
+          status: 'pending' | 'approved' | 'rejected'
           notes: string | null
           created_at: string
           updated_at: string
@@ -125,7 +125,7 @@ export interface Database {
       shift_category: 'early' | 'day' | 'swing' | 'graveyard'
       shift_pattern: 'pattern_a' | 'pattern_b' | 'custom'
       shift_status: 'scheduled' | 'in_progress' | 'completed' | 'missed' | 'cancelled'
-      time_off_status: 'pending' | 'approved' | 'denied'
+      time_off_status: 'pending' | 'approved' | 'rejected'
       log_severity: 'info' | 'warning' | 'error'
     }
   }

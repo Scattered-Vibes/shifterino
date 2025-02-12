@@ -27,7 +27,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/components/ui/use-toast'
-import { createClient } from '@/app/lib/supabase/client'
+import { createClient } from '@/lib/supabase/client'
 import { PlusIcon } from '@radix-ui/react-icons'
 
 const requirementFormSchema = z.object({

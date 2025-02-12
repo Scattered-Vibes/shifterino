@@ -2,8 +2,8 @@
 
 import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/app/lib/supabase/server'
-import { handleError } from '@/app/lib/utils'
+import { createClient } from '@/lib/supabase/server'
+import { handleError } from '@/lib/utils/error-handler'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ScheduleCalendar } from './calendar-view'
@@ -15,11 +15,11 @@ import { ErrorBoundary } from '@/components/ui/error-boundary'
 import type { Database } from '@/types/supabase/database'
 
 type ScheduleWithDetails = Database['public']['Tables']['individual_shifts']['Row'] & {
-  employee: Database['public']['Tables']['employees']['Row']
-  shift_option: Database['public']['Tables']['shift_options']['Row']
+  employee: Database['public']['Tables']['employees']['Row'];
+  shift_option: Database['public']['Tables']['shift_options']['Row'];
 }
 
-async function getSchedules(startDate: string, endDate: string) {
+async function getSchedules(startDate: string, endDate: string): Promise<ScheduleWithDetails[]> {
   const supabase = createClient()
 
   const { data: shifts, error } = await supabase
@@ -32,9 +32,10 @@ async function getSchedules(startDate: string, endDate: string) {
     .gte('date', startDate)
     .lte('date', endDate)
     .order('date', { ascending: true })
+    .returns<ScheduleWithDetails[]>()
 
   if (error) throw error
-  return shifts as ScheduleWithDetails[]
+  return shifts || []
 }
 
 export default async function SchedulesPage() {

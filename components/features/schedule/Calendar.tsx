@@ -1,6 +1,6 @@
 'use client'
 
-import * as React from 'react'
+import React from 'react'
 import { useState } from 'react'
 import {
   addMonths,
@@ -18,7 +18,7 @@ import {
 } from 'lucide-react'
 
 import type { Schedule } from '@/types/scheduling/schedule'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/utils/index'
 import { Button } from '@/components/ui/button'
 
 interface CalendarProps {

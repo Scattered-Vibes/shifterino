@@ -1,4 +1,4 @@
-import type { Schedule, Employee, ShiftOption, StaffingRequirement } from '@/app/types'
+import type { Schedule, Employee, ShiftOption, StaffingRequirement } from '@/types'
 import { calculateShiftScore } from '../scoring'
 import { validateSchedule } from '../validation'
 import { resolveConflicts } from '../conflicts'

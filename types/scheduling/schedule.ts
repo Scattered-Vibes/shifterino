@@ -11,17 +11,40 @@ export type {
   StaffingRequirement
 }
 
+export interface TimeBlock {
+  start: string // ISO time string
+  end: string // ISO time string
+  minStaff: number
+  supervisorRequired: boolean
+}
+
 export interface Schedule {
   id: string
   employeeId: string
-  date: string | Date
-  status: 'pending' | 'approved' | 'rejected' | 'completed'
-  shiftType: string
-  startTime: string
-  endTime: string
+  date: string // YYYY-MM-DD
+  shiftId: string
+  startTime: string // HH:mm
+  endTime: string // HH:mm
+  status: 'pending' | 'approved' | 'completed'
   notes?: string
-  createdAt: string
-  updatedAt: string
+}
+
+export interface ScheduleGenerationOptions {
+  startDate: string // YYYY-MM-DD
+  endDate: string // YYYY-MM-DD
+  employees: Employee[]
+  shiftOptions: ShiftOption[]
+  staffingRequirements: TimeBlock[]
+  existingSchedules?: Schedule[]
+}
+
+export interface ScheduleConflict {
+  type: 'overlap' | 'hours_exceeded' | 'pattern_violation'
+  message: string
+  scheduleId: string
+  employeeId: string
+  date: string
+  details?: Record<string, unknown>
 }
 
 export interface ScheduleGenerationParams {

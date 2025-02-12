@@ -1,5 +1,5 @@
 import { type ShiftEvent, type Employee, type ShiftOption } from '@/types'
-import { type IndividualShift } from '@/types/scheduling'
+import { type IndividualShift } from '@/types/models/shift'
 import { type GenerationContext } from '@/types/scheduling/schedule'
 import { differenceInHours, parseISO } from 'date-fns'
 

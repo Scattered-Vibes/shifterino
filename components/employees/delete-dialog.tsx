@@ -14,10 +14,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { createClient } from '@/app/lib/supabase/client'
+import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/use-toast'
 import { TrashIcon } from '@radix-ui/react-icons'
-import type { Employee } from '@/app/types/database'
+import type { Employee } from '@/types'
 
 interface DeleteEmployeeDialogProps {
   employee: Employee

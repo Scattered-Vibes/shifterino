@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import type { Database } from '@/types/database'
+import type { Database } from '@/types/supabase/database'
 import { createClient } from '@/lib/supabase/server'
 import { handleError } from '@/lib/utils/error-handler'
 

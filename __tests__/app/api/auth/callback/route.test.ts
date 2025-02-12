@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { NextRequest } from 'next/server'
-import { GET } from '@/app/api/auth/callback/route'
-import { mockAuthUser } from '@/test/helpers/auth'
+import { GET } from '@/api/auth/callback/route'
+import { mockAuthUser } from '@/test/auth'
 
 describe('GET /api/auth/callback', () => {
   beforeEach(() => {

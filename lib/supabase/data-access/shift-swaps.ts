@@ -1,10 +1,6 @@
-import { createClient } from '@/app/lib/supabase/client'
-import type { Database } from '@/types/supabase/database'
-import { handleError } from '@/app/lib/utils/error-handler'
-import type { SupabaseClient } from '@supabase/supabase-js'
-
-type DatabaseTables = Database['public']['Tables']
-type ShiftSwapRequest = DatabaseTables['shift_swap_requests']['Row']
+import { createClient } from '@/lib/supabase/client'
+import type { ShiftSwapRequest } from '@/types'
+import { handleError } from '@/lib/utils/error-handler'
 
 const supabase = createClient()
 
@@ -55,7 +51,7 @@ export async function createShiftSwapRequest(request: Omit<ShiftSwapRequest, 'id
   try {
     const { data, error } = await supabase
       .from('shift_swap_requests')
-      .insert([{ ...request, status: 'pending' }])
+      .insert([{ ...request, status: 'pending' as const }])
       .select()
       .single()
 
@@ -99,7 +95,7 @@ export async function deleteShiftSwapRequest(id: string) {
   }
 }
 
-export async function reviewShiftSwapRequest(id: string, status: string, reviewerId: string) {
+export async function reviewShiftSwapRequest(id: string, status: 'approved' | 'rejected', reviewerId: string) {
   try {
     const { data, error } = await supabase
       .from('shift_swap_requests')

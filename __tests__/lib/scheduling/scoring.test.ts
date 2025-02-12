@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { calculateShiftScore, DEFAULT_WEIGHTS } from '@/lib/scheduling/scoring'
-import { mockData } from '@/test/helpers/mock-data'
+import { mockData } from '@/test/mock-data'
 
 describe('scheduling/scoring', () => {
   describe('calculateShiftScore', () => {

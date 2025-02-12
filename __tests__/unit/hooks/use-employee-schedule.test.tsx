@@ -2,9 +2,9 @@ import React from 'react';
 import { renderHook, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { useEmployeeSchedule } from '@/lib/hooks';
-import { createMockSupabaseClient } from '@/test/helpers/supabase-mock';
-import { mockData } from '@/test/mocks/data';
-import { Providers } from '@/test/utils/test-utils';
+import { createMockSupabaseClient } from '@/test/supabase-mock';
+import { mockData } from '@/test/mock-data';
+import { Providers } from '@/test/test-utils';
 
 // Mock Supabase client
 vi.mock('@supabase/ssr', () => ({

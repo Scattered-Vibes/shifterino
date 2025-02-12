@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
-import Calendar from '@/app/components/ui/Calendar'
+import { Calendar } from '@/components/ui/calendar'
 import type { Schedule } from '@/types/scheduling/schedule'
 
 describe('Calendar Component', () => {

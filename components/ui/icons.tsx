@@ -13,6 +13,7 @@ import {
   Laptop,
   Loader2,
   LucideProps,
+  Minus,
   Moon,
   MoreVertical,
   Pizza,
@@ -23,9 +24,10 @@ import {
   Twitter,
   User,
   X,
-} from 'lucide-react'
+  type Icon as LucideIcon,
+} from "lucide-react"
 
-export type Icon = React.ComponentType<LucideProps>
+export type Icon = typeof LucideIcon
 
 export const Icons = {
   logo: Command,
@@ -49,6 +51,9 @@ export const Icons = {
   sun: SunMedium,
   moon: Moon,
   laptop: Laptop,
+  check: Check,
+  minus: Minus,
+  twitter: Twitter,
   gitHub: ({ ...props }: LucideProps) => (
     <svg
       aria-hidden="true"
@@ -66,6 +71,4 @@ export const Icons = {
       ></path>
     </svg>
   ),
-  twitter: Twitter,
-  check: Check,
-} 
+} as const 

@@ -5,13 +5,13 @@ import { Calendar } from '@fullcalendar/core'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
-import type { ShiftEvent } from '@/app/types/shift'
+import type { ShiftEvent } from '@/types/shift'
 import { Card } from '@/components/ui/card'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { Badge } from '@/components/ui/badge'
-import { calculateStaffingLevels } from '@/app/lib/utils/staffing'
-import { validateShiftPattern } from '@/app/lib/utils/shift-patterns'
-import { cn } from '@/app/lib/utils'
+import { calculateStaffingLevels } from '@/lib/utils/staffing'
+import { validateShiftPattern } from '@/lib/utils/shift-patterns'
+import { cn } from '@/lib/utils/index'
 
 interface ShiftCalendarProps {
   events: ShiftEvent[]

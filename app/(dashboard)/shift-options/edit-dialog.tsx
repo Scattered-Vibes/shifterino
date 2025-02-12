@@ -32,7 +32,7 @@ import {
 } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/components/ui/use-toast'
-import { createClient } from '@/app/lib/supabase/client'
+import { createClient } from '@/lib/supabase/client'
 import type { Database } from '@/types/supabase/database'
 
 type ShiftOption = Database['public']['Tables']['shift_options']['Row']

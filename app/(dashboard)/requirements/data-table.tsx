@@ -33,7 +33,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { EditRequirementDialog } from './edit-dialog'
 import { DeleteRequirementDialog } from './delete-dialog'
-import { formatTime } from '@/app/lib/utils'
+import { formatTime } from '@/lib/utils/index'
 import { DotsHorizontalIcon } from '@radix-ui/react-icons'
 import type { Database } from '@/types/supabase/database'
 

@@ -1,8 +1,8 @@
 'use client'
 
-import * as React from 'react'
+import React from 'react'
 import { render, fireEvent, screen, waitFor } from '@testing-library/react'
-import { ScheduleManager } from '@/app/(dashboard)/manage/components/ScheduleManager'
+import { ScheduleManager } from '@/(dashboard)/manage/components/ScheduleManager'
 import { createMockSupabaseClient } from '@/test/supabase-mock'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 import type { EventApi } from '@fullcalendar/core'

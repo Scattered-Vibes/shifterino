@@ -25,14 +25,24 @@ export function useAuth(): UseAuthReturn {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-      setIsLoading(false)
+      try {
+        if (session?.user) {
+          setUser(session.user)
+        } else {
+          setUser(null)
+        }
+        setError(null)
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error('Authentication error'))
+      } finally {
+        setIsLoading(false)
+      }
     })
 
     return () => {
       subscription.unsubscribe()
     }
-  }, [])
+  }, [supabase.auth])
 
   return { user, isLoading, error }
 } 

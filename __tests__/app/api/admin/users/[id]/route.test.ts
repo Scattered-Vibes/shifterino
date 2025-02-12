@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { NextRequest } from 'next/server'
-import { GET, DELETE } from '@/app/api/admin/users/[id]/route'
-import { mockAuthUser, mockUnauthenticated } from '@/test/helpers/auth'
+import { GET, DELETE } from '@/api/admin/users/[id]/route'
+import { mockAuthUser, mockUnauthenticated } from '@/test/auth'
 
 describe('Admin User By ID API', () => {
   const params = { id: 'test-user-id' }

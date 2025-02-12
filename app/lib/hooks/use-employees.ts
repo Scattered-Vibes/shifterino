@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { employeeQueries } from '@/lib/supabase/data-access/employees'
 import { toast } from '@/components/ui/use-toast'
 import { ErrorCode, handleError, getUserFriendlyMessage } from '@/lib/utils/error-handler'
-import type { Database } from '@/types/database'
+import type { Database } from '@/types/supabase/database'
 
 type Employee = Database['public']['Tables']['employees']['Row']
 

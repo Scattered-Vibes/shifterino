@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { OnCallSchedule } from '@/app/types/shift'
+import { OnCallSchedule } from '@/types/shift'
 import { useToast } from '@/components/ui/use-toast'
 
 interface OnCallScheduleProps {

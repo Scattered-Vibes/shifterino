@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
-import { signupSchema, type SignupInput } from '@/app/lib/validations/schemas'
+import { signupSchema, type SignupInput } from '@/lib/validations/schemas'
 import { z } from 'zod'
 
 interface DatabaseError extends Error {

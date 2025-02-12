@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
-import { GET, POST } from '@/app/api/admin/route'
+import { GET, POST } from '@/api/admin/route'
 import { createClient } from '@/lib/supabase/server'
 
 // Mock Supabase client

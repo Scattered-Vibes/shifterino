@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
-import { ShiftSwapRequest, ShiftEvent } from '@/app/types/shift'
+import { ShiftSwapRequest, ShiftEvent } from '@/types/shift'
 import { useToast } from '@/components/ui/use-toast'
 
 interface ShiftSwapRequestsProps {

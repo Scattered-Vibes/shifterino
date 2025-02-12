@@ -6,6 +6,12 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { useToast } from '@/components/ui/use-toast'
+import { createClient } from '@/lib/supabase/client'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { loginSchema, signupSchema, type SignupInput } from '@/lib/validations/auth'
+import { handleError } from '@/lib/utils/error-handler'
 import {
   Form,
   FormControl,
@@ -13,13 +19,8 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
-import { useToast } from '@/components/ui/use-toast'
-import { createClient } from '@/lib/supabase/client'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { loginSchema, signupSchema, type SignupInput } from '@/lib/validations/auth'
-import { handleError } from '@/lib/utils/error-handler'
+} from "@/components/ui/form"
+import { toast } from "sonner"
 
 interface UserAuthFormProps {
   className?: string

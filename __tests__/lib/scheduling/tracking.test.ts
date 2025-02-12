@@ -5,8 +5,8 @@ import {
   updateShiftPattern,
   canAssignShift
 } from '@/lib/scheduling/tracking'
-import { mockData } from '@/test/helpers/mock-data'
-import type { WeeklyHoursTracking, ShiftPatternTracking } from '@/types/scheduling'
+import { mockData } from '@/test/mock-data'
+import type { WeeklyHoursTracking, ShiftPatternTracking } from '@/types/models/shift'
 
 describe('scheduling/tracking', () => {
   describe('initializeTracking', () => {

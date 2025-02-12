@@ -1,5 +1,31 @@
 import { z } from 'zod'
 
+// Auth schemas
+export const loginSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters')
+})
+
+export type LoginInput = z.infer<typeof loginSchema>
+
+// Employee schemas
+export const employeeSchema = z.object({
+  first_name: z.string().min(1, 'First name is required'),
+  last_name: z.string().min(1, 'Last name is required'),
+  email: z.string().email('Invalid email address'),
+  role: z.enum(['dispatcher', 'supervisor', 'manager'] as const),
+  shift_pattern: z.enum(['pattern_a', 'pattern_b', 'custom'] as const),
+  preferred_shift_category: z.enum(['early', 'day', 'swing', 'graveyard'] as const).nullable(),
+  max_overtime_hours: z.number().min(0).max(40).nullable(),
+  weekly_hours_cap: z.number().min(20).max(60)
+})
+
+export const employeeCreateSchema = employeeSchema.extend({
+  auth_id: z.string().min(1)
+})
+
+export const employeeUpdateSchema = employeeSchema.partial()
+
 export const scheduleSchema = z.object({
   employeeId: z.string().uuid(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), // YYYY-MM-DD format

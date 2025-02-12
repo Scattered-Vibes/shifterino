@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/use-toast'
-import { signOut } from '../../app/(auth)/actions'
+import { signOut } from '@/lib/auth/actions'
 
 export function SignOutButton() {
   const { toast } = useToast()

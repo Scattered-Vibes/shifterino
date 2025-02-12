@@ -2,10 +2,10 @@ import React from 'react'
 import { render, screen, within } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { StaffingOverview } from '@/components/StaffingOverview'
-import { type TimeBlock } from '@/app/types/schedule'
+import { type TimeBlock } from '@/types/schedule'
 
 // Mock the utils functions
-vi.mock('@/app/lib/utils', () => ({
+vi.mock('@/lib/utils', () => ({
   formatTime: (time: string) => time,
   formatDate: () => 'January 1, 2025',
   cn: (...inputs: (string | boolean | undefined)[]) => inputs.filter(Boolean).join(' ')

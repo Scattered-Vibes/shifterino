@@ -1,5 +1,5 @@
 import { getUser, requireAuth } from '@/lib/auth/server'
-import { createMockSupabaseClient, createMockUser } from '@/test/helpers/supabase-mock'
+import { createMockSupabaseClient, createMockUser } from '@/test/supabase-mock'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 import { redirect } from 'next/navigation'
 

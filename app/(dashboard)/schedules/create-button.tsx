@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/form'
 import { Calendar } from '@/components/ui/calendar'
 import { useToast } from '@/components/ui/use-toast'
-import { createClient } from '@/app/lib/supabase/client'
+import { createClient } from '@/lib/supabase/client'
 import { PlusIcon } from '@radix-ui/react-icons'
 
 const scheduleFormSchema = z.object({

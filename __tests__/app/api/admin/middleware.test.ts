@@ -1,11 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { NextRequest, NextResponse } from 'next/server'
-import { middleware } from '@/app/api/admin/middleware'
-import { rateLimit } from '@/middleware/rate-limit'
+import { adminMiddleware } from '@/lib/middleware/admin'
+import { createRateLimiter } from '@/lib/middleware/supabase-rate-limit'
 
 // Mock rate limiting
-vi.mock('@/middleware/rate-limit', () => ({
-  rateLimit: vi.fn().mockResolvedValue(null)
+vi.mock('@/lib/middleware/supabase-rate-limit', () => ({
+  createRateLimiter: vi.fn().mockReturnValue({
+    check: vi.fn().mockResolvedValue({ success: true, retryAfter: 0 })
+  })
 }))
 
 describe('Admin Middleware', () => {
@@ -13,74 +15,58 @@ describe('Admin Middleware', () => {
     vi.clearAllMocks()
   })
 
-  it('should allow request when rate limit not exceeded', async () => {
-    // Create request and response
-    const request = new NextRequest('http://localhost/api/admin/users')
-    const response = NextResponse.next()
+  it('should allow request when rate limit is not exceeded', async () => {
+    const request = new NextRequest(new URL('http://localhost/api/admin/test'))
+    const mockNext = vi.fn().mockReturnValue(new NextResponse())
+    NextResponse.next = mockNext
 
     // Call middleware
-    const result = await middleware(request)
+    const result = await adminMiddleware(request)
 
-    // Verify rate limit was checked
-    expect(rateLimit).toHaveBeenCalledWith(
-      request,
-      response,
-      expect.objectContaining({
-        maxRequests: 20,
-        windowMs: 60 * 1000
-      })
-    )
-
-    // Verify request was allowed
-    expect(result).toBe(undefined)
-  })
-
-  it('should block request when rate limit exceeded', async () => {
-    // Mock rate limit exceeded
-    ;(rateLimit as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      status: 429,
-      headers: { 'Retry-After': '60' }
-    })
-
-    // Create request and response
-    const request = new NextRequest('http://localhost/api/admin/users')
-    const response = NextResponse.next()
-
-    // Call middleware
-    const result = await middleware(request)
-
-    // Verify rate limit was checked
-    expect(rateLimit).toHaveBeenCalledWith(
-      request,
-      response,
-      expect.objectContaining({
-        maxRequests: 20,
-        windowMs: 60 * 1000
-      })
-    )
-
-    // Verify request was blocked
     expect(result).toBeDefined()
-    expect(result?.status).toBe(429)
-    expect(result?.headers.get('Retry-After')).toBe('60')
+    expect(result.status).not.toBe(429)
   })
 
-  it('should apply stricter rate limits for admin routes', async () => {
-    // Create request and response
-    const request = new NextRequest('http://localhost/api/admin/users')
-    const response = NextResponse.next()
+  it('should block request when rate limit is exceeded', async () => {
+    const request = new NextRequest(new URL('http://localhost/api/admin/test'))
+    const mockNext = vi.fn().mockReturnValue(new NextResponse())
+    NextResponse.next = mockNext
+
+    // Mock rate limit exceeded
+    const mockRateLimiter = {
+      check: vi.fn().mockResolvedValueOnce({ success: false, retryAfter: 60 })
+    }
+    vi.mocked(createRateLimiter).mockReturnValueOnce(mockRateLimiter)
 
     // Call middleware
-    await middleware(request)
+    const result = await adminMiddleware(request)
 
-    // Verify rate limit was called with admin config
-    expect(rateLimit).toHaveBeenCalledWith(
-      request,
-      response,
-      expect.objectContaining({
-        maxRequests: 20,
-        windowMs: 60 * 1000 // 1 minute
-      })
-    )
+    expect(result.status).toBe(429)
+    const body = await result.json()
+    expect(body).toEqual({
+      error: 'Too many requests',
+      retryAfter: 60
+    })
+  })
+
+  it('should handle errors gracefully', async () => {
+    const request = new NextRequest(new URL('http://localhost/api/admin/test'))
+    const mockNext = vi.fn().mockReturnValue(new NextResponse())
+    NextResponse.next = mockNext
+
+    // Mock error
+    const mockRateLimiter = {
+      check: vi.fn().mockRejectedValueOnce(new Error('Test error'))
+    }
+    vi.mocked(createRateLimiter).mockReturnValueOnce(mockRateLimiter)
+
+    // Call middleware
+    const result = await adminMiddleware(request)
+
+    expect(result.status).toBe(500)
+    const body = await result.json()
+    expect(body).toEqual({
+      error: 'Internal server error'
+    })
   })
 }) 

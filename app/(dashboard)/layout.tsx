@@ -1,59 +1,51 @@
-import { type ReactNode } from 'react'
-import { requireAuth } from '@/lib/auth/server'
-import type { Metadata } from 'next'
-import { MainNav } from '@/components/ui/main-nav'
 import { UserNav } from '@/components/ui/user-nav'
 import { SidebarNav } from '@/components/ui/sidebar-nav'
-import { ThemeProvider } from '@/app/providers/theme-provider'
 import { Toaster } from '@/components/ui/toaster'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
 import { DashboardError } from '@/components/ui/errors'
 
-export const metadata: Metadata = {
-  title: '911 Dispatch Scheduler - Dashboard',
-  description: 'Manage your dispatch center schedules efficiently',
-}
-
 interface DashboardLayoutProps {
-  children: ReactNode;
+  children: React.ReactNode
 }
 
-export default async function DashboardLayout({
-  children,
-}: DashboardLayoutProps) {
-  const user = await requireAuth();
-  
+export default function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="system"
-      enableSystem
-      disableTransitionOnChange
+    <ErrorBoundary 
+      fallback={
+        <DashboardError 
+          title="Dashboard Error" 
+          message="Something went wrong loading the dashboard" 
+        />
+      }
     >
-      <ErrorBoundary fallback={<DashboardError title="Error" message="Something went wrong loading the dashboard" />}>
-        <div className="relative flex min-h-screen flex-col">
-          <header className="sticky top-0 z-40 border-b bg-background">
-            <div className="container flex h-16 items-center justify-between py-4">
-              <MainNav />
-              <UserNav
-                user={{
-                  email: user.email,
-                  role: user.role,
-                }}
-              />
-            </div>
-          </header>
-          <div className="container flex-1 items-start md:grid md:grid-cols-[220px_minmax(0,1fr)] md:gap-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10">
-            <aside className="fixed top-14 z-30 -ml-2 hidden h-[calc(100vh-3.5rem)] w-full shrink-0 overflow-y-auto border-r md:sticky md:block">
-              <div className="relative overflow-hidden py-6 pr-6 lg:py-8">
+      <div className="flex min-h-screen flex-col">
+        <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="container flex h-14 items-center">
+            <div className="mr-4 hidden md:flex">
+              <a className="mr-6 flex items-center space-x-2" href="/">
+                <span className="hidden font-bold sm:inline-block">
+                  Shifterino
+                </span>
+              </a>
+              <nav className="flex items-center space-x-6 text-sm font-medium">
                 <SidebarNav />
-              </div>
-            </aside>
-            <main className="flex w-full flex-col overflow-hidden">{children}</main>
+              </nav>
+            </div>
+            <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
+              <UserNav user={{ email: '', role: 'dispatcher' }} />
+            </div>
           </div>
+        </header>
+        <div className="container flex-1 items-start md:grid md:grid-cols-[220px_minmax(0,1fr)] md:gap-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10">
+          <aside className="fixed top-14 z-30 -ml-2 hidden h-[calc(100vh-3.5rem)] w-full shrink-0 overflow-y-auto border-r md:sticky md:block">
+            <nav className="grid items-start px-4 py-6 lg:px-8">
+              <SidebarNav />
+            </nav>
+          </aside>
+          <main className="flex w-full flex-col overflow-hidden">{children}</main>
         </div>
-      </ErrorBoundary>
+      </div>
       <Toaster />
-    </ThemeProvider>
+    </ErrorBoundary>
   )
 }

@@ -1,13 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { generateSchedule } from '@/lib/scheduling/generate'
-import { mockData } from '@/test/helpers/mock-data'
+import { mockData } from '@/test/mock-data'
 import { createClient } from '@/lib/supabase/server'
-import type { ScheduleGenerationParams } from '@/types/scheduling'
+import type { 
+  ScheduleGenerationParams,
+  Employee,
+  EmployeeRole
+} from '@/types/models/shift'
 
 // Mock Supabase client
 vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(() => ({
-    from: vi.fn((table: string) => ({
+    from: vi.fn((_: string) => ({
       select: vi.fn(() => ({
         eq: vi.fn(() => ({
           single: vi.fn(() => ({ data: { start_date: '2025-01-01', end_date: '2025-01-31' } }))
@@ -24,7 +28,11 @@ vi.mock('@/lib/supabase/server', () => ({
 
 describe('scheduling/generate', () => {
   const defaultParams: ScheduleGenerationParams = {
-    schedulePeriodId: 'period-1'
+    startDate: '2025-01-01',
+    endDate: '2025-01-31',
+    schedulePeriodId: 'period-1',
+    considerPreferences: true,
+    allowOvertime: false
   }
 
   beforeEach(() => {
@@ -38,7 +46,7 @@ describe('scheduling/generate', () => {
     const result = await generateSchedule(supabase, periodId, defaultParams)
 
     expect(result.success).toBe(true)
-    expect(result.assignedShifts).toBeGreaterThan(0)
+    expect(result.shiftsGenerated).toBeGreaterThan(0)
     expect(result.unfilledRequirements).toBe(0)
     expect(result.errors).toHaveLength(0)
   })
@@ -49,7 +57,7 @@ describe('scheduling/generate', () => {
 
     // Mock period data to be invalid
     vi.mocked(createClient).mockImplementationOnce(() => ({
-      from: vi.fn((table: string) => ({
+      from: vi.fn((_: string) => ({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
             single: vi.fn(() => ({ data: { start_date: '2025-01-31', end_date: '2025-01-01' } }))
@@ -72,7 +80,7 @@ describe('scheduling/generate', () => {
 
     // Mock missing employee data
     vi.mocked(createClient).mockImplementationOnce(() => ({
-      from: vi.fn((table: string) => ({
+      from: vi.fn((_: string) => ({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
             single: vi.fn(() => ({ data: { start_date: '2025-01-01', end_date: '2025-01-31' } }))
@@ -95,7 +103,7 @@ describe('scheduling/generate', () => {
 
     // Mock database error
     vi.mocked(createClient).mockImplementationOnce(() => ({
-      from: vi.fn((table: string) => ({
+      from: vi.fn((_: string) => ({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
             single: vi.fn(() => ({ error: new Error('Database error') }))
@@ -116,21 +124,33 @@ describe('scheduling/generate', () => {
     const supabase = createClient()
     const periodId = 'period-1'
 
+    const mockEmployee: Employee = {
+      id: 'emp-1',
+      auth_id: 'auth-1',
+      first_name: 'John',
+      last_name: 'Doe',
+      email: 'john@example.com',
+      role: 'dispatcher' as EmployeeRole,
+      shift_pattern: 'four_ten',
+      weekly_hours_cap: 40,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+
     // Mock data with specific staffing requirements
     vi.mocked(createClient).mockImplementationOnce(() => ({
-      from: vi.fn((table: string) => ({
+      from: vi.fn((_: string) => ({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
             single: vi.fn(() => ({ data: { start_date: '2025-01-01', end_date: '2025-01-31' } }))
           })),
           data: [
-            mockData.employees.default,
-            mockData.employees.supervisor,
-            // Add more employees to meet minimum staffing
-            { ...mockData.employees.default, id: 'emp-3' },
-            { ...mockData.employees.default, id: 'emp-4' },
-            { ...mockData.employees.default, id: 'emp-5' },
-            { ...mockData.employees.default, id: 'emp-6' }
+            mockEmployee,
+            { ...mockEmployee, id: 'emp-2', role: 'supervisor' as EmployeeRole },
+            { ...mockEmployee, id: 'emp-3' },
+            { ...mockEmployee, id: 'emp-4' },
+            { ...mockEmployee, id: 'emp-5' },
+            { ...mockEmployee, id: 'emp-6' }
           ]
         })),
         insert: vi.fn(() => ({ error: null })),
@@ -150,14 +170,27 @@ describe('scheduling/generate', () => {
     const supabase = createClient()
     const periodId = 'period-1'
 
+    const mockEmployee: Employee = {
+      id: 'emp-1',
+      auth_id: 'auth-1',
+      first_name: 'John',
+      last_name: 'Doe',
+      email: 'john@example.com',
+      role: 'dispatcher' as EmployeeRole,
+      shift_pattern: 'four_ten',
+      weekly_hours_cap: 40,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+
     // Mock data with insufficient staff
     vi.mocked(createClient).mockImplementationOnce(() => ({
-      from: vi.fn((table: string) => ({
+      from: vi.fn((_: string) => ({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
             single: vi.fn(() => ({ data: { start_date: '2025-01-01', end_date: '2025-01-31' } }))
           })),
-          data: [mockData.employees.default] // Only one employee
+          data: [mockEmployee] // Only one employee
         })),
         insert: vi.fn(() => ({ error: null })),
         update: vi.fn(),
@@ -178,7 +211,7 @@ describe('scheduling/generate', () => {
 
     // Mock data with time off requests
     vi.mocked(createClient).mockImplementationOnce(() => ({
-      from: vi.fn((table: string) => ({
+      from: vi.fn((_: string) => ({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
             single: vi.fn(() => ({ data: { start_date: '2025-01-01', end_date: '2025-01-31' } }))

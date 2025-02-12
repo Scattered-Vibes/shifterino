@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/supabase/database'
 import { QueryClient } from '@tanstack/react-query'
-import { createClient } from '@/app/lib/supabase/client'
+import { createClient } from '@/lib/supabase/client'
 
 type Tables = Database['public']['Tables']
 type Schedule = Tables['schedules']['Row']

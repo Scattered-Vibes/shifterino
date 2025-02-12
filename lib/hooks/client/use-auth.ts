@@ -2,8 +2,8 @@
 
 import { createContext, useContext } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { type User } from '@supabase/supabase-js'
-import { createClient, type Tables } from '@/lib/supabase/client'
+import type { User } from '@supabase/supabase-js'
+import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/use-toast'
 
 export type UserRole = 'dispatcher' | 'supervisor' | 'manager'

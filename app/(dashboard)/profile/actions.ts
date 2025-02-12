@@ -1,15 +1,9 @@
 'use server'
 
 import { cookies } from 'next/headers'
-import { createServerClient } from '@supabase/ssr'
-import type { CookieOptions } from '@supabase/ssr'
-import { type ProfileInput } from '@/lib/validations/schemas'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { handleError } from '@/lib/utils/error-handler'
-
-interface UpdateProfileInput extends ProfileInput {
-  id: string
-  auth_id: string
-}
+import type { UpdateProfileInput } from '@/types/profile'
 
 export async function updateProfile(data: UpdateProfileInput) {
   try {
