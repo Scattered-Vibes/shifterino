@@ -14,8 +14,6 @@
     "db:test": "supabase test db",
     "supabase:start": "supabase start",
     "supabase:stop": "supabase stop",
-    "generate-types": "ts-node scripts/generate-types.ts",
-    "postinstall": "npm run generate-types",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",

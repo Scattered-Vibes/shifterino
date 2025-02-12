@@ -17,7 +17,7 @@ export interface Database {
           last_name: string
           email: string
           role: 'dispatcher' | 'supervisor' | 'manager'
-          shift_pattern: 'pattern_a' | 'pattern_b' | 'custom'
+          shift_pattern: '4_10' | '3_12_1_4' | 'custom'
           preferred_shift_category: 'early' | 'day' | 'swing' | 'graveyard' | null
           weekly_hours_cap: number
           max_overtime_hours: number

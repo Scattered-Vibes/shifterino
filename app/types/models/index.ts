@@ -1,5 +1,25 @@
 import type { Timestamps } from '../shared/common';
 
+// Base model interfaces
+export interface BaseModel extends Timestamps {
+  id: string;
+}
+
+export interface SoftDeleteModel extends BaseModel {
+  deletedAt?: string;
+}
+
+export interface AuditableModel extends BaseModel {
+  createdBy: string;
+  updatedBy: string;
+}
+
+// Re-export all model types
+export * from './employee';
+export * from './schedule';
+export * from './shift';
+export * from './time-off';
+
 // Re-export model types explicitly to avoid naming conflicts
 export type {
   Employee,
@@ -53,20 +73,4 @@ export type {
   TimeOffRequestWithDetails,
   TimeOffRequestCreate,
   TimeOffRequestUpdate
-} from './time-off';
-
-// Common model interfaces
-export interface BaseModel extends Timestamps {
-  id: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface SoftDeleteModel extends BaseModel {
-  deletedAt?: string;
-}
-
-export interface AuditableModel extends BaseModel {
-  createdBy: string;
-  updatedBy: string;
-} 
+} from './time-off'; 

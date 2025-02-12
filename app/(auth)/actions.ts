@@ -54,6 +54,7 @@ export async function login(_prevState: LoginState | null, formData: FormData): 
     })
 
     if (error) {
+      console.error('Login error:', error)
       const result = handleError(error)
       return {
         error: {
@@ -63,8 +64,21 @@ export async function login(_prevState: LoginState | null, formData: FormData): 
       }
     }
 
-    revalidatePath('/', 'layout')
-    redirect('/dashboard')
+    // Verify the session was created
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    
+    if (userError || !user) {
+      console.error('Session verification error:', userError)
+      return {
+        error: {
+          message: 'Failed to verify login session',
+          code: 'AUTH_ERROR'
+        }
+      }
+    }
+
+    // Return null to indicate success
+    return null;
   } catch (error) {
     const result = handleError(error)
     return {

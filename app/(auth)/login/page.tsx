@@ -17,9 +17,10 @@
  */
 'use client'
 
-import { useFormState } from 'react-dom'
-import { useFormStatus } from 'react-dom'
+import { useFormState, useFormStatus } from 'react-dom'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
 import { login } from '@/app/(auth)/actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -42,7 +43,14 @@ function LoginButton() {
 }
 
 export default function LoginPage() {
+  const router = useRouter()
   const [state, formAction] = useFormState<LoginState | null, FormData>(login, null)
+
+  useEffect(() => {
+    if (state === null) {
+      router.replace('/overview')
+    }
+  }, [state, router])
 
   return (
     <Card>
@@ -67,6 +75,7 @@ export default function LoginPage() {
               type="email"
               placeholder="name@example.com"
               required
+              autoComplete="email"
             />
           </div>
           <div className="space-y-2">
@@ -76,6 +85,7 @@ export default function LoginPage() {
               name="password"
               type="password"
               required
+              autoComplete="current-password"
             />
           </div>
         </CardContent>

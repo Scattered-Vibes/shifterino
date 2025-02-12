@@ -188,12 +188,12 @@ $$;
 CREATE OR REPLACE FUNCTION public.is_manager()
 RETURNS boolean AS $$
 BEGIN
-    RETURN EXISTS (
-        SELECT 1
-        FROM public.employees
-        WHERE auth_id = auth.uid()
-        AND role = 'manager'
-    );
+  RETURN EXISTS (
+    SELECT 1
+    FROM public.employees
+    WHERE auth_id = auth.uid()::uuid
+    AND role = 'manager'
+  );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -201,23 +201,28 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION public.is_supervisor_or_above()
 RETURNS boolean AS $$
 BEGIN
-    RETURN EXISTS (
-        SELECT 1
-        FROM public.employees
-        WHERE auth_id = auth.uid()
-        AND role IN ('supervisor', 'manager')
-    );
+  RETURN EXISTS (
+    SELECT 1
+    FROM public.employees
+    WHERE auth_id = auth.uid()::uuid
+    AND role IN ('supervisor', 'manager')
+  );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Function to get team members for a supervisor (updated for team_id and supervisor_id)
+-- Function to get team members for a supervisor
 CREATE OR REPLACE FUNCTION public.get_team_members()
 RETURNS TABLE (employee_id uuid) AS $$
 BEGIN
     RETURN QUERY
     SELECT e.id
     FROM public.employees e
-    WHERE e.supervisor_id = auth.uid();
+    WHERE EXISTS (
+      SELECT 1 FROM public.employees supervisor
+      WHERE supervisor.auth_id = auth.uid()::uuid
+      AND supervisor.role IN ('supervisor', 'manager')
+      AND e.team_id = supervisor.team_id
+    );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -252,28 +257,18 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
-    INSERT INTO public.employees (
-        auth_id,
-        first_name,
-        last_name,
-        email,
-        role,
-        profile_completed,
-        created_at,
-        updated_at
-    ) VALUES (
-        NEW.id,
-        NEW.raw_user_meta_data->>'first_name',
-        NEW.raw_user_meta_data->>'last_name',
-        NEW.email,
-        LOWER(NEW.raw_user_meta_data->>'role')::employee_role,
-        true,
-        NOW(),
-        NOW()
-    );
-    RETURN NEW;
+  INSERT INTO public.employees (auth_id, email, first_name, last_name, role, shift_pattern)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    NEW.raw_user_meta_data->>'first_name',
+    NEW.raw_user_meta_data->>'last_name',
+    (COALESCE(NEW.raw_user_meta_data->>'role', 'dispatcher'))::public.employee_role,
+    (COALESCE(NEW.raw_user_meta_data->>'shift_pattern', '4_10'))::public.shift_pattern
+  );
+  RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Grant necessary permissions
 GRANT USAGE ON SCHEMA public TO postgres, anon, authenticated, service_role;
@@ -745,26 +740,27 @@ BEGIN
     CASE employee_pattern
         WHEN '4_10' THEN
             IF shift_duration != 10 THEN
-                RAISE EXCEPTION '4_10 requires 10-hour shifts (got % hours)', shift_duration;
+                RAISE EXCEPTION 'Employee with 4x10 pattern can only be assigned 10-hour shifts';
             END IF;
         WHEN '3_12_4' THEN
-            IF shift_duration NOT IN (4, 12) THEN
-                RAISE EXCEPTION '3_12_4 requires 4-hour or 12-hour shifts (got % hours)', shift_duration;
+            IF shift_duration NOT IN (12, 4) THEN
+                RAISE EXCEPTION 'Employee with 3x12+4 pattern can only be assigned 12-hour or 4-hour shifts';
             END IF;
         WHEN 'CUSTOM' THEN
-            -- Any valid shift option is allowed
-            NULL;
+            -- Custom patterns allow any shift duration
+            RETURN NEW;
+        ELSE
+            RAISE EXCEPTION 'Unknown shift pattern: %', employee_pattern;
     END CASE;
 
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
--- Add trigger for shift pattern validation
+-- Create trigger for shift pattern validation
 CREATE TRIGGER validate_shift_pattern_trigger
     BEFORE INSERT OR UPDATE ON public.schedules
     FOR EACH ROW
-    WHEN (NEW.status != 'cancelled')
     EXECUTE FUNCTION public.validate_shift_pattern();
 
 -- Create function to check for overlapping shifts
@@ -971,7 +967,11 @@ BEGIN
             ) THEN
                  RAISE EXCEPTION '3_12_4 allows maximum 3 12-hour shifts and 1 4-hour shift';
             END IF;
-
+        ELSE
+            -- For CUSTOM pattern or any other patterns, apply a default maximum of 7 consecutive days
+            IF consecutive_days > 7 THEN
+                RAISE EXCEPTION 'Maximum 7 consecutive days allowed for custom patterns';
+            END IF;
     END CASE;
 
     RETURN NEW;
@@ -1572,3 +1572,308 @@ $$;
 -- Grant execute permission on the confirm_email function
 GRANT EXECUTE ON FUNCTION auth.confirm_email TO authenticated;
 GRANT EXECUTE ON FUNCTION auth.confirm_email TO service_role;
+
+-- Grant permissions on types
+GRANT USAGE ON TYPE public.employee_role TO authenticated;
+GRANT USAGE ON TYPE public.shift_pattern TO authenticated;
+GRANT USAGE ON TYPE public.shift_category TO authenticated;
+GRANT USAGE ON TYPE public.time_off_status TO authenticated;
+GRANT USAGE ON TYPE public.shift_status TO authenticated;
+GRANT USAGE ON TYPE public.swap_request_status TO authenticated;
+GRANT USAGE ON TYPE public.on_call_status TO authenticated;
+GRANT USAGE ON TYPE holiday_type TO authenticated;
+GRANT USAGE ON TYPE schedule_status TO authenticated;
+
+-- Grant permissions on functions
+GRANT EXECUTE ON FUNCTION public.is_manager() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.is_supervisor_or_above() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_team_members() TO authenticated;
+
+-- Enable required extensions
+CREATE EXTENSION IF NOT EXISTS "pg_cron";
+
+-- Create rate_limits table for tracking API rate limits
+CREATE TABLE IF NOT EXISTS public.rate_limits (
+    id text PRIMARY KEY,
+    count integer NOT NULL DEFAULT 1,
+    last_request timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    CONSTRAINT valid_count CHECK (count >= 0)
+);
+
+-- Add RLS policies
+ALTER TABLE public.rate_limits ENABLE ROW LEVEL SECURITY;
+
+-- Grant access to authenticated users
+GRANT ALL ON TABLE public.rate_limits TO authenticated;
+GRANT ALL ON TABLE public.rate_limits TO service_role;
+
+-- Add updated_at trigger
+CREATE TRIGGER update_rate_limits_updated_at
+    BEFORE UPDATE ON public.rate_limits
+    FOR EACH ROW
+    EXECUTE FUNCTION public.update_updated_at_column();
+
+-- Add cleanup function
+CREATE OR REPLACE FUNCTION public.cleanup_rate_limits() RETURNS void
+    LANGUAGE plpgsql
+    SECURITY DEFINER
+    SET search_path = public
+AS $$
+BEGIN
+    -- Delete rate limit entries older than 1 hour
+    DELETE FROM public.rate_limits
+    WHERE updated_at < (CURRENT_TIMESTAMP - INTERVAL '1 hour');
+END;
+$$;
+
+-- Create a scheduled job to cleanup old rate limit entries
+SELECT cron.schedule(
+    'cleanup-rate-limits',
+    '*/10 * * * *', -- Run every 10 minutes
+    $$SELECT public.cleanup_rate_limits()$$
+); 
+
+-- Enable JWT authentication and verification
+create extension if not exists "pgjwt" with schema extensions;
+
+-- Configure auth settings
+alter table auth.users enable row level security;
+
+-- Set up RLS policies for users
+create policy "Users can view own data"
+  on auth.users
+  for select
+  using (auth.uid()::uuid = id);
+
+-- Configure JWT claims
+create or replace function auth.jwt() returns jsonb as $$
+begin
+  return jsonb_build_object(
+    'role', current_user,
+    'aud', 'authenticated',
+    'exp', extract(epoch from (now() + interval '7 days'))::integer,
+    'sub', auth.uid()::text,
+    'email', (select email from auth.users where id = auth.uid()::uuid),
+    'app_metadata', (
+      select jsonb_build_object(
+        'provider', provider,
+        'providers', array_agg(provider)
+      )
+      from auth.identities
+      where user_id = auth.uid()::uuid
+      group by provider
+    ),
+    'user_metadata', (
+      select raw_user_meta_data
+      from auth.users
+      where id = auth.uid()::uuid
+    )
+  );
+end;
+$$ language plpgsql security definer;
+
+-- Set up RLS policies for auth tables
+alter table auth.refresh_tokens enable row level security;
+alter table auth.sessions enable row level security;
+alter table auth.mfa_factors enable row level security;
+alter table auth.mfa_amr_claims enable row level security;
+alter table auth.mfa_challenges enable row level security;
+
+-- Create RLS policies for auth tables
+create policy "Users can manage own refresh tokens"
+  on auth.refresh_tokens
+  for all
+  using (auth.uid()::text = user_id);
+
+create policy "Users can manage own sessions"
+  on auth.sessions
+  for all
+  using (auth.uid()::uuid = user_id);
+
+create policy "Users can view own mfa factors"
+  on auth.mfa_factors
+  for select
+  using (auth.uid()::uuid = user_id);
+
+create policy "Users can manage own mfa factors"
+  on auth.mfa_factors
+  for all
+  using (auth.uid()::uuid = user_id);
+
+-- MFA AMR claims policy using session join
+create policy "Users can view own amr claims"
+  on auth.mfa_amr_claims
+  for select
+  using (
+    EXISTS (
+      SELECT 1
+      FROM auth.sessions
+      WHERE sessions.id = mfa_amr_claims.session_id
+      AND sessions.user_id = auth.uid()::uuid
+    )
+  );
+
+create policy "Users can manage own amr claims"
+  on auth.mfa_amr_claims
+  for all
+  using (
+    EXISTS (
+      SELECT 1
+      FROM auth.sessions
+      WHERE sessions.id = mfa_amr_claims.session_id
+      AND sessions.user_id = auth.uid()::uuid
+    )
+  );
+
+-- MFA challenges policy using session join
+create policy "Users can view own challenges"
+  on auth.mfa_challenges
+  for select
+  using (
+    EXISTS (
+      SELECT 1
+      FROM auth.mfa_factors
+      WHERE mfa_factors.id = mfa_challenges.factor_id
+      AND mfa_factors.user_id = auth.uid()::uuid
+    )
+  );
+
+create policy "Users can manage own challenges"
+  on auth.mfa_challenges
+  for all
+  using (
+    EXISTS (
+      SELECT 1
+      FROM auth.mfa_factors
+      WHERE mfa_factors.id = mfa_challenges.factor_id
+      AND mfa_factors.user_id = auth.uid()::uuid
+    )
+  );
+
+-- Set up audit logging
+create table if not exists auth.audit_log_entries (
+  instance_id uuid,
+  id uuid not null,
+  payload json,
+  created_at timestamptz,
+  ip_address varchar(64)
+);
+
+create index if not exists audit_logs_instance_id_idx on auth.audit_log_entries (instance_id);
+create index if not exists audit_logs_id_idx on auth.audit_log_entries (id);
+create index if not exists audit_logs_created_at_idx on auth.audit_log_entries (created_at);
+
+-- Configure rate limiting
+create table if not exists auth.rate_limits (
+  id bigserial primary key,
+  entity_id uuid not null,
+  entity_type text not null,
+  action text not null,
+  attempts int not null default 0,
+  last_attempted_at timestamptz not null default now(),
+  blocked_until timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create unique index if not exists rate_limits_entity_action_idx 
+  on auth.rate_limits (entity_id, entity_type, action);
+
+create index if not exists rate_limits_blocked_until_idx 
+  on auth.rate_limits (blocked_until);
+
+-- Function to check rate limits
+create or replace function auth.check_rate_limit(
+  p_entity_id uuid,
+  p_entity_type text,
+  p_action text,
+  p_max_attempts int,
+  p_window interval,
+  p_block_duration interval
+) returns boolean as $$
+declare
+  v_rate_limit auth.rate_limits%rowtype;
+begin
+  -- Get or create rate limit record
+  insert into auth.rate_limits (entity_id, entity_type, action)
+  values (p_entity_id, p_entity_type, p_action)
+  on conflict (entity_id, entity_type, action) do update
+  set attempts = case
+    when auth.rate_limits.last_attempted_at < now() - p_window then 1
+    else auth.rate_limits.attempts + 1
+    end,
+    last_attempted_at = now(),
+    blocked_until = case
+    when auth.rate_limits.last_attempted_at < now() - p_window then null
+    when auth.rate_limits.attempts + 1 >= p_max_attempts then now() + p_block_duration
+    else auth.rate_limits.blocked_until
+    end
+  returning * into v_rate_limit;
+
+  -- Check if blocked
+  if v_rate_limit.blocked_until is not null and v_rate_limit.blocked_until > now() then
+    return false;
+  end if;
+
+  -- Check attempts within window
+  if v_rate_limit.attempts >= p_max_attempts and 
+     v_rate_limit.last_attempted_at > now() - p_window then
+    return false;
+  end if;
+
+  return true;
+end;
+$$ language plpgsql security definer;
+
+-- Drop existing employee-related policies
+DROP POLICY IF EXISTS "Users can view own employee data" ON public.employees;
+DROP POLICY IF EXISTS "Managers can view all employee data" ON public.employees;
+DROP POLICY IF EXISTS "Users can update own employee data" ON public.employees;
+DROP POLICY IF EXISTS "Managers can update all employee data" ON public.employees;
+
+-- Recreate employee policies with proper UUID casting
+CREATE POLICY "Users can view own employee data"
+  ON public.employees
+  FOR SELECT
+  USING (auth_id = auth.uid()::uuid OR public.is_supervisor_or_above());
+
+CREATE POLICY "Managers can view all employee data"
+  ON public.employees
+  FOR SELECT
+  USING (public.is_manager());
+
+CREATE POLICY "Users can update own employee data"
+  ON public.employees
+  FOR UPDATE
+  USING (auth_id = auth.uid()::uuid);
+
+CREATE POLICY "Managers can update all employee data"
+  ON public.employees
+  FOR UPDATE
+  USING (public.is_manager());
+
+-- Add trigger for handling new users
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.employees (auth_id, email, first_name, last_name, role, shift_pattern)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    NEW.raw_user_meta_data->>'first_name',
+    NEW.raw_user_meta_data->>'last_name',
+    (COALESCE(NEW.raw_user_meta_data->>'role', 'dispatcher'))::public.employee_role,
+    (COALESCE(NEW.raw_user_meta_data->>'shift_pattern', '4_10'))::public.shift_pattern
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Ensure trigger exists
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_new_user(); 

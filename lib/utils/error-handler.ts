@@ -64,6 +64,32 @@ export function handleError(error: unknown): { message: string; code: ErrorCodeT
   }
 
   if (error instanceof Error) {
+    // Handle Supabase auth errors
+    if ('status' in error && typeof error.status === 'number') {
+      switch (error.status) {
+        case 400:
+          return {
+            message: 'Invalid request. Please check your input.',
+            code: ErrorCode.VALIDATION_ERROR
+          }
+        case 401:
+          return {
+            message: 'Invalid email or password',
+            code: ErrorCode.INVALID_CREDENTIALS
+          }
+        case 422:
+          return {
+            message: 'Invalid email or password format',
+            code: ErrorCode.VALIDATION_ERROR
+          }
+        case 429:
+          return {
+            message: 'Too many attempts. Please try again later.',
+            code: ErrorCode.RATE_LIMIT
+          }
+      }
+    }
+
     if (error.message.includes('Invalid login credentials')) {
       return {
         message: 'Invalid email or password',
@@ -84,8 +110,8 @@ export function handleError(error: unknown): { message: string; code: ErrorCodeT
 }
 
 export function handleValidationError(
-  errors: ValidationError[],
-  context?: Record<string, unknown>
+  _errors: ValidationError[],
+  _context?: Record<string, unknown>
 ): { message: string; code: ErrorCodeType } {
   return {
     message: 'Validation failed',

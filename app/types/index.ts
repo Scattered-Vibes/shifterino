@@ -1,9 +1,9 @@
 import type { Database } from '@/types/supabase/database'
 
-// Re-export database types
+// Database types and enums
 export type { Database } from '@/types/supabase/database'
 
-// Re-export database enums with aliases
+// Database Enums
 export type EmployeeRole = Database['public']['Enums']['employee_role']
 export type ShiftCategory = Database['public']['Enums']['shift_category']
 export type ShiftPattern = Database['public']['Enums']['shift_pattern']
@@ -11,30 +11,12 @@ export type ShiftStatus = Database['public']['Enums']['shift_status']
 export type TimeOffStatus = Database['public']['Enums']['time_off_status']
 export type LogSeverity = Database['public']['Enums']['log_severity']
 
-// Re-export shared/common types
-export type {
-  Duration,
-  TimeBlock,
-  DateRange,
-  TimeRange,
-  WeeklyTracking,
-  ValidationError,
-  BaseConflict,
-  ValidationResult,
-  Status,
-  TrackingPeriod,
-  StaffingTimeBlock,
-  StaffingLevel,
-  PaginationParams,
-  PaginatedResponse,
-  // Common type aliases
-  ID,
-  UUID,
-  ISO8601DateTime
-} from './shared'
+// Re-export all common types
+export * from './shared/common'
 
-// Re-export model types
+// Model types
 export type {
+  // Employee
   Employee,
   EmployeeBasic,
   EmployeeSchedulePreferences,
@@ -42,9 +24,11 @@ export type {
   EmployeeWithSchedule,
   EmployeeWithShifts,
   EmployeeAvailability,
-  DatabaseStaffingRequirement,
+  
+  // Schedule
   Schedule,
   SchedulePeriod,
+  DatabaseStaffingRequirement,
   ShiftPatternRule,
   ShiftPatternTracking,
   ScheduleGenerationConfig,
@@ -60,6 +44,8 @@ export type {
   ScheduleStats,
   StaffingGap,
   ScheduleTemplate,
+  
+  // Shift
   IndividualShift,
   ShiftOption,
   ShiftEvent,
@@ -72,16 +58,20 @@ export type {
   ShiftConflict,
   ShiftCreate,
   ShiftStats,
+  
+  // Time off
   TimeOffRequest,
   TimeOffRequestWithDetails,
   TimeOffRequestCreate,
   TimeOffRequestUpdate,
+  
+  // Base models
   BaseModel,
   SoftDeleteModel,
   AuditableModel
 } from './models'
 
-// Re-export scheduling types
+// Scheduling types
 export type {
   Holiday,
   WeeklyHoursTracking,
@@ -90,24 +80,22 @@ export type {
   OnCallAssignment,
   ScheduleGenerationParams,
   ScheduleGenerationResult,
-  SchedulingStaffingRequirement,
-  SchedulingValidation,
   TimeSlot,
   DayOfWeek,
   SchedulingConstraints,
   ShiftPatternType
 } from './scheduling'
 
-// Re-export API types
+// API types
 export type {
   ApiResponse,
-  ApiError as ApiResponseError,
+  ApiError,
   RouteHandlerResponse,
   ApiStatusCode,
   ApiQueryParams
 } from './api'
 
-// Re-export form types
+// Form types
 export type {
   FormState,
   FormAction,
@@ -116,17 +104,20 @@ export type {
   SubmitOptions
 } from './forms'
 
-// Re-export auth types
-export type { AuthenticatedUser, AuthError } from './auth'
+// Auth types
+export type {
+  AuthenticatedUser,
+  AuthError
+} from './auth'
 
-// Re-export realtime types
+// Realtime types
 export type {
   AllowedTables,
   RealtimePayload,
   RealtimeSubscriptionOptions
 } from './realtime'
 
-// Error Types
+// Error codes
 export const ErrorCode = {
   UNAUTHORIZED: 'UNAUTHORIZED',
   FORBIDDEN: 'FORBIDDEN',
@@ -139,12 +130,6 @@ export const ErrorCode = {
 } as const
 
 export type ErrorCode = typeof ErrorCode[keyof typeof ErrorCode]
-
-export interface ApiError {
-  code: ErrorCode
-  message: string
-  details?: unknown
-}
 
 // Main barrel file for type exports
 export * from './auth';

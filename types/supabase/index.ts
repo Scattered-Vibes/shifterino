@@ -1,28 +1,59 @@
 import type { Database } from './database'
 
+// Re-export the Database type
+export type { Database }
+
+// Helper types for working with tables
 export type Tables = Database['public']['Tables']
 export type Enums = Database['public']['Enums']
 
-// Auth and User types
-export type UserRole = Enums['employee_role']
-export type EmployeeStatus = Enums['employee_status']
+// Generic table type helpers
+export type TableRow<T extends keyof Tables> = Tables[T]['Row']
+export type TableInsert<T extends keyof Tables> = Tables[T]['Insert']
+export type TableUpdate<T extends keyof Tables> = Tables[T]['Update']
+
+// Table names
+export type TableName = keyof Tables
+
+// Enum types
+export type ShiftPattern = Enums['shift_pattern']
+export type ShiftCategory = Enums['shift_category']
+export type EmployeeRole = Enums['employee_role']
 
 // Table row types
-export type Employee = Tables['employees']['Row']
-export type Shift = Tables['individual_shifts']['Row']
-export type ShiftOption = Tables['shift_options']['Row']
-export type StaffingRequirement = Tables['staffing_requirements']['Row']
-export type TimeOffRequest = Tables['time_off_requests']['Row']
-export type ShiftSwapRequest = Tables['shift_swap_requests']['Row']
+export type EmployeeRow = TableRow<'employees'>
+export type ShiftOptionRow = TableRow<'shift_options'>
+export type IndividualShiftRow = TableRow<'individual_shifts'>
+export type ScheduleRow = TableRow<'schedules'>
+export type StaffingRequirementRow = TableRow<'staffing_requirements'>
+export type TimeOffRequestRow = TableRow<'time_off_requests'>
+export type ShiftSwapRequestRow = TableRow<'shift_swap_requests'>
+export type AuthLogRow = TableRow<'auth_logs'>
 
-// Insert types
-export type EmployeeInsert = Tables['employees']['Insert']
-export type ShiftInsert = Tables['individual_shifts']['Insert']
-export type TimeOffRequestInsert = Tables['time_off_requests']['Insert']
-export type ShiftSwapRequestInsert = Tables['shift_swap_requests']['Insert']
+// Table insert types
+export type EmployeeInsert = TableInsert<'employees'>
+export type ShiftOptionInsert = TableInsert<'shift_options'>
+export type IndividualShiftInsert = TableInsert<'individual_shifts'>
+export type ScheduleInsert = TableInsert<'schedules'>
+export type StaffingRequirementInsert = TableInsert<'staffing_requirements'>
+export type TimeOffRequestInsert = TableInsert<'time_off_requests'>
+export type ShiftSwapRequestInsert = TableInsert<'shift_swap_requests'>
+export type AuthLogInsert = TableInsert<'auth_logs'>
 
-// Update types
-export type EmployeeUpdate = Tables['employees']['Update']
-export type ShiftUpdate = Tables['individual_shifts']['Update']
-export type TimeOffRequestUpdate = Tables['time_off_requests']['Update']
-export type ShiftSwapRequestUpdate = Tables['shift_swap_requests']['Update'] 
+// Table update types
+export type EmployeeUpdate = TableUpdate<'employees'>
+export type ShiftOptionUpdate = TableUpdate<'shift_options'>
+export type IndividualShiftUpdate = TableUpdate<'individual_shifts'>
+export type ScheduleUpdate = TableUpdate<'schedules'>
+export type StaffingRequirementUpdate = TableUpdate<'staffing_requirements'>
+export type TimeOffRequestUpdate = TableUpdate<'time_off_requests'>
+export type ShiftSwapRequestUpdate = TableUpdate<'shift_swap_requests'>
+export type AuthLogUpdate = TableUpdate<'auth_logs'>
+
+// Common type aliases for backward compatibility
+export type Employee = EmployeeRow
+export type Shift = IndividualShiftRow
+export type ShiftOption = ShiftOptionRow
+export type StaffingRequirement = StaffingRequirementRow
+export type TimeOffRequest = TimeOffRequestRow
+export type ShiftSwapRequest = ShiftSwapRequestRow 

@@ -1,8 +1,8 @@
+import { config } from 'dotenv'
 import { createClient } from '@supabase/supabase-js'
-import dotenv from 'dotenv'
 
-// Load environment variables
-dotenv.config({ path: '.env.local' })
+// Load environment variables from .env.local
+config({ path: '.env.local' })
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -21,35 +21,40 @@ const testUsers = [
     password: 'TESTboy123!',
     first_name: 'Mike',
     last_name: 'Manager',
-    role: 'manager'
+    role: 'manager',
+    shift_pattern: '4_10'
   },
   {
     email: 'AdambPeterson@gmail.com',
     password: 'ABPsch1313!',
     first_name: 'Adam',
     last_name: 'Peterson',
-    role: 'manager'
+    role: 'manager',
+    shift_pattern: '4_10'
   },
   {
     email: 'supervisor@dispatch911.test',
     password: 'TESTboy123!',
     first_name: 'Sarah',
     last_name: 'Supervisor',
-    role: 'supervisor'
+    role: 'supervisor',
+    shift_pattern: '3_12_4'
   },
   {
     email: 'dispatcher1@dispatch911.test',
     password: 'TESTboy123!',
     first_name: 'David',
     last_name: 'Day',
-    role: 'dispatcher'
+    role: 'dispatcher',
+    shift_pattern: '4_10'
   },
   {
     email: 'dispatcher2@dispatch911.test',
     password: 'TESTboy123!',
     first_name: 'Nina',
     last_name: 'Night',
-    role: 'dispatcher'
+    role: 'dispatcher',
+    shift_pattern: '3_12_4'
   }
 ]
 
@@ -59,15 +64,17 @@ async function createTestUsers() {
   for (const user of testUsers) {
     try {
       // Create user with Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      const { data, error: authError } = await supabase.auth.admin.createUser({
         email: user.email,
         password: user.password,
-        email_confirm: true, // Auto-confirm email for test users
+        email_confirm: true,
         user_metadata: {
           first_name: user.first_name,
           last_name: user.last_name,
-          role: user.role
-        }
+          role: user.role,
+          shift_pattern: user.shift_pattern,
+          profile_incomplete: true
+        },
       })
 
       if (authError) {
@@ -75,29 +82,23 @@ async function createTestUsers() {
         continue
       }
 
-      console.log(`Created user ${user.email} with ID: ${authData.user.id}`)
-
-      // Create corresponding employee record
-      const { error: employeeError } = await supabase
-        .from('employees')
-        .insert({
-          auth_id: authData.user.id,
-          first_name: user.first_name,
-          last_name: user.last_name,
-          email: user.email,
-          role: user.role,
-          shift_pattern: user.role === 'dispatcher' ? '4_10' : null,
-          preferred_shift_category: 'DAY',
-          weekly_hours_cap: 40,
-          profile_completed: true
-        })
-
-      if (employeeError) {
-        console.error(`Error creating employee record for ${user.email}:`, employeeError.message)
+      if (!data.user) {
+        console.error(`User data is empty for ${user.email}`)
         continue
       }
+      
+      console.log(`Created user ${user.email} with ID: ${data.user.id}`)
 
-      console.log(`Created employee record for ${user.email}`)
+      // The handle_new_user trigger will create the employee record
+      // Just update the role if needed
+      const { error: updateError } = await supabase
+        .from('employees')
+        .update({ role: user.role })
+        .eq('auth_id', data.user.id)
+
+      if (updateError) {
+        console.error(`Error updating role for ${user.email}:`, updateError.message)
+      }
     } catch (error) {
       console.error(`Unexpected error creating user ${user.email}:`, error)
     }

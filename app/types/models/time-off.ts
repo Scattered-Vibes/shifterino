@@ -1,24 +1,33 @@
-import type { Database } from '@/types/supabase/database'
-import type { EmployeeBasic } from './employee'
+import type { AuditableModel } from './index'
+import type { UUID } from '../shared/common'
+import type { TimeOffStatus } from '../index'
+import type { Employee } from './employee'
 
-// Database types
-type Tables = Database['public']['Tables']
-type Enums = Database['public']['Enums']
-
-export type TimeOffRequest = Tables['time_off_requests']['Row']
-export type TimeOffStatus = Enums['time_off_status']
-
-// Extended types with relationships
-export interface TimeOffRequestWithDetails extends TimeOffRequest {
-  employee: EmployeeBasic
-}
-
-// Create/Update types
-export type TimeOffRequestCreate = Omit<TimeOffRequest, 'id' | 'created_at' | 'updated_at'> & {
-  status?: TimeOffStatus
-}
-
-export type TimeOffRequestUpdate = {
+export interface TimeOffRequest extends AuditableModel {
+  employeeId: UUID
+  startDate: string
+  endDate: string
   status: TimeOffStatus
-  notes?: string
+  reason?: string
+}
+
+export interface TimeOffRequestWithDetails extends TimeOffRequest {
+  employee: Employee
+  approver?: {
+    id: UUID
+    firstName: string
+    lastName: string
+  }
+}
+
+export interface TimeOffRequestCreate {
+  employeeId: UUID
+  startDate: string
+  endDate: string
+  reason?: string
+}
+
+export interface TimeOffRequestUpdate {
+  status: TimeOffStatus
+  approverNotes?: string
 } 

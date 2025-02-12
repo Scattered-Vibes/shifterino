@@ -1,65 +1,72 @@
-export type Duration = {
-  days: number
+// Basic type aliases
+export type ID = string
+export type UUID = string
+export type ISO8601DateTime = string
+export type Nullable<T> = T | null
+export type Optional<T> = T | undefined
+export type ValueOf<T> = T[keyof T]
+
+// Time-related types
+export interface Duration {
   hours: number
   minutes: number
-  seconds: number
-  milliseconds: number
+  seconds?: number
+  milliseconds?: number
+  days?: number
 }
 
-export type TimeBlock = {
-  start: Date
-  end: Date
+export interface TimeBlock {
+  startTime: string  // Format: "HH:mm"
+  endTime: string    // Format: "HH:mm"
 }
 
 export interface DateRange {
-  start: Date
-  end: Date
+  startDate: ISO8601DateTime
+  endDate: ISO8601DateTime
 }
 
-export type TimeRange = {
-  start_time: string  // Format: "HH:mm"
-  end_time: string    // Format: "HH:mm"
+export interface TimeRange {
+  startTime: ISO8601DateTime
+  endTime: ISO8601DateTime
 }
 
-export type WeeklyTracking = {
+// Tracking types
+export interface WeeklyTracking {
   [key: string]: {
     [weekStartDate: string]: number
   }
 }
 
+export interface TrackingPeriod {
+  startDate: ISO8601DateTime
+  endDate: ISO8601DateTime
+  count: number
+  totalHours: number
+}
+
+// Validation types
 export interface ValidationError {
-  code: string
+  code?: string
   message: string
   field?: string
 }
 
+export interface ValidationResult {
+  isValid: boolean
+  errors: ValidationError[]
+  warnings?: string[]
+}
+
+// Status and conflict types
+export type Status = 'active' | 'inactive' | 'pending' | 'completed' | 'cancelled' | 'archived'
+
 export interface BaseConflict {
   type: string
   message: string
+  details?: Record<string, unknown>
 }
 
-export interface ValidationResult {
-  isValid: boolean
-  errors: string[]
-  warnings: string[]
-}
-
-export type Status = 'active' | 'inactive' | 'pending' | 'completed' | 'cancelled'
-
-export interface TrackingPeriod {
-  start_date: string
-  end_date: string
-  count: number
-  total_hours: number
-}
-
-export interface StaffingTimeBlock extends TimeBlock {
-  required_total: number
-  required_supervisors: number
-  actual_total: number
-  actual_supervisors: number
-}
-
+// Staffing types
 export interface StaffingLevel {
   total: number
   supervisors: number
@@ -67,47 +74,38 @@ export interface StaffingLevel {
   isSufficient: boolean
 }
 
-// Basic type aliases
-export type ID = string;
-export type ISO8601DateTime = string;
-export type UUID = string;
-
-// Common interfaces
-export interface Timestamps {
-  createdAt: ISO8601DateTime;
-  updatedAt: ISO8601DateTime;
+export interface StaffingTimeBlock extends TimeBlock {
+  requiredTotal: number
+  requiredSupervisors: number
+  actualTotal: number
+  actualSupervisors: number
 }
 
 // Pagination types
 export interface PaginationParams {
-  page: number;
-  limit: number;
-  orderBy?: string;
-  orderDir?: 'asc' | 'desc';
+  page: number
+  limit: number
+  orderBy?: string
+  orderDir?: 'asc' | 'desc'
 }
 
 export interface PaginatedResponse<T> {
-  items: T[];
-  total: number;
-  page: number;
-  limit: number;
-  hasMore: boolean;
+  data: T[]
+  total: number
+  page: number
+  limit: number
+  hasMore: boolean
 }
-
-// Common utility types
-export type Nullable<T> = T | null;
-export type Optional<T> = T | undefined;
-export type ValueOf<T> = T[keyof T];
 
 // Error handling types
 export interface ErrorResponse {
-  message: string;
-  code: string;
-  details?: Record<string, unknown>;
+  message: string
+  code: string
+  details?: Record<string, unknown>
 }
 
-// Date range type
-export interface DateRange {
-  startDate: ISO8601DateTime;
-  endDate: ISO8601DateTime;
+// Base model interfaces
+export interface Timestamps {
+  createdAt: ISO8601DateTime
+  updatedAt: ISO8601DateTime
 } 
