@@ -1,76 +1,56 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
-import { createClient, type Tables } from '@/lib/supabase/client'
-import { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
-import { realtimeManager } from '@/lib/supabase/realtime'
-import {
-  IndividualShift,
-  ShiftSwapRequest,
-  OnCallAssignment,
-  OnCallActivation
-} from '@/types/scheduling'
+import { createClient } from '@/lib/supabase/client'
+import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
+import type { Database } from '@/types/supabase/database'
 
-type TableName = keyof Tables
-type RowType<T extends TableName> = Tables[T]['Row']
+type DatabaseTables = Database['public']['Tables']
+type TableName = keyof DatabaseTables
+type Event = 'INSERT' | 'UPDATE' | 'DELETE' | '*'
 
-interface UseRealtimeSubscriptionOptions<T extends TableName> {
+interface UseRealtimeSubscriptionProps<T extends TableName> {
+  schema?: string
   table: T
-  event?: 'INSERT' | 'UPDATE' | 'DELETE' | '*'
+  event?: Event
   filter?: string
-  onData?: (payload: { 
-    eventType: 'INSERT' | 'UPDATE' | 'DELETE'
-    new: RowType<T>
-    old: RowType<T>
-  }) => void
+  onData: (payload: RealtimePostgresChangesPayload<DatabaseTables[T]['Row']>) => void
 }
 
+/**
+ * Hook to subscribe to Supabase realtime changes
+ * @template T - The table name from the database
+ */
 export function useRealtimeSubscription<T extends TableName>({
+  schema = 'public',
   table,
   event = '*',
   filter,
-  onData,
-}: UseRealtimeSubscriptionOptions<T>) {
-  const queryClient = useQueryClient()
-  const supabase = createClient()
-
+  onData
+}: UseRealtimeSubscriptionProps<T>) {
   useEffect(() => {
+    const supabase = createClient()
     const channel = supabase
-      .channel('db-changes')
+      .channel(`${schema}:${table}`)
       .on(
-        'postgres_changes',
-        {
-          event,
-          schema: 'public',
-          table,
-          filter,
-        },
-        (payload) => {
-          // Invalidate queries related to this table
-          queryClient.invalidateQueries({ queryKey: [table] })
-          
-          // Call custom handler if provided
-          if (onData) {
-            onData({
-              eventType: payload.eventType,
-              new: payload.new as RowType<T>,
-              old: payload.old as RowType<T>,
-            })
-          }
-        }
+        'postgres_changes' as const,
+        { event, schema, table, filter },
+        // Type assertion needed due to Supabase types not being fully compatible
+        (payload) => onData(payload as RealtimePostgresChangesPayload<DatabaseTables[T]['Row']>)
       )
       .subscribe()
 
     return () => {
-      supabase.removeChannel(channel)
+      channel.unsubscribe().catch(error => {
+        console.error('Error unsubscribing from channel:', error)
+      })
     }
-  }, [table, event, filter, onData, queryClient, supabase])
+  }, [schema, table, event, filter, onData])
 }
 
 // Type-safe hooks for specific subscriptions
 export function useShiftSubscription(
-  options: Omit<UseRealtimeSubscriptionOptions<TableName>, 'table'> & {
+  options: Omit<UseRealtimeSubscriptionProps<TableName>, 'table'> & {
     onInsert?: (payload: RealtimePostgresChangesPayload<IndividualShift>) => void
     onUpdate?: (payload: RealtimePostgresChangesPayload<IndividualShift>) => void
     onDelete?: (payload: RealtimePostgresChangesPayload<IndividualShift>) => void
@@ -80,7 +60,7 @@ export function useShiftSubscription(
 }
 
 export function useSwapRequestSubscription(
-  options: Omit<UseRealtimeSubscriptionOptions<TableName>, 'table'> & {
+  options: Omit<UseRealtimeSubscriptionProps<TableName>, 'table'> & {
     onInsert?: (payload: RealtimePostgresChangesPayload<ShiftSwapRequest>) => void
     onUpdate?: (payload: RealtimePostgresChangesPayload<ShiftSwapRequest>) => void
     onDelete?: (payload: RealtimePostgresChangesPayload<ShiftSwapRequest>) => void
@@ -90,7 +70,7 @@ export function useSwapRequestSubscription(
 }
 
 export function useOnCallAssignmentSubscription(
-  options: Omit<UseRealtimeSubscriptionOptions<TableName>, 'table'> & {
+  options: Omit<UseRealtimeSubscriptionProps<TableName>, 'table'> & {
     onInsert?: (payload: RealtimePostgresChangesPayload<OnCallAssignment>) => void
     onUpdate?: (payload: RealtimePostgresChangesPayload<OnCallAssignment>) => void
     onDelete?: (payload: RealtimePostgresChangesPayload<OnCallAssignment>) => void
@@ -100,7 +80,7 @@ export function useOnCallAssignmentSubscription(
 }
 
 export function useOnCallActivationSubscription(
-  options: Omit<UseRealtimeSubscriptionOptions<TableName>, 'table'> & {
+  options: Omit<UseRealtimeSubscriptionProps<TableName>, 'table'> & {
     onInsert?: (payload: RealtimePostgresChangesPayload<OnCallActivation>) => void
     onUpdate?: (payload: RealtimePostgresChangesPayload<OnCallActivation>) => void
     onDelete?: (payload: RealtimePostgresChangesPayload<OnCallActivation>) => void

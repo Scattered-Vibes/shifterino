@@ -1,51 +1,31 @@
-import type { Database } from '@/types/supabase/database'
-import type { EmployeeBasic } from './employee'
+import type { StaffingRequirement } from './staffing'
 
-// Database types
-type Tables = Database['public']['Tables']
-type Enums = Database['public']['Enums']
+export type ScheduleStatus = 'draft' | 'pending_approval' | 'approved' | 'published' | 'archived'
 
-// Base types from database
-export type Schedule = Tables['schedule_periods']['Row']
-export type StaffingRequirement = Tables['staffing_requirements']['Row']
-export type ShiftOption = Tables['shift_options']['Row']
-
-// Extended types with relationships
-export interface ScheduleWithDetails extends Schedule {
-  employee: EmployeeBasic
-}
-
-// Create/Update types
-export type ScheduleCreate = Omit<Schedule, 'id' | 'created_at' | 'updated_at'> & {
-  start_date: string
-  end_date: string
-  created_by: string
-}
-
-export type ScheduleUpdate = Partial<ScheduleCreate>
-
-// Additional types for schedule management
-export interface StaffingGap {
-  time_block_start: string
-  time_block_end: string
-  required_count: number
-  actual_count: number
-  missing_supervisor: boolean
-}
-
-export interface ScheduleTemplate {
+export interface SchedulePeriod {
   id: string
   name: string
-  description?: string
-  shift_patterns: {
-    [key: string]: {
-      category: string
-      time_block_start: string
-      time_block_end: string
-      min_total_staff: number
-      min_supervisors: number
-    }[]
-  }
+  start_date: string // YYYY-MM-DD
+  end_date: string // YYYY-MM-DD
+  status: ScheduleStatus
+  is_published: boolean
+  created_by: string
+  approved_by?: string
+  approved_at?: string
   created_at: string
   updated_at: string
-} 
+}
+
+export interface ScheduleConflict {
+  type: 'PATTERN_VIOLATION' | 'STAFFING_SHORTAGE' | 'REST_PERIOD' | 'OVERTIME'
+  message: string
+  details?: Record<string, unknown>
+  severity: 'WARNING' | 'ERROR'
+  date: string
+  employeeId?: string
+  shiftId?: string
+  requirementId?: string
+}
+
+// Re-export for convenience
+export type { StaffingRequirement }

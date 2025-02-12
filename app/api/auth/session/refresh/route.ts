@@ -3,6 +3,14 @@ import { NextResponse } from 'next/server'
 
 import { createClient } from '@/lib/supabase/server'
 
+const COOKIE_OPTIONS = {
+  path: '/',
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax' as const,
+  httpOnly: true,
+  maxAge: 60 * 60 * 24 * 7, // 7 days
+}
+
 export async function GET() {
   try {
     const cookieStore = cookies()
@@ -48,20 +56,25 @@ export async function GET() {
       )
     }
 
-    // Update session cookie
-    cookieStore.set('sb-access-token', newSession.access_token, {
-      path: '/',
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      httpOnly: true,
-    })
+    // Update session cookies with consistent settings
+    cookieStore.set('sb-access-token', newSession.access_token, COOKIE_OPTIONS)
+    cookieStore.set('sb-refresh-token', newSession.refresh_token, COOKIE_OPTIONS)
 
-    cookieStore.set('sb-refresh-token', newSession.refresh_token, {
-      path: '/',
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      httpOnly: true,
-    })
+    // Log successful refresh
+    try {
+      await supabase
+        .from('auth_logs')
+        .insert({
+          operation: 'session_refresh',
+          user_id: newSession.user.id,
+          details: {
+            expires_at: newSession.expires_at,
+          },
+        })
+    } catch (logError) {
+      // Don't fail the refresh if logging fails
+      console.error('Error logging session refresh:', logError)
+    }
 
     return NextResponse.json({
       user: newSession.user,

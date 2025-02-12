@@ -1,24 +1,42 @@
-import type { Employee, ShiftOption } from '@/app/types'
+import { type Employee } from '@/types/models/employee'
+import { type ShiftOption } from '@/types/models/shift'
+import { type GenerationContext } from '@/types/scheduling/schedule'
+import { addDays, differenceInHours, isSameWeek, parseISO } from 'date-fns'
 
-export type WeeklyHoursTracking = Record<string, Record<string, number>>
+interface EmployeeTracking {
+  consecutiveShifts: number
+  weeklyHours: number
+  lastShiftEnd: Date | null
+  assignedShifts: number
+}
 
-export type ShiftPatternTracking = Record<string, {
-  consecutive_shifts: number
-  last_shift_end: Date | null
-}>
+interface TrackingState {
+  weeklyHours: Record<string, Record<string, number>>
+  shiftPatterns: Record<string, {
+    consecutiveShifts: number
+    lastShiftEnd: Date | null
+  }>
+}
 
-export function initializeTracking(employeeIds: string[]): {
-  weeklyHours: WeeklyHoursTracking
-  shiftPatterns: ShiftPatternTracking
-} {
-  const weeklyHours: WeeklyHoursTracking = {}
-  const shiftPatterns: ShiftPatternTracking = {}
+const tracking = new Map<string, EmployeeTracking>()
 
-  employeeIds.forEach(id => {
-    weeklyHours[id] = {}
-    shiftPatterns[id] = {
-      consecutive_shifts: 0,
-      last_shift_end: null
+export function initializeTracking(employees: Employee[]): TrackingState {
+  tracking.clear()
+  const weeklyHours: Record<string, Record<string, number>> = {}
+  const shiftPatterns: Record<string, { consecutiveShifts: number; lastShiftEnd: Date | null }> = {}
+
+  employees.forEach(employee => {
+    tracking.set(employee.id, {
+      consecutiveShifts: employee.consecutive_shifts_count || 0,
+      weeklyHours: employee.total_hours_current_week || 0,
+      lastShiftEnd: employee.last_shift_date ? new Date(employee.last_shift_date) : null,
+      assignedShifts: 0
+    })
+
+    weeklyHours[employee.id] = {}
+    shiftPatterns[employee.id] = {
+      consecutiveShifts: employee.consecutive_shifts_count || 0,
+      lastShiftEnd: employee.last_shift_date ? new Date(employee.last_shift_date) : null
     }
   })
 
@@ -26,81 +44,84 @@ export function initializeTracking(employeeIds: string[]): {
 }
 
 export function updateWeeklyHours(
-  tracking: WeeklyHoursTracking,
-  employeeId: string,
-  date: string,
-  hours: number
-): WeeklyHoursTracking {
-  const weekStart = getWeekStartDate(date)
-  const currentHours = tracking[employeeId]?.[weekStart] || 0
+  employee: Employee,
+  shift: ShiftOption,
+  date: Date
+): void {
+  const employeeTracking = tracking.get(employee.id)
+  if (!employeeTracking) return
 
-  return {
-    ...tracking,
-    [employeeId]: {
-      ...tracking[employeeId],
-      [weekStart]: currentHours + hours
-    }
+  // Reset weekly hours if this is a new week
+  if (employeeTracking.lastShiftEnd && !isSameWeek(date, employeeTracking.lastShiftEnd)) {
+    employeeTracking.weeklyHours = 0
   }
+
+  employeeTracking.weeklyHours += shift.durationHours
+  tracking.set(employee.id, employeeTracking)
 }
 
 export function updateShiftPattern(
-  tracking: ShiftPatternTracking,
-  employeeId: string,
-  date: string
-): ShiftPatternTracking {
-  const employeeTracking = tracking[employeeId]
-  const lastShiftEnd = employeeTracking.last_shift_end
+  employee: Employee,
+  shift: ShiftOption,
+  date: Date
+): void {
+  const employeeTracking = tracking.get(employee.id)
+  if (!employeeTracking) return
 
-  // Check if this is a consecutive shift
-  const isConsecutive = lastShiftEnd
-    ? (new Date(date).getTime() - lastShiftEnd.getTime()) <= 24 * 60 * 60 * 1000
-    : false
-
-  return {
-    ...tracking,
-    [employeeId]: {
-      consecutive_shifts: isConsecutive ? employeeTracking.consecutive_shifts + 1 : 1,
-      last_shift_end: new Date(date)
+  // Update consecutive shifts
+  if (employeeTracking.lastShiftEnd) {
+    const hoursSinceLastShift = differenceInHours(date, employeeTracking.lastShiftEnd)
+    if (hoursSinceLastShift <= 24) {
+      employeeTracking.consecutiveShifts++
+    } else {
+      employeeTracking.consecutiveShifts = 1
     }
+  } else {
+    employeeTracking.consecutiveShifts = 1
   }
+
+  // Update last shift end time
+  const shiftEnd = new Date(date)
+  const [hours, minutes] = shift.endTime.split(':').map(Number)
+  shiftEnd.setHours(hours, minutes)
+  employeeTracking.lastShiftEnd = shiftEnd
+
+  // Update assigned shifts count
+  employeeTracking.assignedShifts++
+
+  tracking.set(employee.id, employeeTracking)
 }
 
 export function canAssignShift(
   employee: Employee,
-  date: string,
-  shiftOption: ShiftOption,
-  weeklyHours: WeeklyHoursTracking,
-  shiftPatterns: ShiftPatternTracking
+  shift: ShiftOption,
+  date: Date,
+  context: GenerationContext
 ): boolean {
-  const weekStart = getWeekStartDate(date)
-  const currentHours = weeklyHours[employee.id]?.[weekStart] || 0
-  const pattern = shiftPatterns[employee.id]
+  const employeeTracking = tracking.get(employee.id)
+  if (!employeeTracking) return false
 
-  // Check weekly hours cap
-  if (currentHours + shiftOption.duration_hours > employee.weekly_hours_cap) {
-    if (!employee.max_overtime_hours || 
-        currentHours + shiftOption.duration_hours > employee.weekly_hours_cap + employee.max_overtime_hours) {
-      return false
-    }
-  }
-
-  // Check consecutive shifts limit
-  if (pattern.consecutive_shifts >= 4) {
+  // 1. Check weekly hours
+  const projectedWeeklyHours = employeeTracking.weeklyHours + shift.durationHours
+  const maxHours = employee.weekly_hours_cap + (context.params.allowOvertime ? (employee.max_overtime_hours || 0) : 0)
+  if (projectedWeeklyHours > maxHours) {
     return false
   }
 
-  // Check shift pattern rules
-  if (employee.shift_pattern === 'pattern_a') {
-    // Four consecutive 10-hour shifts
-    if (shiftOption.duration_hours !== 10) {
-      return false
-    }
-  } else if (employee.shift_pattern === 'pattern_b') {
-    // Three consecutive 12-hour shifts plus one 4-hour shift
-    if (pattern.consecutive_shifts === 3 && shiftOption.duration_hours !== 4) {
-      return false
-    }
-    if (pattern.consecutive_shifts < 3 && shiftOption.duration_hours !== 12) {
+  // 2. Check consecutive shifts
+  const maxConsecutiveShifts = employee.shift_pattern === 'pattern_a' ? 4 : 3
+  if (employeeTracking.consecutiveShifts >= maxConsecutiveShifts) {
+    return false
+  }
+
+  // 3. Check rest period
+  if (employeeTracking.lastShiftEnd) {
+    const shiftStart = new Date(date)
+    const [hours, minutes] = shift.startTime.split(':').map(Number)
+    shiftStart.setHours(hours, minutes)
+    
+    const restHours = differenceInHours(shiftStart, employeeTracking.lastShiftEnd)
+    if (restHours < 8) { // Minimum 8 hours rest
       return false
     }
   }
@@ -108,9 +129,6 @@ export function canAssignShift(
   return true
 }
 
-function getWeekStartDate(date: string): string {
-  const d = new Date(date)
-  d.setDate(d.getDate() - d.getDay()) // Set to Sunday
-  d.setHours(0, 0, 0, 0)
-  return d.toISOString().split('T')[0]
+export function getEmployeeStats(employeeId: string): EmployeeTracking | undefined {
+  return tracking.get(employeeId)
 } 

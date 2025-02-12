@@ -1,26 +1,23 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { cn } from '@/lib/utils'
 
-import { cn } from '@/app/lib/utils'
-
-const routes = [
-  {
-    label: 'Overview',
-    href: '/overview',
-  },
-]
-
-export function MainNav() {
-  const pathname = usePathname()
-
+export function MainNav({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLElement>) {
   return (
-    <nav className="flex items-center space-x-6">
-      <Link href="/" className="flex items-center space-x-2">
-        <span className="font-bold">911 Dispatch Scheduler</span>
+    <nav
+      className={cn('flex items-center space-x-4 lg:space-x-6', className)}
+      {...props}
+    >
+      <Link
+        href="/overview"
+        className="text-sm font-medium transition-colors hover:text-primary"
+      >
+        911 Dispatch Scheduler
       </Link>
-      
     </nav>
   )
 } 

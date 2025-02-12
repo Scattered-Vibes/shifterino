@@ -1,0 +1,50 @@
+import { Employee } from '../models/employee';
+import { ShiftOption } from '../models/shift';
+import { StaffingRequirement } from '../models/schedule';
+import { TimeOffRequest } from '../models/time-off';
+
+export interface ScheduleGenerationParams {
+  periodId: string;
+  startDate: Date;
+  endDate: Date;
+  options?: {
+    forceComplete?: boolean;
+    allowOvertime?: boolean;
+    prioritizeSupervisors?: boolean;
+  };
+}
+
+export interface GenerationContext {
+  periodId: string;
+  startDate: Date;
+  endDate: Date;
+  employees: Employee[];
+  shiftOptions: ShiftOption[];
+  staffingRequirements: StaffingRequirement[];
+  timeOffRequests: TimeOffRequest[];
+  tracking: {
+    weeklyHours: Map<string, number>;
+    lastShiftDate: Map<string, Date>;
+    consecutiveShifts: Map<string, number>;
+  };
+}
+
+export interface ShiftAssignment {
+  employeeId: string;
+  shiftOptionId: string;
+  date: Date;
+  score: number;
+  isOvertime: boolean;
+}
+
+export interface ScheduleGenerationResult {
+  success: boolean;
+  assignments: ShiftAssignment[];
+  errors: string[];
+  warnings: string[];
+  stats: {
+    totalAssignments: number;
+    unmatchedRequirements: number;
+    overtimeShifts: number;
+  };
+} 

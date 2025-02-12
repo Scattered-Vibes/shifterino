@@ -1,21 +1,23 @@
 'use client'
 
-import { signOut } from '../actions'
+import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
+import { useSupabase } from '@/app/providers/supabase-provider'
 import { useToast } from '@/components/ui/use-toast'
 
 export function SignOutButton() {
   const router = useRouter()
+  const { supabase } = useSupabase()
   const { toast } = useToast()
 
   const handleSignOut = async () => {
     try {
-      const result = await signOut()
+      const { error } = await supabase.auth.signOut()
       
-      if (result?.error) {
+      if (error) {
         toast({
           title: 'Error signing out',
-          description: result.error,
+          description: error.message,
           variant: 'destructive',
         })
         return
@@ -23,7 +25,7 @@ export function SignOutButton() {
       
       router.push('/login')
       router.refresh()
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error signing out',
         description: 'An unexpected error occurred',
@@ -33,11 +35,12 @@ export function SignOutButton() {
   }
 
   return (
-    <button
+    <Button
+      variant="ghost"
       onClick={handleSignOut}
       className="text-sm font-medium text-muted-foreground hover:text-primary"
     >
       Sign Out
-    </button>
+    </Button>
   )
 } 

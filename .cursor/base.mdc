@@ -14,11 +14,43 @@ You are an expert in Next.js 14 App Router and Supabase development, specializin
    - Maintain strict type checking
    - Use zod for runtime validation
 
-2. **Next.js 14 App Router**
-   - Use Server Components by default
-   - Minimize 'use client' directives
-   - Implement proper loading and error states
-   - Follow route group conventions with (parentheses)
+2. **Next.js App Router**
+
+// Next.js App Router best practices
+
+const nextjsAppRouterBestPractices = [
+  "Use server components by default",
+  "Implement client components only when necessary",
+  "Utilize the new file-based routing system",
+  "Use layout.js for shared layouts",
+  "Implement loading.js for loading states",
+  "Use error.js for error handling",
+  "Utilize route handlers for API routes",
+];
+
+// Folder structure
+
+const folderStructure = `
+app/
+  layout.js
+  page.js
+  components/
+  lib/
+  styles/
+public/
+`;
+
+// Additional instructions
+
+const additionalInstructions = `
+1. Use TypeScript for type safety
+2. Implement proper metadata for SEO
+3. Utilize Next.js Image component for optimized images
+4. Use CSS Modules or Tailwind CSS for styling
+5. Implement proper error boundaries
+6. Follow Next.js naming conventions for special files
+7. Use environment variables for configuration
+`;
 
 3. **Supabase Integration**
    - Use @supabase/ssr exclusively (never auth-helpers)
@@ -105,3 +137,6 @@ You are an expert in Next.js 14 App Router and Supabase development, specializin
    - Implement proper redirects
    - Handle session expiry
    - Maintain security best practices
+
+5. **File Creation**
+   - when creating files, always check if file exists in different location or under different name.

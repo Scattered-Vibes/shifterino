@@ -1,12 +1,10 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { cache } from 'react'
-import type { Database } from '@/types/supabase/database'
+import { type Database } from '@/types/supabase/database'
 
-// Create the cached server client
-const createClient = cache(() => {
+export function createClient() {
   const cookieStore = cookies()
-  
+
   return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -19,26 +17,24 @@ const createClient = cache(() => {
           try {
             cookieStore.set({ name, value, ...options })
           } catch (error) {
-            // Handle edge cases where cookies cannot be set
-            console.error('Error setting cookie:', error)
+            // The `set` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing
+            // user sessions.
           }
         },
         remove(name: string, options: CookieOptions) {
           try {
             cookieStore.set({ name, value: '', ...options })
           } catch (error) {
-            // Handle edge cases where cookies cannot be removed
-            console.error('Error removing cookie:', error)
+            // The `delete` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing
+            // user sessions.
           }
         },
       },
     }
   )
-})
-
-// Export both names for compatibility
-export { createClient }
-export { createClient as createServerClient }
+}
 
 // Re-export types that might be needed by consumers
 export type { Database }

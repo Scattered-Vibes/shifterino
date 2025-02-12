@@ -1,390 +1,148 @@
-import { createClient } from '@/lib/supabase/client'
-import type { Database } from '@/types/supabase/database'
+import { SupabaseClient } from '@supabase/supabase-js'
 import { handleError } from '@/lib/utils/error-handler'
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Database } from '@/types/supabase/database'
 
-type DatabaseTables = Database['public']['Tables']
-type Schedule = DatabaseTables['schedules']['Row']
+type Tables = Database['public']['Tables']
+type IndividualShift = Tables['individual_shifts']['Row']
+type SchedulePeriod = Tables['schedule_periods']['Row']
 
-const supabase = createClient()
-
-export async function getSchedules() {
-  try {
-    const { data, error } = await supabase
-      .from('schedules')
-      .select(`
-        *,
-        employee:employees(*),
-        shift_option:shift_options(*)
-      `)
-      .order('date', { ascending: true })
-
-    if (error) throw error
-    return data as Schedule[]
-  } catch (error) {
-    handleError(error)
-    return []
-  }
+export type CreateScheduleInput = {
+  employee_id: string
+  date: string
+  shift_type: string
+  start_time: string
+  end_time: string
+  notes?: string
+  status: 'pending' | 'approved' | 'rejected' | 'completed'
+  schedule_period_id: string
 }
 
-export async function getSchedule(id: string) {
-  try {
+export type UpdateScheduleInput = Partial<CreateScheduleInput>
+
+export type CreatePeriodInput = {
+  name: string
+  start_date: string
+  end_date: string
+  status: 'draft' | 'pending_approval' | 'approved' | 'published' | 'archived'
+  is_published: boolean
+  created_by: string
+}
+
+export type UpdatePeriodInput = Partial<CreatePeriodInput>
+
+export const scheduleQueries = {
+  getScheduleById: async (
+    supabase: SupabaseClient<Database>,
+    id: string
+  ): Promise<IndividualShift> => {
     const { data, error } = await supabase
-      .from('schedules')
-      .select(`
-        *,
-        employee:employees(*),
-        shift_option:shift_options(*)
-      `)
+      .from('individual_shifts')
+      .select('*')
       .eq('id', id)
       .single()
 
-    if (error) throw error
-    return data as Schedule
-  } catch (error) {
-    handleError(error)
-    return null
-  }
-}
+    if (error) throw handleError(error)
+    return data
+  },
 
-export async function createSchedule(schedule: Omit<Schedule, 'id' | 'created_at' | 'updated_at'>) {
-  try {
+  getSchedulesByPeriod: async (
+    supabase: SupabaseClient<Database>,
+    periodId: string
+  ): Promise<IndividualShift[]> => {
     const { data, error } = await supabase
-      .from('schedules')
-      .insert([schedule])
+      .from('individual_shifts')
+      .select('*')
+      .eq('schedule_period_id', periodId)
+
+    if (error) throw handleError(error)
+    return data || []
+  },
+
+  getSchedulesByEmployee: async (
+    supabase: SupabaseClient<Database>,
+    employeeId: string,
+    startDate?: string,
+    endDate?: string
+  ): Promise<IndividualShift[]> => {
+    let query = supabase
+      .from('individual_shifts')
+      .select('*')
+      .eq('employee_id', employeeId)
+
+    if (startDate) query = query.gte('date', startDate)
+    if (endDate) query = query.lte('date', endDate)
+
+    const { data, error } = await query
+    if (error) throw handleError(error)
+    return data || []
+  },
+
+  createSchedule: async (
+    supabase: SupabaseClient<Database>,
+    scheduleData: CreateScheduleInput
+  ): Promise<IndividualShift> => {
+    const { data, error } = await supabase
+      .from('individual_shifts')
+      .insert(scheduleData)
       .select()
       .single()
 
-    if (error) throw error
-    return data as Schedule
-  } catch (error) {
-    handleError(error)
-    return null
-  }
-}
+    if (error) throw handleError(error)
+    return data
+  },
 
-export async function updateSchedule(id: string, schedule: Partial<Schedule>) {
-  try {
+  updateSchedule: async (
+    supabase: SupabaseClient<Database>,
+    id: string,
+    scheduleData: UpdateScheduleInput
+  ): Promise<IndividualShift> => {
     const { data, error } = await supabase
-      .from('schedules')
-      .update(schedule)
+      .from('individual_shifts')
+      .update(scheduleData)
       .eq('id', id)
       .select()
       .single()
 
-    if (error) throw error
-    return data as Schedule
-  } catch (error) {
-    handleError(error)
-    return null
-  }
-}
+    if (error) throw handleError(error)
+    return data
+  },
 
-export async function deleteSchedule(id: string) {
-  try {
+  deleteSchedule: async (
+    supabase: SupabaseClient<Database>,
+    id: string
+  ): Promise<void> => {
     const { error } = await supabase
-      .from('schedules')
+      .from('individual_shifts')
       .delete()
       .eq('id', id)
 
-    if (error) throw error
-    return true
-  } catch (error) {
-    handleError(error)
-    return false
-  }
-}
+    if (error) throw handleError(error)
+  },
 
-export async function getSchedulesByDateRange(startDate: string, endDate: string) {
-  try {
+  createSchedulePeriod: async (
+    supabase: SupabaseClient<Database>,
+    periodData: CreatePeriodInput
+  ): Promise<SchedulePeriod> => {
     const { data, error } = await supabase
-      .from('schedules')
-      .select(`
-        *,
-        employee:employees(*),
-        shift_option:shift_options(*)
-      `)
-      .gte('date', startDate)
-      .lte('date', endDate)
-      .order('date', { ascending: true })
+      .from('schedule_periods')
+      .insert(periodData)
+      .select()
+      .single()
 
-    if (error) throw error
-    return data as Schedule[]
-  } catch (error) {
-    handleError(error)
-    return []
+    if (error) throw handleError(error)
+    return data
+  },
+
+  updateSchedulePeriodStatus: async (
+    supabase: SupabaseClient<Database>,
+    periodId: string,
+    status: CreatePeriodInput['status']
+  ): Promise<void> => {
+    const { error } = await supabase
+      .from('schedule_periods')
+      .update({ status })
+      .eq('id', periodId)
+
+    if (error) throw handleError(error)
   }
 }
-
-export async function getSchedulesByEmployee(employeeId: string) {
-  try {
-    const { data, error } = await supabase
-      .from('schedules')
-      .select(`
-        *,
-        employee:employees(*),
-        shift_option:shift_options(*)
-      `)
-      .eq('employee_id', employeeId)
-      .order('date', { ascending: true })
-
-    if (error) throw error
-    return data as Schedule[]
-  } catch (error) {
-    handleError(error)
-    return []
-  }
-}
-
-type ShiftType = 'ten_hour' | 'twelve_hour' | 'four_hour'
-type ScheduleStatus = 'draft' | 'published' | 'archived'
-type ShiftPattern = 'pattern_a' | 'pattern_b' | 'custom'
-
-interface QueryOptions {
-  page?: number
-  limit?: number
-  search?: {
-    column: string
-    query: string
-  }
-  startDate?: Date
-  endDate?: Date
-  status?: ScheduleStatus
-}
-
-interface CreateScheduleData {
-  employee_id: string
-  start_date: string
-  end_date: string
-  shift_type: ShiftType
-  shift_pattern: ShiftPattern
-  status: ScheduleStatus
-  is_supervisor?: boolean
-  notes?: string
-  created_by: string
-  updated_by: string
-}
-
-interface UpdateScheduleData extends Partial<Omit<CreateScheduleData, 'created_by'>> {
-  updated_by: string
-}
-
-// Type for Supabase query builder
-type GenericQuery = ReturnType<ReturnType<SupabaseClient<Database>['from']>['select']>
-
-const queryBuilder = {
-  withPagination: (query: GenericQuery, page = 0, limit = 10) => 
-    query.range(page * limit, (page + 1) * limit - 1),
-  
-  withSearch: (query: GenericQuery, column: string, searchQuery: string) =>
-    query.ilike(column, `%${searchQuery}%`),
-  
-  withDateRange: (query: GenericQuery, startDate?: Date, endDate?: Date) => {
-    let modifiedQuery = query
-    
-    if (startDate) {
-      modifiedQuery = modifiedQuery.gte('start_date', startDate.toISOString())
-    }
-    if (endDate) {
-      modifiedQuery = modifiedQuery.lte('end_date', endDate.toISOString())
-    }
-    
-    return modifiedQuery
-  },
-  
-  applyOptions: (query: GenericQuery, options: QueryOptions = {}) => {
-    let modifiedQuery = query
-
-    if (options.search) {
-      modifiedQuery = queryBuilder.withSearch(
-        modifiedQuery, 
-        options.search.column, 
-        options.search.query
-      )
-    }
-
-    if (options.startDate || options.endDate) {
-      modifiedQuery = queryBuilder.withDateRange(
-        modifiedQuery,
-        options.startDate,
-        options.endDate
-      )
-    }
-
-    if (options.status) {
-      modifiedQuery = modifiedQuery.eq('status', options.status)
-    }
-
-    if (typeof options.page === 'number' && typeof options.limit === 'number') {
-      modifiedQuery = queryBuilder.withPagination(
-        modifiedQuery,
-        options.page,
-        options.limit
-      )
-    }
-
-    return modifiedQuery
-  }
-}
-
-export const scheduleQueries = {
-  async getSchedule(scheduleId: string) {
-    const supabase = createClient()
-    try {
-      const { data, error } = await supabase
-        .from('schedules')
-        .select(`
-          *,
-          employee:employees (
-            id,
-            first_name,
-            last_name,
-            role
-          ),
-          individual_shifts (
-            id,
-            actual_start_time,
-            actual_end_time,
-            status
-          )
-        `)
-        .eq('id', scheduleId)
-        .single()
-
-      if (error) {
-        throw handleError(error)
-      }
-
-      return { data, error: null }
-    } catch (error) {
-      return { data: null, error: handleError(error) }
-    }
-  },
-
-  async createSchedule(data: CreateScheduleData) {
-    const supabase = createClient()
-    try {
-      const { data: newSchedule, error } = await supabase
-        .from('schedules')
-        .insert(data)
-        .select()
-        .single()
-
-      if (error) {
-        throw handleError(error)
-      }
-
-      return { data: newSchedule, error: null }
-    } catch (error) {
-      return { data: null, error: handleError(error) }
-    }
-  },
-
-  async updateSchedule(scheduleId: string, data: UpdateScheduleData) {
-    const supabase = createClient()
-    try {
-      const { data: updatedSchedule, error } = await supabase
-        .from('schedules')
-        .update(data)
-        .eq('id', scheduleId)
-        .select()
-        .single()
-
-      if (error) {
-        throw handleError(error)
-      }
-
-      return { data: updatedSchedule, error: null }
-    } catch (error) {
-      return { data: null, error: handleError(error) }
-    }
-  },
-
-  async deleteSchedule(scheduleId: string) {
-    const supabase = createClient()
-    try {
-      const { error } = await supabase
-        .from('schedules')
-        .delete()
-        .eq('id', scheduleId)
-
-      if (error) {
-        throw handleError(error)
-      }
-
-      return { data: true, error: null }
-    } catch (error) {
-      return { data: null, error: handleError(error) }
-    }
-  },
-
-  async searchSchedules(options?: QueryOptions) {
-    const supabase = createClient()
-    try {
-      const builder = queryBuilder
-      
-      let query = supabase
-        .from('schedules')
-        .select(`
-          *,
-          employee:employees (
-            id,
-            first_name,
-            last_name,
-            role
-          )
-        `)
-        .order('start_date', { ascending: true })
-
-      query = builder.applyOptions(query, options)
-      
-      const { data, error } = await query
-
-      if (error) {
-        throw handleError(error)
-      }
-
-      return { data, error: null }
-    } catch (error) {
-      return { data: null, error: handleError(error) }
-    }
-  },
-
-  async getScheduleShifts(scheduleId: string) {
-    const supabase = createClient()
-    try {
-      const { data, error } = await supabase
-        .from('individual_shifts')
-        .select('*')
-        .eq('schedule_id', scheduleId)
-        .order('actual_start_time', { ascending: true })
-
-      if (error) {
-        throw handleError(error)
-      }
-
-      return { data, error: null }
-    } catch (error) {
-      return { data: null, error: handleError(error) }
-    }
-  },
-
-  async getScheduleConflicts(employeeId: string, startDate: Date, endDate: Date) {
-    const supabase = createClient()
-    try {
-      const { data, error } = await supabase
-        .from('schedules')
-        .select('*')
-        .eq('employee_id', employeeId)
-        .or(`start_date.lte.${endDate.toISOString()},end_date.gte.${startDate.toISOString()}`)
-
-      if (error) {
-        throw handleError(error)
-      }
-
-      return { data, error: null }
-    } catch (error) {
-      return { data: null, error: handleError(error) }
-    }
-  }
-} 

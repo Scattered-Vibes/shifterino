@@ -1,10 +1,11 @@
 import '@testing-library/jest-dom'
-import { expect, afterEach } from 'vitest'
+import { expect, afterEach, beforeAll } from 'vitest'
 import { cleanup } from '@testing-library/react'
 import * as matchers from '@testing-library/jest-dom/matchers'
 import '@testing-library/jest-dom/vitest'
 import { vi } from 'vitest'
 import { TextEncoder, TextDecoder } from 'util'
+import { createMockServerClient, createMockClient } from './__tests__/helpers/supabase-mock'
 
 // Extend Vitest's expect method with methods from react-testing-library
 expect.extend(matchers)
@@ -14,7 +15,8 @@ global.fetch = vi.fn()
 
 // Mock TextEncoder/TextDecoder
 global.TextEncoder = TextEncoder
-global.TextDecoder = TextDecoder as any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+global.TextDecoder = TextDecoder as any // Necessary for test environment compatibility
 
 // Mock ResizeObserver
 global.ResizeObserver = vi.fn().mockImplementation(() => ({
@@ -38,8 +40,22 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 })
 
-// Cleanup after each test case (e.g. clearing jsdom)
+// Mock Supabase
+vi.mock('@/lib/supabase/server', () => ({
+  createClient: vi.fn().mockImplementation(createMockServerClient)
+}))
+
+vi.mock('@/lib/supabase/client', () => ({
+  createClient: vi.fn().mockImplementation(createMockClient)
+}))
+
+// Cleanup after each test case
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
+})
+
+// Set up any global test configuration
+beforeAll(() => {
+  // Add any global setup here
 }) 

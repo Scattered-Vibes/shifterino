@@ -1,13 +1,12 @@
 import type { Database } from '@/types/supabase/database'
 import type { EmployeeBasic } from './employee'
-import type { Schedule, ShiftOption } from './schedule'
+import type { Schedule } from '../scheduling/schedule'
+import type { ShiftCategory } from '../scheduling/common'
 
 // Base types from database
 export type IndividualShift = Database['public']['Tables']['individual_shifts']['Row'] & {
   shift_option?: ShiftOption
 }
-export type ShiftStatus = Database['public']['Enums']['shift_status']
-export type ShiftCategory = Database['public']['Enums']['shift_category']
 
 // Extended types
 export interface ShiftWithEmployee extends IndividualShift {
@@ -31,19 +30,55 @@ export type ShiftUpdate = Partial<Omit<ShiftCreate, 'shift_option_id' | 'employe
 // Additional types for shift management
 export interface ShiftSwapRequest {
   id: string
-  requester_id: string
-  requested_employee_id: string
-  shift_id: string
-  proposed_shift_id?: string
+  requesterId: string
+  requestedEmployeeId: string
+  shiftId: string
+  proposedShiftId?: string
   status: Database['public']['Enums']['time_off_status']
   notes?: string
-  created_at: string
-  updated_at: string | null
+  createdAt: string
+  updatedAt: string | null
 }
 
 export interface ShiftStats {
-  total_hours: number
-  consecutive_days: number
-  last_shift_end: string | null
-  next_shift_start: string | null
+  totalHours: number
+  consecutiveDays: number
+  lastShiftEnd: string | null
+  nextShiftStart: string | null
+}
+
+export interface ShiftOption {
+  id: string
+  name: string
+  startTime: string // HH:mm format
+  endTime: string // HH:mm format
+  durationHours: number
+  category: ShiftCategory
+  createdAt: string
+  updatedAt: string
+}
+
+export interface Shift {
+  id: string
+  employeeId: string
+  shiftOptionId: string
+  schedulePeriodId: string
+  date: string
+  status: Database['public']['Enums']['shift_status']
+  isOvertime: boolean
+  actualStartTime?: string
+  actualEndTime?: string
+  breakStartTime?: string
+  breakEndTime?: string
+  breakDurationMinutes?: number
+  actualHoursWorked?: number
+  notes?: string
+  scheduleConflictNotes?: string
+  isRegularSchedule: boolean
+  supervisorApprovedBy?: string
+  supervisorApprovedAt?: string
+  shiftScore?: number
+  fatigueLevel?: number
+  createdAt: string
+  updatedAt: string
 }

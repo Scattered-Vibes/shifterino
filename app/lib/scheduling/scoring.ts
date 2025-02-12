@@ -1,5 +1,7 @@
 import { type ShiftEvent, type Employee, type ShiftOption } from '@/types'
 import { type IndividualShift } from '@/types/scheduling'
+import { type GenerationContext } from '@/types/scheduling/schedule'
+import { differenceInHours, parseISO } from 'date-fns'
 
 export interface ScoreWeights {
   preferredCategory: number
@@ -40,52 +42,106 @@ const OPTIMAL_REST_HOURS = 12
 const MAX_CONSECUTIVE_DAYS = 6
 
 export function calculateShiftScore(
-  event: ShiftEvent,
-  shifts: ShiftEvent[],
   employee: Employee,
-  shiftOption: ShiftOption
-): { score: number; factors: ScoreFactors } {
-  // Calculate individual scores
-  const preferredCategoryScore = calculatePreferredCategoryScore(employee, shiftOption)
-  const timeSinceLastShiftScore = calculateTimeSinceLastShiftScore(employee, event.date, shifts)
-  const weeklyHoursBalanceScore = calculateWeeklyHoursBalanceScore(employee, shiftOption, event.date, shifts)
-  const restPeriodScore = calculateRestPeriodScore(
-    event.date,
-    shiftOption,
-    shifts.map(shift => ({
-      ...shift,
-      actual_hours_worked: null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    })) as IndividualShift[]
-  )
-  const shiftPatternComplianceScore = calculateShiftPatternComplianceScore(employee, shiftOption, event.date, shifts)
-  const historicalFairnessScore = calculateHistoricalFairnessScore(employee, shifts)
+  shift: ShiftOption,
+  date: Date,
+  context: GenerationContext
+): number {
+  let totalScore = 0
 
-  // Apply weights
-  const factors: ScoreFactors = {
-    preferredCategoryScore,
-    timeSinceLastShiftScore,
-    weeklyHoursBalanceScore,
-    restPeriodScore,
-    shiftPatternComplianceScore,
-    historicalFairnessScore
+  // 1. Preferred shift category match
+  if (employee.preferred_shift_category === shift.category) {
+    totalScore += DEFAULT_WEIGHTS.preferredCategory
   }
 
-  // Calculate total weighted score
-  const totalScore = (
-    preferredCategoryScore * DEFAULT_WEIGHTS.preferredCategory +
-    timeSinceLastShiftScore * DEFAULT_WEIGHTS.timeSinceLastShift +
-    weeklyHoursBalanceScore * DEFAULT_WEIGHTS.weeklyHoursBalance +
-    restPeriodScore * DEFAULT_WEIGHTS.restPeriod +
-    shiftPatternComplianceScore * DEFAULT_WEIGHTS.shiftPatternCompliance +
-    historicalFairnessScore * DEFAULT_WEIGHTS.historicalFairness
-  ) / 100 // Normalize to 0-1 range
+  // 2. Shift pattern match
+  const patternScore = calculatePatternScore(employee, shift, date, context)
+  totalScore += patternScore * DEFAULT_WEIGHTS.shiftPatternCompliance
 
-  return {
-    score: totalScore,
-    factors
+  // 3. Rest period adequacy
+  const restScore = calculateRestScore(employee, shift, date, context)
+  totalScore += restScore * DEFAULT_WEIGHTS.restPeriod
+
+  // 4. Weekly hours balance
+  const hoursScore = calculateHoursScore(employee, shift, context)
+  totalScore += hoursScore * DEFAULT_WEIGHTS.weeklyHoursBalance
+
+  // 5. Fairness (based on recent assignments)
+  const fairnessScore = calculateFairnessScore(employee, context)
+  totalScore += fairnessScore * DEFAULT_WEIGHTS.historicalFairness
+
+  return Math.round(totalScore)
+}
+
+function calculatePatternScore(
+  employee: Employee,
+  shift: ShiftOption,
+  date: Date,
+  context: GenerationContext
+): number {
+  // Calculate how well this shift fits the employee's pattern
+  // Returns a value between 0 and 1
+  return 1 // Placeholder - implement actual pattern matching logic
+}
+
+function calculateRestScore(
+  employee: Employee,
+  shift: ShiftOption,
+  date: Date,
+  context: GenerationContext
+): number {
+  // Find employee's last shift
+  const lastShift = findLastShift(employee, context)
+  if (!lastShift) return 1 // No previous shift, maximum rest score
+
+  const lastShiftEnd = parseISO(lastShift.actualEndTime || lastShift.endTime)
+  const nextShiftStart = new Date(date)
+  nextShiftStart.setHours(parseInt(shift.startTime.split(':')[0]))
+  nextShiftStart.setMinutes(parseInt(shift.startTime.split(':')[1]))
+
+  const restHours = differenceInHours(nextShiftStart, lastShiftEnd)
+  
+  // Score based on rest period (assuming minimum 8 hours, optimal 12 hours)
+  if (restHours < MIN_REST_HOURS) return 0
+  if (restHours >= OPTIMAL_REST_HOURS) return 1
+  return (restHours - MIN_REST_HOURS) / (OPTIMAL_REST_HOURS - MIN_REST_HOURS)
+}
+
+function calculateHoursScore(
+  employee: Employee,
+  shift: ShiftOption,
+  context: GenerationContext
+): number {
+  const currentWeeklyHours = employee.total_hours_current_week || 0
+  const shiftHours = shift.durationHours
+
+  // Perfect score if adding this shift keeps weekly hours within target
+  if (currentWeeklyHours + shiftHours <= employee.weekly_hours_cap) {
+    return 1
   }
+
+  // Reduced score if overtime is needed but allowed
+  if (context.params.allowOvertime && 
+      currentWeeklyHours + shiftHours <= employee.weekly_hours_cap + (employee.max_overtime_hours || 0)) {
+    return 0.5
+  }
+
+  return 0
+}
+
+function calculateFairnessScore(
+  employee: Employee,
+  context: GenerationContext
+): number {
+  // Calculate score based on how many shifts this employee has compared to others
+  // Returns a value between 0 and 1
+  return 1 // Placeholder - implement actual fairness calculation
+}
+
+function findLastShift(employee: Employee, context: GenerationContext) {
+  // Find the employee's most recent shift
+  // Returns undefined if no previous shift found
+  return undefined // Placeholder - implement actual last shift lookup
 }
 
 function getConsecutiveShifts(

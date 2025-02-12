@@ -1,0 +1,570 @@
+
+> shifterino@0.1.0 type-check
+> tsc --noEmit
+
+__tests__/app/(auth)/components/sign-out-button.test.tsx(25,35): error TS2345: Argument of type '{}' is not assignable to parameter of type 'AppError | { error: string; success?: undefined; } | { success: boolean; error?: undefined; }'.
+__tests__/app/(auth)/login/login-form.test.tsx(19,26): error TS2741: Property 'onSubmit' is missing in type '{}' but required in type 'LoginFormProps'.
+__tests__/app/(auth)/login/login-form.test.tsx(27,26): error TS2741: Property 'onSubmit' is missing in type '{}' but required in type 'LoginFormProps'.
+__tests__/app/(auth)/login/login-form.test.tsx(47,44): error TS2345: Argument of type '{ error: string; }' is not assignable to parameter of type '{ error: string; code: ErrorCode; success?: undefined; } | { success: boolean; error?: undefined; code?: undefined; }'.
+  Property 'code' is missing in type '{ error: string; }' but required in type '{ error: string; code: ErrorCode; success?: undefined; }'.
+__tests__/app/(auth)/login/login-form.test.tsx(51,26): error TS2741: Property 'onSubmit' is missing in type '{}' but required in type 'LoginFormProps'.
+__tests__/app/(dashboard)/manage/actions/schedule.test.ts(8,10): error TS2307: Cannot find module '@/app/(dashboard)/manage/actions/schedule' or its corresponding type declarations.
+__tests__/app/(dashboard)/manage/actions/schedule.test.ts(10,44): error TS2307: Cannot find module '@/test/helpers/supabase-mock' or its corresponding type declarations.
+__tests__/app/(dashboard)/manage/actions/schedule.test.ts(167,22): error TS2783: 'id' is specified more than once, so this usage will be overwritten.
+__tests__/app/(dashboard)/manage/actions/time-off.test.ts(3,10): error TS2305: Module '"@/app/(dashboard)/manage/actions/time-off"' has no exported member 'checkTimeOffConflicts'.
+__tests__/app/(dashboard)/manage/actions/time-off.test.ts(64,15): error TS2339: Property 'error' does not exist on type '{ success: boolean; }'.
+__tests__/app/(dashboard)/manage/actions/time-off.test.ts(69,9): error TS2820: Type '"vacation"' is not assignable to type '"VACATION" | "SICK" | "PERSONAL" | "OTHER"'. Did you mean '"VACATION"'?
+__tests__/app/(dashboard)/manage/actions/time-off.test.ts(77,15): error TS2339: Property 'error' does not exist on type '{ success: boolean; }'.
+__tests__/app/(dashboard)/manage/actions/time-off.test.ts(82,9): error TS2820: Type '"vacation"' is not assignable to type '"VACATION" | "SICK" | "PERSONAL" | "OTHER"'. Did you mean '"VACATION"'?
+__tests__/app/(dashboard)/manage/actions/time-off.test.ts(92,15): error TS2339: Property 'data' does not exist on type '{ success: boolean; }'.
+__tests__/app/(dashboard)/manage/actions/time-off.test.ts(92,21): error TS2339: Property 'error' does not exist on type '{ success: boolean; }'.
+__tests__/app/(dashboard)/manage/actions/time-off.test.ts(97,9): error TS2820: Type '"vacation"' is not assignable to type '"VACATION" | "SICK" | "PERSONAL" | "OTHER"'. Did you mean '"VACATION"'?
+__tests__/app/(dashboard)/manage/components/ScheduleManager.test.tsx(6,42): error TS2307: Cannot find module '@/test/supabase-mock' or its corresponding type declarations.
+__tests__/app/(dashboard)/manage/components/StaffingOverview.test.tsx(4,34): error TS2307: Cannot find module '@/components/StaffingOverview' or its corresponding type declarations.
+__tests__/app/(dashboard)/manage/components/StaffingOverview.test.tsx(19,7): error TS2353: Object literal may only specify known properties, and 'id' does not exist in type 'TimeBlock'.
+__tests__/app/(dashboard)/manage/components/StaffingOverview.test.tsx(28,7): error TS2353: Object literal may only specify known properties, and 'id' does not exist in type 'TimeBlock'.
+__tests__/app/(dashboard)/manage/components/StaffingOverview.test.tsx(81,9): error TS2353: Object literal may only specify known properties, and 'id' does not exist in type 'TimeBlock'.
+__tests__/app/(dashboard)/profile/actions.test.ts(2,58): error TS2307: Cannot find module '@/test/helpers/supabase-mock' or its corresponding type declarations.
+__tests__/app/(dashboard)/profile/actions.test.ts(5,41): error TS2307: Cannot find module '@/types/profile' or its corresponding type declarations.
+__tests__/app/(dashboard)/profile/profile-form.test.tsx(1,52): error TS2307: Cannot find module '../../../utils/test-utils' or its corresponding type declarations.
+__tests__/app/(dashboard)/profile/profile-form.test.tsx(4,10): error TS2724: '"../../../helpers/mock-data"' has no exported member named 'mockEmployee'. Did you mean 'mockEmployees'?
+__tests__/app/(dashboard)/profile/profile-form.test.tsx(5,15): error TS2305: Module '"@/app/lib/validations/schemas"' has no exported member 'ProfileInput'.
+__tests__/app/(dashboard)/profile/profile-form.test.tsx(39,25): error TS2322: Type '{ initialData: any; }' is not assignable to type 'IntrinsicAttributes & ProfileFormProps'.
+  Property 'initialData' does not exist on type 'IntrinsicAttributes & ProfileFormProps'.
+__tests__/app/(dashboard)/profile/profile-form.test.tsx(47,25): error TS2322: Type '{ initialData: any; }' is not assignable to type 'IntrinsicAttributes & ProfileFormProps'.
+  Property 'initialData' does not exist on type 'IntrinsicAttributes & ProfileFormProps'.
+__tests__/app/(dashboard)/profile/profile-form.test.tsx(69,25): error TS2322: Type '{ initialData: any; }' is not assignable to type 'IntrinsicAttributes & ProfileFormProps'.
+  Property 'initialData' does not exist on type 'IntrinsicAttributes & ProfileFormProps'.
+__tests__/app/(dashboard)/profile/profile-form.test.tsx(100,25): error TS2322: Type '{ initialData: any; }' is not assignable to type 'IntrinsicAttributes & ProfileFormProps'.
+  Property 'initialData' does not exist on type 'IntrinsicAttributes & ProfileFormProps'.
+__tests__/app/actions/ServerAction.test.ts(2,46): error TS2307: Cannot find module '../../../test/supabase-mock' or its corresponding type declarations.
+__tests__/app/actions/ServerAction.test.ts(16,7): error TS2353: Object literal may only specify known properties, and 'shiftId' does not exist in type 'Schedule'.
+__tests__/app/actions/ServerAction.test.ts(46,41): error TS2345: Argument of type '{ id: string; }' is not assignable to parameter of type 'Schedule'.
+  Type '{ id: string; }' is missing the following properties from type 'Schedule': employeeId, date, status, shiftType, and 4 more.
+__tests__/app/actions/ServerAction.test.ts(58,7): error TS2353: Object literal may only specify known properties, and 'shiftId' does not exist in type 'Schedule'.
+__tests__/app/api/admin/middleware.test.ts(4,27): error TS2307: Cannot find module '@/middleware/rate-limit' or its corresponding type declarations.
+__tests__/app/api/admin/users/[id]/route.test.ts(4,51): error TS2307: Cannot find module '@/test/helpers/auth' or its corresponding type declarations.
+__tests__/app/api/admin/users/route.test.ts(4,51): error TS2307: Cannot find module '@/test/helpers/auth' or its corresponding type declarations.
+__tests__/app/api/admin/users/route.test.ts(26,34): error TS2554: Expected 0 arguments, but got 1.
+__tests__/app/api/admin/users/route.test.ts(45,34): error TS2554: Expected 0 arguments, but got 1.
+__tests__/app/api/admin/users/route.test.ts(63,34): error TS2554: Expected 0 arguments, but got 1.
+__tests__/app/api/admin/users/route.test.ts(87,34): error TS2554: Expected 0 arguments, but got 1.
+__tests__/app/api/auth/callback/route.test.ts(4,30): error TS2307: Cannot find module '@/test/helpers/auth' or its corresponding type declarations.
+__tests__/app/api/auth/cleanup/route.test.ts(2,42): error TS2307: Cannot find module '@/test/helpers/supabase-mock' or its corresponding type declarations.
+__tests__/app/api/auth/login/route.test.ts(4,45): error TS2307: Cannot find module '@/test/helpers/auth' or its corresponding type declarations.
+__tests__/app/api/auth/login/route.test.ts(5,27): error TS2307: Cannot find module '@/middleware/rate-limit' or its corresponding type declarations.
+__tests__/app/api/auth/signout/route.test.ts(4,51): error TS2307: Cannot find module '@/test/helpers/auth' or its corresponding type declarations.
+__tests__/app/api/auth/signout/route.test.ts(21,33): error TS2554: Expected 0 arguments, but got 1.
+__tests__/app/api/auth/signout/route.test.ts(45,33): error TS2554: Expected 0 arguments, but got 1.
+__tests__/app/api/auth/signout/route.test.ts(71,33): error TS2554: Expected 0 arguments, but got 1.
+__tests__/app/api/auth/signout/route.test.ts(93,33): error TS2554: Expected 0 arguments, but got 1.
+__tests__/app/api/auth/signout/route.test.ts(110,33): error TS2554: Expected 0 arguments, but got 1.
+__tests__/app/components/ServerComponent.test.tsx(2,49): error TS2307: Cannot find module '../../../test/supabase-mock' or its corresponding type declarations.
+__tests__/app/components/ui/Calendar.test.tsx(3,22): error TS2307: Cannot find module '@/app/components/ui/Calendar' or its corresponding type declarations.
+__tests__/app/components/ui/Calendar.test.tsx(11,7): error TS2353: Object literal may only specify known properties, and 'shiftId' does not exist in type 'Schedule'.
+__tests__/app/components/ui/Calendar.test.tsx(18,7): error TS2353: Object literal may only specify known properties, and 'shiftId' does not exist in type 'Schedule'.
+__tests__/app/components/ui/Calendar.test.tsx(175,9): error TS2322: Type 'Schedule | { id: string; employeeId: string; shiftId: string; date: string; status: "pending"; }' is not assignable to type 'Schedule'.
+  Object literal may only specify known properties, and 'shiftId' does not exist in type 'Schedule'.
+__tests__/app/components/ui/Calendar.test.tsx(175,9): error TS2353: Object literal may only specify known properties, and 'shiftId' does not exist in type 'Schedule'.
+__tests__/app/components/ui/EmployeeSelector.test.tsx(3,30): error TS2307: Cannot find module '@/app/components/ui/EmployeeSelector' or its corresponding type declarations.
+__tests__/app/components/ui/ShiftEditor.test.tsx(3,25): error TS2307: Cannot find module '@/app/components/ui/ShiftEditor' or its corresponding type declarations.
+__tests__/app/components/ui/ShiftEditor.test.tsx(10,5): error TS2353: Object literal may only specify known properties, and 'shiftId' does not exist in type 'Schedule'.
+__tests__/app/e2e/Scheduling.test.tsx(3,49): error TS2307: Cannot find module '../../../test/supabase-mock' or its corresponding type declarations.
+__tests__/app/e2e/Scheduling.test.tsx(5,25): error TS2305: Module '"@/types/scheduling/schedule"' has no exported member 'ScheduleGenerationOptions'.
+__tests__/app/e2e/Scheduling.test.tsx(23,7): error TS2353: Object literal may only specify known properties, and 'shiftId' does not exist in type 'Schedule'.
+__tests__/app/integration/Scheduling.test.tsx(2,49): error TS2307: Cannot find module '../../../test/supabase-mock' or its corresponding type declarations.
+__tests__/app/integration/Scheduling.test.tsx(3,25): error TS2305: Module '"@/types/scheduling/schedule"' has no exported member 'ScheduleGenerationOptions'.
+__tests__/app/integration/Scheduling.test.tsx(4,34): error TS2307: Cannot find module '@/lib/scheduling/generate' or its corresponding type declarations.
+__tests__/app/integration/Scheduling.test.tsx(5,34): error TS2307: Cannot find module '@/lib/scheduling/validation' or its corresponding type declarations.
+__tests__/app/integration/Scheduling.test.tsx(6,34): error TS2307: Cannot find module '@/lib/scheduling/conflicts' or its corresponding type declarations.
+__tests__/app/integration/Scheduling.test.tsx(37,7): error TS2353: Object literal may only specify known properties, and 'shiftId' does not exist in type 'Schedule'.
+__tests__/app/performance/WebVitals.test.tsx(4,49): error TS2307: Cannot find module '../../../test/supabase-mock' or its corresponding type declarations.
+__tests__/app/performance/WebVitals.test.tsx(11,53): error TS2345: Argument of type '{ value: number; name: "CLS"; id: string; navigationType: "navigate"; }' is not assignable to parameter of type 'Metric'.
+  Type '{ value: number; name: "CLS"; id: string; navigationType: "navigate"; }' is missing the following properties from type 'Metric': rating, delta, entries
+__tests__/app/performance/WebVitals.test.tsx(12,53): error TS2345: Argument of type '{ value: number; name: "FID"; id: string; navigationType: "navigate"; }' is not assignable to parameter of type 'Metric'.
+  Type '{ value: number; name: "FID"; id: string; navigationType: "navigate"; }' is missing the following properties from type 'Metric': rating, delta, entries
+__tests__/app/performance/WebVitals.test.tsx(13,53): error TS2345: Argument of type '{ value: number; name: "LCP"; id: string; navigationType: "navigate"; }' is not assignable to parameter of type 'Metric'.
+  Type '{ value: number; name: "LCP"; id: string; navigationType: "navigate"; }' is missing the following properties from type 'Metric': rating, delta, entries
+__tests__/app/performance/WebVitals.test.tsx(37,12): error TS2345: Argument of type '{ value: number; name: "LCP"; id: string; navigationType: "navigate"; }' is not assignable to parameter of type 'Metric'.
+  Type '{ value: number; name: "LCP"; id: string; navigationType: "navigate"; }' is missing the following properties from type 'Metric': rating, delta, entries
+__tests__/app/performance/WebVitals.test.tsx(60,12): error TS2345: Argument of type '{ value: number; name: "FID"; id: string; navigationType: "navigate"; }' is not assignable to parameter of type 'Metric'.
+  Type '{ value: number; name: "FID"; id: string; navigationType: "navigate"; }' is missing the following properties from type 'Metric': rating, delta, entries
+__tests__/app/performance/WebVitals.test.tsx(83,12): error TS2345: Argument of type '{ value: number; name: "CLS"; id: string; navigationType: "navigate"; }' is not assignable to parameter of type 'Metric'.
+  Type '{ value: number; name: "CLS"; id: string; navigationType: "navigate"; }' is missing the following properties from type 'Metric': rating, delta, entries
+__tests__/app/realtime/Subscription.test.tsx(3,42): error TS2307: Cannot find module '../../../test/supabase-mock' or its corresponding type declarations.
+__tests__/auth/auth.test.ts(35,17): error TS2739: Type '{ id: string; email: string; }' is missing the following properties from type 'User': app_metadata, user_metadata, aud, created_at
+__tests__/auth/auth.test.ts(47,9): error TS2739: Type 'Error' is missing the following properties from type 'AuthError': code, status, __isAuthError
+__tests__/auth/auth.test.ts(57,66): error TS2345: Argument of type '{ data: { user: null; }; error: null; }' is not assignable to parameter of type 'UserResponse'.
+  The types of 'data.user' are incompatible between these types.
+    Type 'null' is not assignable to type 'User'.
+__tests__/auth/auth.test.ts(77,17): error TS2739: Type '{ id: string; email: string; }' is missing the following properties from type 'User': app_metadata, user_metadata, aud, created_at
+__tests__/auth/auth.test.ts(110,17): error TS2739: Type '{ id: string; email: string; }' is missing the following properties from type 'User': app_metadata, user_metadata, aud, created_at
+__tests__/components/StaffingOverview.test.tsx(3,34): error TS2307: Cannot find module '@/components/StaffingOverview' or its corresponding type declarations.
+__tests__/components/StaffingOverview.test.tsx(11,7): error TS2353: Object literal may only specify known properties, and 'id' does not exist in type 'TimeBlock'.
+__tests__/helpers/auth.ts(3,33): error TS2307: Cannot find module '@/lib/auth/middleware' or its corresponding type declarations.
+__tests__/helpers/mock-data.ts(1,15): error TS2305: Module '"@/types/supabase/database"' has no exported member 'Employee'.
+__tests__/helpers/mock-data.ts(1,25): error TS2305: Module '"@/types/supabase/database"' has no exported member 'ShiftOption'.
+__tests__/helpers/mock-data.ts(1,38): error TS2305: Module '"@/types/supabase/database"' has no exported member 'TimeOffRequest'.
+__tests__/helpers/mock-data.ts(1,54): error TS2305: Module '"@/types/supabase/database"' has no exported member 'StaffingRequirement'.
+__tests__/helpers/mock-data.ts(1,75): error TS2305: Module '"@/types/supabase/database"' has no exported member 'IndividualShift'.
+__tests__/lib/auth/server.test.ts(2,58): error TS2307: Cannot find module '@/test/helpers/supabase-mock' or its corresponding type declarations.
+__tests__/lib/scheduling/generate.test.ts(2,34): error TS2307: Cannot find module '@/lib/scheduling/generate' or its corresponding type declarations.
+__tests__/lib/scheduling/generate.test.ts(3,26): error TS2307: Cannot find module '@/test/helpers/mock-data' or its corresponding type declarations.
+__tests__/lib/scheduling/generate.test.ts(5,47): error TS2307: Cannot find module '@/types/scheduling' or its corresponding type declarations.
+__tests__/lib/scheduling/generate.test.ts(52,7): error TS2322: Type 'Mock<[table: string], { select: Mock<[], { eq: Mock<[], { single: Mock<[], { data: { start_date: string; end_date: string; }; }>; }>; data: any[]; }>; insert: Mock<[], { error: null; }>; update: Mock<...>; delete: Mock<...>; upsert: Mock<...>; }>' is not assignable to type '{ <TableName extends "auth_logs" | "employees" | "individual_shifts" | "schedule_periods" | "shift_options" | "profiles" | "schedules" | "scheduling_logs" | "shift_assignment_scores" | "shift_pattern_rules" | "shift_swap_requests" | "staffing_requirements" | "system_settings" | "time_off_requests", Table extends { ....'.
+  Type '{ select: Mock<[], { eq: Mock<[], { single: Mock<[], { data: { start_date: string; end_date: string; }; }>; }>; data: any[]; }>; insert: Mock<[], { error: null; }>; update: Mock<[values: Row, ({ ...; } | undefined)?], PostgrestFilterBuilder<...>>; delete: Mock<...>; upsert: Mock<...>; }' is missing the following properties from type 'PostgrestQueryBuilder<{ Tables: { auth_logs: { Row: { details: Json; error_message: string | null; id: number; operation: string | null; timestamp: string | null; user_id: string | null; }; Insert: { details?: Json | undefined; ... 4 more ...; user_id?: string | ... 1 more ... | undefined; }; Update: { ...; }; Relat...': url, headers
+__tests__/lib/scheduling/generate.test.ts(75,7): error TS2322: Type 'Mock<[table: string], { select: Mock<[], { eq: Mock<[], { single: Mock<[], { data: { start_date: string; end_date: string; }; }>; }>; data: null; }>; insert: Mock<[], { error: null; }>; update: Mock<...>; delete: Mock<...>; upsert: Mock<...>; }>' is not assignable to type '{ <TableName extends "auth_logs" | "employees" | "individual_shifts" | "schedule_periods" | "shift_options" | "profiles" | "schedules" | "scheduling_logs" | "shift_assignment_scores" | "shift_pattern_rules" | "shift_swap_requests" | "staffing_requirements" | "system_settings" | "time_off_requests", Table extends { ....'.
+  Type '{ select: Mock<[], { eq: Mock<[], { single: Mock<[], { data: { start_date: string; end_date: string; }; }>; }>; data: null; }>; insert: Mock<[], { error: null; }>; update: Mock<[values: Row, ({ ...; } | undefined)?], PostgrestFilterBuilder<...>>; delete: Mock<...>; upsert: Mock<...>; }' is missing the following properties from type 'PostgrestQueryBuilder<{ Tables: { auth_logs: { Row: { details: Json; error_message: string | null; id: number; operation: string | null; timestamp: string | null; user_id: string | null; }; Insert: { details?: Json | undefined; ... 4 more ...; user_id?: string | ... 1 more ... | undefined; }; Update: { ...; }; Relat...': url, headers
+__tests__/lib/scheduling/generate.test.ts(98,7): error TS2322: Type 'Mock<[table: string], { select: Mock<[], { eq: Mock<[], { single: Mock<[], { error: Error; }>; }>; data: null; }>; insert: Mock<[], { error: null; }>; update: Mock<[values: Row, ({ count?: "exact" | ... 2 more ... | undefined; } | undefined)?], PostgrestFilterBuilder<...>>; delete: Mock<...>; upsert: Mock<...>; }>' is not assignable to type '{ <TableName extends "auth_logs" | "employees" | "individual_shifts" | "schedule_periods" | "shift_options" | "profiles" | "schedules" | "scheduling_logs" | "shift_assignment_scores" | "shift_pattern_rules" | "shift_swap_requests" | "staffing_requirements" | "system_settings" | "time_off_requests", Table extends { ....'.
+  Type '{ select: Mock<[], { eq: Mock<[], { single: Mock<[], { error: Error; }>; }>; data: null; }>; insert: Mock<[], { error: null; }>; update: Mock<[values: Row, ({ count?: "exact" | "planned" | "estimated" | undefined; } | undefined)?], PostgrestFilterBuilder<...>>; delete: Mock<...>; upsert: Mock<...>; }' is missing the following properties from type 'PostgrestQueryBuilder<{ Tables: { auth_logs: { Row: { details: Json; error_message: string | null; id: number; operation: string | null; timestamp: string | null; user_id: string | null; }; Insert: { details?: Json | undefined; ... 4 more ...; user_id?: string | ... 1 more ... | undefined; }; Update: { ...; }; Relat...': url, headers
+__tests__/lib/scheduling/generate.test.ts(121,7): error TS2322: Type 'Mock<[table: string], { select: Mock<[], { eq: Mock<[], { single: Mock<[], { data: { start_date: string; end_date: string; }; }>; }>; data: any[]; }>; insert: Mock<[], { error: null; }>; update: Mock<...>; delete: Mock<...>; upsert: Mock<...>; }>' is not assignable to type '{ <TableName extends "auth_logs" | "employees" | "individual_shifts" | "schedule_periods" | "shift_options" | "profiles" | "schedules" | "scheduling_logs" | "shift_assignment_scores" | "shift_pattern_rules" | "shift_swap_requests" | "staffing_requirements" | "system_settings" | "time_off_requests", Table extends { ....'.
+  Type '{ select: Mock<[], { eq: Mock<[], { single: Mock<[], { data: { start_date: string; end_date: string; }; }>; }>; data: any[]; }>; insert: Mock<[], { error: null; }>; update: Mock<[values: Row, ({ ...; } | undefined)?], PostgrestFilterBuilder<...>>; delete: Mock<...>; upsert: Mock<...>; }' is missing the following properties from type 'PostgrestQueryBuilder<{ Tables: { auth_logs: { Row: { details: Json; error_message: string | null; id: number; operation: string | null; timestamp: string | null; user_id: string | null; }; Insert: { details?: Json | undefined; ... 4 more ...; user_id?: string | ... 1 more ... | undefined; }; Update: { ...; }; Relat...': url, headers
+__tests__/lib/scheduling/generate.test.ts(155,7): error TS2322: Type 'Mock<[table: string], { select: Mock<[], { eq: Mock<[], { single: Mock<[], { data: { start_date: string; end_date: string; }; }>; }>; data: any[]; }>; insert: Mock<[], { error: null; }>; update: Mock<...>; delete: Mock<...>; upsert: Mock<...>; }>' is not assignable to type '{ <TableName extends "auth_logs" | "employees" | "individual_shifts" | "schedule_periods" | "shift_options" | "profiles" | "schedules" | "scheduling_logs" | "shift_assignment_scores" | "shift_pattern_rules" | "shift_swap_requests" | "staffing_requirements" | "system_settings" | "time_off_requests", Table extends { ....'.
+  Type '{ select: Mock<[], { eq: Mock<[], { single: Mock<[], { data: { start_date: string; end_date: string; }; }>; }>; data: any[]; }>; insert: Mock<[], { error: null; }>; update: Mock<[values: Row, ({ ...; } | undefined)?], PostgrestFilterBuilder<...>>; delete: Mock<...>; upsert: Mock<...>; }' is missing the following properties from type 'PostgrestQueryBuilder<{ Tables: { auth_logs: { Row: { details: Json; error_message: string | null; id: number; operation: string | null; timestamp: string | null; user_id: string | null; }; Insert: { details?: Json | undefined; ... 4 more ...; user_id?: string | ... 1 more ... | undefined; }; Update: { ...; }; Relat...': url, headers
+__tests__/lib/scheduling/generate.test.ts(181,7): error TS2322: Type 'Mock<[table: string], { select: Mock<[], { eq: Mock<[], { single: Mock<[], { data: { start_date: string; end_date: string; }; }>; }>; data: any[]; }>; insert: Mock<[], { error: null; }>; update: Mock<...>; delete: Mock<...>; upsert: Mock<...>; }>' is not assignable to type '{ <TableName extends "auth_logs" | "employees" | "individual_shifts" | "schedule_periods" | "shift_options" | "profiles" | "schedules" | "scheduling_logs" | "shift_assignment_scores" | "shift_pattern_rules" | "shift_swap_requests" | "staffing_requirements" | "system_settings" | "time_off_requests", Table extends { ....'.
+  Type '{ select: Mock<[], { eq: Mock<[], { single: Mock<[], { data: { start_date: string; end_date: string; }; }>; }>; data: any[]; }>; insert: Mock<[], { error: null; }>; update: Mock<[values: Row, ({ ...; } | undefined)?], PostgrestFilterBuilder<...>>; delete: Mock<...>; upsert: Mock<...>; }' is missing the following properties from type 'PostgrestQueryBuilder<{ Tables: { auth_logs: { Row: { details: Json; error_message: string | null; id: number; operation: string | null; timestamp: string | null; user_id: string | null; }; Insert: { details?: Json | undefined; ... 4 more ...; user_id?: string | ... 1 more ... | undefined; }; Update: { ...; }; Relat...': url, headers
+__tests__/lib/scheduling/helpers.test.ts(7,8): error TS2307: Cannot find module '@/lib/scheduling/helpers' or its corresponding type declarations.
+__tests__/lib/scheduling/helpers.test.ts(8,26): error TS2307: Cannot find module '@/test/helpers/mock-data' or its corresponding type declarations.
+__tests__/lib/scheduling/helpers.test.ts(15,13): error TS7034: Variable 'timeOffRequests' implicitly has type 'any[]' in some locations where its type cannot be determined.
+__tests__/lib/scheduling/helpers.test.ts(17,64): error TS7005: Variable 'timeOffRequests' implicitly has an 'any[]' type.
+__tests__/lib/scheduling/scoring.test.ts(2,54): error TS2307: Cannot find module '@/lib/scheduling/scoring' or its corresponding type declarations.
+__tests__/lib/scheduling/scoring.test.ts(3,26): error TS2307: Cannot find module '@/test/helpers/mock-data' or its corresponding type declarations.
+__tests__/lib/scheduling/scoring.test.ts(11,13): error TS7034: Variable 'existingShifts' implicitly has type 'any[]' in some locations where its type cannot be determined.
+__tests__/lib/scheduling/scoring.test.ts(13,71): error TS7005: Variable 'existingShifts' implicitly has an 'any[]' type.
+__tests__/lib/scheduling/scoring.test.ts(23,13): error TS7034: Variable 'existingShifts' implicitly has type 'any[]' in some locations where its type cannot be determined.
+__tests__/lib/scheduling/scoring.test.ts(25,71): error TS7005: Variable 'existingShifts' implicitly has an 'any[]' type.
+__tests__/lib/scheduling/scoring.test.ts(59,13): error TS7034: Variable 'existingShifts' implicitly has type 'any[]' in some locations where its type cannot be determined.
+__tests__/lib/scheduling/scoring.test.ts(61,71): error TS7005: Variable 'existingShifts' implicitly has an 'any[]' type.
+__tests__/lib/scheduling/scoring.test.ts(96,13): error TS7034: Variable 'existingShifts' implicitly has type 'any[]' in some locations where its type cannot be determined.
+__tests__/lib/scheduling/scoring.test.ts(106,9): error TS7005: Variable 'existingShifts' implicitly has an 'any[]' type.
+__tests__/lib/scheduling/scoring.test.ts(115,9): error TS7005: Variable 'existingShifts' implicitly has an 'any[]' type.
+__tests__/lib/scheduling/tracking.test.ts(7,8): error TS2307: Cannot find module '@/lib/scheduling/tracking' or its corresponding type declarations.
+__tests__/lib/scheduling/tracking.test.ts(8,26): error TS2307: Cannot find module '@/test/helpers/mock-data' or its corresponding type declarations.
+__tests__/lib/scheduling/tracking.test.ts(9,64): error TS2307: Cannot find module '@/types/scheduling' or its corresponding type declarations.
+__tests__/lib/supabase/service.test.ts(2,42): error TS2307: Cannot find module '@/test/utils/supabase-mock' or its corresponding type declarations.
+__tests__/lib/supabase/service.test.ts(3,72): error TS2307: Cannot find module '@/lib/supabase/service' or its corresponding type declarations.
+__tests__/lib/validations/schemas.test.ts(2,67): error TS2307: Cannot find module '@/lib/validations/schemas' or its corresponding type declarations.
+__tests__/unit/hooks/use-employee-schedule.test.tsx(5,42): error TS2307: Cannot find module '@/test/helpers/supabase-mock' or its corresponding type declarations.
+__tests__/unit/hooks/use-employee-schedule.test.tsx(6,26): error TS2307: Cannot find module '@/test/mocks/data' or its corresponding type declarations.
+__tests__/unit/hooks/use-employee-schedule.test.tsx(7,27): error TS2307: Cannot find module '@/test/utils/test-utils' or its corresponding type declarations.
+__tests__/unit/hooks/use-employee-schedule.test.tsx(25,9): error TS2554: Expected 1 arguments, but got 3.
+__tests__/unit/hooks/use-employee-schedule.test.tsx(46,9): error TS2554: Expected 1 arguments, but got 3.
+__tests__/unit/hooks/use-employee-schedule.test.tsx(71,9): error TS2554: Expected 1 arguments, but got 3.
+__tests__/unit/hooks/use-employee-schedule.test.tsx(97,9): error TS2554: Expected 1 arguments, but got 3.
+__tests__/unit/utils/supabase-mock.ts(44,10): error TS2352: Conversion of type '{ _mock: { mockSuccess: (data: MockData) => Mock<any, any>; mockError: (error: Error) => Mock<any, any>; triggerSubscription: (event: string, payload: MockData) => void; }; from: () => { ...; }; auth: SupabaseAuthClient; realtime: RealtimeClient; }' to type 'MockSupabaseClient' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ _mock: { mockSuccess: (data: MockData) => Mock<any, any>; mockError: (error: Error) => Mock<any, any>; triggerSubscription: (event: string, payload: MockData) => void; }; from: () => { ...; }; auth: SupabaseAuthClient; realtime: RealtimeClient; }' is missing the following properties from type 'MockSupabaseClient': supabaseUrl, supabaseKey, realtimeUrl, authUrl, and 18 more.
+__tests__/unit/utils/test-utils.tsx(4,39): error TS2307: Cannot find module '../setup' or its corresponding type declarations.
+__tests__/unit/utils/test-utils.tsx(5,42): error TS2307: Cannot find module '../helpers/supabase-mock' or its corresponding type declarations.
+__tests__/unit/utils/test-utils.tsx(7,34): error TS2307: Cannot find module '../../app/providers/supabase-provider' or its corresponding type declarations.
+app/(auth)/components/user-auth-form.tsx(32,37): error TS2686: 'React' refers to a UMD global, but the current file is a module. Consider adding an import instead.
+app/(auth)/components/user-auth-form.tsx(48,7): error TS2322: Type '"EMPLOYEE"' is not assignable to type '"dispatcher" | "supervisor" | "manager" | undefined'.
+app/(auth)/components/user-auth-form.tsx(225,15): error TS2322: Type '"confirmPassword"' is not assignable to type '"email" | "first_name" | "last_name" | "role" | "password"'.
+app/(auth)/login/login-form.test.tsx(5,27): error TS2307: Cannot find module '@/test/utils/test-utils' or its corresponding type declarations.
+app/(auth)/login/login-form.test.tsx(21,13): error TS2741: Property 'onSubmit' is missing in type '{}' but required in type 'LoginFormProps'.
+app/(auth)/login/login-form.test.tsx(29,13): error TS2741: Property 'onSubmit' is missing in type '{}' but required in type 'LoginFormProps'.
+app/(auth)/login/login-form.test.tsx(38,13): error TS2741: Property 'onSubmit' is missing in type '{}' but required in type 'LoginFormProps'.
+app/(auth)/login/login-form.test.tsx(51,13): error TS2741: Property 'onSubmit' is missing in type '{}' but required in type 'LoginFormProps'.
+app/(auth)/signup/actions.ts(4,30): error TS2307: Cannot find module '@/app/lib/supabase/server' or its corresponding type declarations.
+app/(auth)/signup/page.tsx(8,10): error TS2724: '"@/components/auth/signup-form"' has no exported member named 'SignupForm'. Did you mean 'SignUpForm'?
+app/(auth)/signup/page.tsx(9,10): error TS2724: '"@/lib/supabase/server"' has no exported member named 'createServerClient'. Did you mean 'createClient'?
+app/(auth)/signup/signup-form.tsx(17,10): error TS2724: '"@/app/actions/auth"' has no exported member named 'signup'. Did you mean 'signUp'?
+app/(auth)/update-password/update-password-form.tsx(24,43): error TS2345: Argument of type '{ password: string; }' is not assignable to parameter of type '{ password: string; confirmPassword: string; }'.
+  Property 'confirmPassword' is missing in type '{ password: string; }' but required in type '{ password: string; confirmPassword: string; }'.
+app/(dashboard)/employees/page.tsx(23,30): error TS2307: Cannot find module '@/app/lib/supabase/server' or its corresponding type declarations.
+app/(dashboard)/employees/page.tsx(66,31): error TS2322: Type '{ promise: Promise<{ auth_id: string; consecutive_shifts_count: number | null; created_at: string; created_by: string | null; email: string; first_name: string; id: string; last_name: string; last_shift_date: string | null; ... 7 more ...; weekly_hours_cap: number; }[]>; }' is not assignable to type 'IntrinsicAttributes & DataTableProps'.
+  Property 'promise' does not exist on type 'IntrinsicAttributes & DataTableProps'.
+app/(dashboard)/manage/actions.ts(4,31): error TS2307: Cannot find module '@/types/database' or its corresponding type declarations.
+app/(dashboard)/manage/actions/scheduling.ts(5,76): error TS2307: Cannot find module '@/lib/auth/middleware' or its corresponding type declarations.
+app/(dashboard)/manage/actions/scheduling.ts(6,38): error TS2307: Cannot find module '@/types/scheduling' or its corresponding type declarations.
+app/(dashboard)/manage/actions/scheduling.ts(12,8): error TS2307: Cannot find module '@/types/scheduling' or its corresponding type declarations.
+app/(dashboard)/manage/actions/scheduling.ts(13,58): error TS2307: Cannot find module '@/lib/scheduling/generate' or its corresponding type declarations.
+app/(dashboard)/manage/actions/time-off.ts(5,77): error TS2307: Cannot find module '@/lib/auth/middleware' or its corresponding type declarations.
+app/(dashboard)/manage/actions/time-off.ts(29,8): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: { created_at?: string | undefined; employee_id: string; end_date: string; id?: string | undefined; notes?: string | null | undefined; reason: string; start_date: string; status?: "pending" | "approved" | "rejected" | undefined; updated_at?: string | undefined; }, options?: { ...; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Type '"PENDING"' is not assignable to type '"pending" | "approved" | "rejected" | undefined'. Did you mean '"pending"'?
+  Overload 2 of 2, '(values: { created_at?: string | undefined; employee_id: string; end_date: string; id?: string | undefined; notes?: string | null | undefined; reason: string; start_date: string; status?: "pending" | "approved" | "rejected" | undefined; updated_at?: string | undefined; }[], options?: { ...; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Object literal may only specify known properties, and 'employee_id' does not exist in type '{ created_at?: string | undefined; employee_id: string; end_date: string; id?: string | undefined; notes?: string | null | undefined; reason: string; start_date: string; status?: "pending" | "approved" | "rejected" | undefined; updated_at?: string | undefined; }[]'.
+app/(dashboard)/manage/actions/time-off.ts(72,9): error TS2367: This comparison appears to be unintentional because the types '"pending" | "approved" | "rejected"' and '"PENDING"' have no overlap.
+app/(dashboard)/manage/actions/time-off.ts(116,9): error TS2367: This comparison appears to be unintentional because the types '"pending" | "approved" | "rejected"' and '"PENDING"' have no overlap.
+app/(dashboard)/manage/actions/time-off.ts(155,9): error TS2367: This comparison appears to be unintentional because the types '"pending" | "approved" | "rejected"' and '"PENDING"' have no overlap.
+app/(dashboard)/manage/actions/time-off.ts(162,17): error TS2820: Type '"APPROVED"' is not assignable to type '"pending" | "approved" | "rejected" | undefined'. Did you mean '"approved"'?
+app/(dashboard)/manage/actions/time-off.ts(194,9): error TS2367: This comparison appears to be unintentional because the types '"pending" | "approved" | "rejected"' and '"PENDING"' have no overlap.
+app/(dashboard)/manage/actions/time-off.ts(202,9): error TS2820: Type '"REJECTED"' is not assignable to type '"pending" | "approved" | "rejected" | undefined'. Did you mean '"rejected"'?
+app/(dashboard)/manage/components/RealtimeSchedule.tsx(6,30): error TS2307: Cannot find module '@/app/lib/supabase/client' or its corresponding type declarations.
+app/(dashboard)/manage/components/RealtimeSchedule.tsx(30,10): error TS7006: Parameter 'payload' implicitly has an 'any' type.
+app/(dashboard)/manage/components/ScheduleManager.tsx(6,31): error TS2307: Cannot find module '@/components/calendar/ShiftCalendar' or its corresponding type declarations.
+app/(dashboard)/manage/components/ScheduleManager.tsx(8,15): error TS2305: Module '"@/app/types/shift"' has no exported member 'Shift'.
+app/(dashboard)/manage/components/ScheduleManager.tsx(23,45): error TS2339: Property 'SCHEDULE_UPDATE_FAILED' does not exist on type 'typeof ErrorCode'.
+app/(dashboard)/manage/components/ScheduleManager.tsx(34,11): error TS2339: Property 'events' does not exist on type 'QueryObserverSuccessResult<any, Error> | QueryObserverPendingResult<any, Error> | QueryObserverPlaceholderResult<any, Error>'.
+app/(dashboard)/manage/components/ScheduleManager.tsx(34,11): error TS2339: Property 'events' does not exist on type 'UseQueryResult<any, Error>'.
+app/(dashboard)/manage/components/ScheduleManager.tsx(34,19): error TS2339: Property 'updateShift' does not exist on type 'QueryObserverSuccessResult<any, Error> | QueryObserverPendingResult<any, Error> | QueryObserverPlaceholderResult<any, Error>'.
+app/(dashboard)/manage/components/ScheduleManager.tsx(34,19): error TS2339: Property 'updateShift' does not exist on type 'UseQueryResult<any, Error>'.
+app/(dashboard)/manage/components/ScheduleManager.tsx(54,55): error TS2339: Property 'SCHEDULE_INVALID_TIME' does not exist on type 'typeof ErrorCode'.
+app/(dashboard)/manage/components/ScheduleManager.tsx(79,55): error TS2339: Property 'SCHEDULE_INVALID_TIME' does not exist on type 'typeof ErrorCode'.
+app/(dashboard)/manage/components/ScheduleManager.tsx(99,20): error TS2322: Type '{ children: Element; FallbackComponent: FC<{ error: Error; }>; }' is not assignable to type 'IntrinsicAttributes & IntrinsicClassAttributes<ErrorBoundary> & Readonly<Props>'.
+  Property 'FallbackComponent' does not exist on type 'IntrinsicAttributes & IntrinsicClassAttributes<ErrorBoundary> & Readonly<Props>'.
+app/(dashboard)/manage/components/StaffList.tsx(6,30): error TS2307: Cannot find module '@/app/lib/supabase/client' or its corresponding type declarations.
+app/(dashboard)/manage/components/TimeOffRequestForm.tsx(13,3): error TS2305: Module '"../actions/time-off"' has no exported member 'checkTimeOffConflicts'.
+app/(dashboard)/manage/components/TimeOffRequestForm.tsx(75,15): error TS2339: Property 'error' does not exist on type '{ success: boolean; }'.
+app/(dashboard)/manage/components/TimeOffRequestForm.tsx(76,9): error TS2353: Object literal may only specify known properties, and 'employee_id' does not exist in type '{ end_date: string; start_date: string; reason: string; type: "VACATION" | "SICK" | "PERSONAL" | "OTHER"; }'.
+app/(dashboard)/manage/components/TimeOffRequests.tsx(6,37): error TS2307: Cannot find module '@/app/types/time-off' or its corresponding type declarations.
+app/(dashboard)/manage/components/TimeOffRequests.tsx(30,15): error TS2339: Property 'error' does not exist on type '{ success: boolean; }'.
+app/(dashboard)/manage/components/TimeOffRequests.tsx(30,63): error TS2345: Argument of type 'string' is not assignable to parameter of type 'Partial<{ end_date: string; start_date: string; reason: string; type: "VACATION" | "SICK" | "PERSONAL" | "OTHER"; }>'.
+  Type '"approved"' has no properties in common with type 'Partial<{ end_date: string; start_date: string; reason: string; type: "VACATION" | "SICK" | "PERSONAL" | "OTHER"; }>'.
+app/(dashboard)/manage/layout.tsx(1,38): error TS2307: Cannot find module '@/lib/auth' or its corresponding type declarations.
+app/(dashboard)/manage/overtime/data-table.tsx(44,30): error TS2307: Cannot find module '@/app/lib/supabase/client' or its corresponding type declarations.
+app/(dashboard)/manage/overtime/page.tsx(5,30): error TS2307: Cannot find module '@/app/lib/supabase/server' or its corresponding type declarations.
+app/(dashboard)/manage/overtime/page.tsx(85,23): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'Error'.
+app/(dashboard)/manage/page.tsx(18,30): error TS2307: Cannot find module '@/app/lib/supabase/server' or its corresponding type declarations.
+app/(dashboard)/manage/page.tsx(21,15): error TS2305: Module '"@/types/supabase"' has no exported member 'Tables'.
+app/(dashboard)/manage/page.tsx(144,13): error TS7006: Parameter 'res' implicitly has an 'any' type.
+app/(dashboard)/manage/page.tsx(151,13): error TS7006: Parameter 'res' implicitly has an 'any' type.
+app/(dashboard)/manage/page.tsx(158,13): error TS7006: Parameter 'res' implicitly has an 'any' type.
+app/(dashboard)/manage/page.tsx(176,38): error TS7006: Parameter 'request' implicitly has an 'any' type.
+app/(dashboard)/manage/page.tsx(205,39): error TS7006: Parameter 'request' implicitly has an 'any' type.
+app/(dashboard)/manage/page.tsx(234,35): error TS7006: Parameter 'request' implicitly has an 'any' type.
+app/(dashboard)/manage/page.tsx(274,11): error TS7006: Parameter 'res' implicitly has an 'any' type.
+app/(dashboard)/manage/page.tsx(283,30): error TS7006: Parameter 'assignment' implicitly has an 'any' type.
+app/(dashboard)/manage/swaps/data-table.tsx(45,30): error TS2307: Cannot find module '@/app/lib/supabase/client' or its corresponding type declarations.
+app/(dashboard)/manage/swaps/page.tsx(6,30): error TS2307: Cannot find module '@/app/lib/supabase/server' or its corresponding type declarations.
+app/(dashboard)/overview/components/staffing-overview.tsx(95,27): error TS2339: Property 'requires_supervisor' does not exist on type '{ category: "early" | "day" | "swing" | "graveyard"; created_at: string; duration_hours: number; end_time: string; id: string; name: string; start_time: string; updated_at: string; }'.
+app/(dashboard)/profile/actions.ts(6,35): error TS2307: Cannot find module '@/lib/validations/schemas' or its corresponding type declarations.
+app/(dashboard)/profile/actions.ts(39,26): error TS2339: Property 'first_name' does not exist on type 'UpdateProfileInput'.
+app/(dashboard)/profile/actions.ts(40,25): error TS2339: Property 'last_name' does not exist on type 'UpdateProfileInput'.
+app/(dashboard)/profile/actions.ts(41,29): error TS2339: Property 'shift_pattern' does not exist on type 'UpdateProfileInput'.
+app/(dashboard)/profile/actions.ts(42,40): error TS2339: Property 'preferred_shift_category' does not exist on type 'UpdateProfileInput'.
+app/(dashboard)/profile/actions.ts(55,26): error TS2339: Property 'first_name' does not exist on type 'UpdateProfileInput'.
+app/(dashboard)/profile/actions.ts(56,25): error TS2339: Property 'last_name' does not exist on type 'UpdateProfileInput'.
+app/(dashboard)/profile/page.tsx(3,30): error TS2307: Cannot find module '@/app/lib/supabase/server' or its corresponding type declarations.
+app/(dashboard)/profile/page.tsx(6,10): error TS2614: Module '"./loading"' has no exported member 'ProfileSkeleton'. Did you mean to use 'import ProfileSkeleton from "./loading"' instead?
+app/(dashboard)/profile/password-form.tsx(7,30): error TS2307: Cannot find module '@/app/lib/supabase/client' or its corresponding type declarations.
+app/(dashboard)/profile/profile-form.tsx(8,30): error TS2307: Cannot find module '@/app/lib/supabase/client' or its corresponding type declarations.
+app/(dashboard)/requirements/_components/staffing-requirements-form.tsx(48,20): error TS2345: Argument of type '{ data: { earlyMorning: { startTime: string; endTime: string; minEmployees: number; minSupervisors: number; }; dayShift: { startTime: string; endTime: string; minEmployees: number; minSupervisors: number; }; evening: { ...; }; overnight: { ...; }; }; error?: undefined; code?: undefined; } | { ...; }' is not assignable to parameter of type '{ earlyMorning: { startTime: string; endTime: string; minEmployees: number; minSupervisors: number; }; dayShift: { startTime: string; endTime: string; minEmployees: number; minSupervisors: number; }; evening: { ...; }; overnight: { ...; }; } | { ...; } | ResetAction<...> | undefined'.
+  Type '{ data: { earlyMorning: { startTime: string; endTime: string; minEmployees: number; minSupervisors: number; }; dayShift: { startTime: string; endTime: string; minEmployees: number; minSupervisors: number; }; evening: { ...; }; overnight: { ...; }; }; error?: undefined; code?: undefined; }' is not assignable to type '{ earlyMorning: { startTime: string; endTime: string; minEmployees: number; minSupervisors: number; }; dayShift: { startTime: string; endTime: string; minEmployees: number; minSupervisors: number; }; evening: { ...; }; overnight: { ...; }; } | { ...; } | ResetAction<...> | undefined'.
+app/(dashboard)/requirements/actions.ts(6,32): error TS2307: Cannot find module '@/lib/auth/middleware' or its corresponding type declarations.
+app/(dashboard)/requirements/actions.ts(8,31): error TS2307: Cannot find module '@/types/database' or its corresponding type declarations.
+app/(dashboard)/requirements/create-button.tsx(30,30): error TS2307: Cannot find module '@/app/lib/supabase/client' or its corresponding type declarations.
+app/(dashboard)/requirements/data-table.tsx(34,39): error TS2306: File '/Users/adampeterson/GitHub/shifterino/app/(dashboard)/requirements/edit-dialog.tsx' is not a module.
+app/(dashboard)/requirements/delete-dialog.tsx(18,30): error TS2307: Cannot find module '@/app/lib/supabase/client' or its corresponding type declarations.
+app/(dashboard)/requirements/layout.tsx(2,30): error TS2307: Cannot find module '@/app/lib/supabase/server' or its corresponding type declarations.
+app/(dashboard)/requirements/page.tsx(5,30): error TS2307: Cannot find module '@/app/lib/supabase/server' or its corresponding type declarations.
+app/(dashboard)/requirements/page.tsx(9,10): error TS2614: Module '"./loading"' has no exported member 'RequirementsTableSkeleton'. Did you mean to use 'import RequirementsTableSkeleton from "./loading"' instead?
+app/(dashboard)/schedules/calendar-view.tsx(66,43): error TS2339: Property 'type' does not exist on type '{ category: "early" | "day" | "swing" | "graveyard"; created_at: string; duration_hours: number; end_time: string; id: string; name: string; start_time: string; updated_at: string; }'.
+app/(dashboard)/schedules/calendar-view.tsx(117,81): error TS2339: Property 'start_time' does not exist on type 'ScheduleWithDetails'.
+app/(dashboard)/schedules/calendar-view.tsx(123,81): error TS2339: Property 'end_time' does not exist on type 'ScheduleWithDetails'.
+app/(dashboard)/schedules/components/schedule-form.tsx(36,30): error TS2307: Cannot find module '@/app/lib/supabase/client' or its corresponding type declarations.
+app/(dashboard)/schedules/components/shift-calendar.tsx(7,30): error TS2307: Cannot find module '@/app/lib/supabase/client' or its corresponding type declarations.
+app/(dashboard)/schedules/components/shift-calendar.tsx(8,29): error TS2307: Cannot find module '@/app/lib/supabase/client' or its corresponding type declarations.
+app/(dashboard)/schedules/components/shift-update-form.tsx(28,30): error TS2307: Cannot find module '@/app/lib/supabase/client' or its corresponding type declarations.
+app/(dashboard)/schedules/components/shift-update-form.tsx(29,29): error TS2307: Cannot find module '@/app/lib/supabase/client' or its corresponding type declarations.
+app/(dashboard)/schedules/create-button.tsx(29,30): error TS2307: Cannot find module '@/app/lib/supabase/client' or its corresponding type declarations.
+app/(dashboard)/schedules/list-view.tsx(56,27): error TS2367: This comparison appears to be unintentional because the types '"early" | "day" | "swing" | "graveyard"' and '"supervisor"' have no overlap.
+app/(dashboard)/schedules/page.tsx(5,30): error TS2307: Cannot find module '@/app/lib/supabase/server' or its corresponding type declarations.
+app/(dashboard)/shift-options/create-button.tsx(36,30): error TS2307: Cannot find module '@/app/lib/supabase/client' or its corresponding type declarations.
+app/(dashboard)/shift-options/delete-dialog.tsx(15,30): error TS2307: Cannot find module '@/app/lib/supabase/client' or its corresponding type declarations.
+app/(dashboard)/shift-options/edit-dialog.tsx(35,30): error TS2307: Cannot find module '@/app/lib/supabase/client' or its corresponding type declarations.
+app/(dashboard)/shift-options/page.tsx(5,30): error TS2307: Cannot find module '@/app/lib/supabase/server' or its corresponding type declarations.
+app/(dashboard)/time-off/components/time-off-request-form.tsx(29,30): error TS2307: Cannot find module '@/app/lib/supabase/client' or its corresponding type declarations.
+app/(dashboard)/time-off/components/time-off-requests-wrapper.tsx(5,37): error TS2307: Cannot find module '@/app/types/time-off' or its corresponding type declarations.
+app/(dashboard)/time-off/create-button.tsx(30,30): error TS2307: Cannot find module '@/app/lib/supabase/client' or its corresponding type declarations.
+app/(dashboard)/time-off/data-table.tsx(28,30): error TS2307: Cannot find module '@/app/lib/supabase/client' or its corresponding type declarations.
+app/(dashboard)/time-off/filters.tsx(6,10): error TS2305: Module '"@radix-ui/react-icons"' has no exported member 'Calendar'.
+app/(dashboard)/time-off/page.tsx(3,30): error TS2307: Cannot find module '@/app/lib/supabase/server' or its corresponding type declarations.
+app/__tests__/auth/signup.test.ts(2,30): error TS2307: Cannot find module '@/app/lib/supabase/server' or its corresponding type declarations.
+app/__tests__/auth/signup.test.ts(23,39): error TS7006: Parameter 'u' implicitly has an 'any' type.
+app/actions/auth.ts(3,10): error TS2459: Module '"../lib/auth/server"' declares 'createClient' locally, but it is not exported.
+app/actions/schedule.ts(12,43): error TS2339: Property 'shiftId' does not exist on type 'Schedule'.
+app/api/admin/middleware.ts(2,27): error TS2307: Cannot find module '@/middleware/rate-limit' or its corresponding type declarations.
+app/api/admin/route.ts(3,37): error TS2307: Cannot find module '@/lib/api-utils' or its corresponding type declarations.
+app/api/admin/route.ts(101,8): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: { created_at?: string | null | undefined; email: string; id: string; is_email_verified?: boolean | null | undefined; role: string; updated_at?: string | null | undefined; }, options?: { ...; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Object literal may only specify known properties, and 'full_name' does not exist in type '{ created_at?: string | null | undefined; email: string; id: string; is_email_verified?: boolean | null | undefined; role: string; updated_at?: string | null | undefined; }'.
+  Overload 2 of 2, '(values: { created_at?: string | null | undefined; email: string; id: string; is_email_verified?: boolean | null | undefined; role: string; updated_at?: string | null | undefined; }[], options?: { ...; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Object literal may only specify known properties, and 'id' does not exist in type '{ created_at?: string | null | undefined; email: string; id: string; is_email_verified?: boolean | null | undefined; role: string; updated_at?: string | null | undefined; }[]'.
+app/api/admin/users/[id]/route.ts(3,23): error TS2305: Module '"@/lib/utils/error-handler"' has no exported member 'getHttpStatus'.
+app/api/admin/users/route.ts(3,23): error TS2305: Module '"@/lib/utils/error-handler"' has no exported member 'getHttpStatus'.
+app/api/admin/users/route.ts(4,49): error TS2307: Cannot find module '@/lib/auth/middleware' or its corresponding type declarations.
+app/api/auth/cleanup/route.ts(3,23): error TS2305: Module '"@/lib/utils/error-handler"' has no exported member 'getHttpStatus'.
+app/api/auth/force-signout/route.ts(4,23): error TS2305: Module '"@/lib/utils/error-handler"' has no exported member 'getHttpStatus'.
+app/api/auth/login/route.ts(5,33): error TS2307: Cannot find module '@/lib/validations/schemas' or its corresponding type declarations.
+app/api/auth/login/route.ts(7,27): error TS2307: Cannot find module '@/middleware/rate-limit' or its corresponding type declarations.
+app/components/schedule/ScheduleManager.tsx(3,25): error TS2305: Module '"@/types/scheduling/schedule"' has no exported member 'ScheduleGenerationOptions'.
+app/components/schedule/ScheduleManager.tsx(4,34): error TS2307: Cannot find module '@/lib/scheduling/generate' or its corresponding type declarations.
+app/components/schedule/ScheduleManager.tsx(5,34): error TS2307: Cannot find module '@/lib/scheduling/validation' or its corresponding type declarations.
+app/components/schedule/ScheduleManager.tsx(6,34): error TS2307: Cannot find module '@/lib/scheduling/conflicts' or its corresponding type declarations.
+app/components/schedule/ScheduleManager.tsx(130,18): error TS2322: Type 'string | Date' is not assignable to type 'ReactNode'.
+  Type 'Date' is not assignable to type 'ReactNode'.
+app/components/schedule/ScheduleManager.tsx(143,41): error TS2339: Property 'split' does not exist on type 'string | Date'.
+  Property 'split' does not exist on type 'Date'.
+app/lib/auth/index.ts(3,23): error TS2305: Module '"./server"' has no exported member 'getAuthUser'.
+app/lib/auth/index.ts(3,36): error TS2305: Module '"./server"' has no exported member 'signOut'.
+app/lib/auth/index.ts(13,8): error TS2307: Cannot find module './client' or its corresponding type declarations.
+app/lib/auth/middleware.ts(39,20): error TS2339: Property 'role' does not exist on type 'SelectQueryError<"column 'team_id' does not exist on 'employees'.">'.
+app/lib/auth/middleware.ts(40,26): error TS2339: Property 'id' does not exist on type 'SelectQueryError<"column 'team_id' does not exist on 'employees'.">'.
+app/lib/auth/middleware.ts(41,22): error TS2339: Property 'team_id' does not exist on type 'SelectQueryError<"column 'team_id' does not exist on 'employees'.">'.
+app/lib/auth/middleware.ts(137,32): error TS2339: Property 'team_id' does not exist on type 'SelectQueryError<"column 'team_id' does not exist on 'employees'.">'.
+app/lib/hooks/client/use-realtime-subscription.ts(31,9): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '"postgres_changes"' is not assignable to parameter of type '"system"'.
+app/lib/hooks/client/use-realtime-subscription.ts(38,10): error TS7006: Parameter 'payload' implicitly has an 'any' type.
+app/lib/hooks/index.ts(10,3): error TS2724: '"./use-employees"' has no exported member named 'useCreateEmployee'. Did you mean 'useUpdateEmployee'?
+app/lib/hooks/index.ts(12,3): error TS2724: '"./use-employees"' has no exported member named 'useDeleteEmployee'. Did you mean 'useUpdateEmployee'?
+app/lib/hooks/index.ts(27,3): error TS2305: Module '"./use-shifts"' has no exported member 'useUpdateShift'.
+app/lib/hooks/index.ts(41,3): error TS2724: '"./use-staffing-requirements"' has no exported member named 'useStaffingRequirement'. Did you mean 'useStaffingRequirements'?
+app/lib/hooks/index.ts(42,3): error TS2724: '"./use-staffing-requirements"' has no exported member named 'useCreateStaffingRequirement'. Did you mean 'useStaffingRequirements'?
+app/lib/hooks/index.ts(43,3): error TS2724: '"./use-staffing-requirements"' has no exported member named 'useUpdateStaffingRequirement'. Did you mean 'useStaffingRequirements'?
+app/lib/hooks/index.ts(44,3): error TS2724: '"./use-staffing-requirements"' has no exported member named 'useDeleteStaffingRequirement'. Did you mean 'useStaffingRequirements'?
+app/lib/hooks/index.ts(48,3): error TS2305: Module '"./use-shift-swaps"' has no exported member 'useShiftSwaps'.
+app/lib/hooks/index.ts(49,3): error TS2305: Module '"./use-shift-swaps"' has no exported member 'useShiftSwap'.
+app/lib/hooks/index.ts(50,3): error TS2305: Module '"./use-shift-swaps"' has no exported member 'useCreateShiftSwap'.
+app/lib/hooks/index.ts(51,3): error TS2305: Module '"./use-shift-swaps"' has no exported member 'useUpdateShiftSwap'.
+app/lib/hooks/index.ts(52,3): error TS2305: Module '"./use-shift-swaps"' has no exported member 'useDeleteShiftSwap'.
+app/lib/hooks/index.ts(56,3): error TS2305: Module '"./use-auth-mutations"' has no exported member 'useLogin'.
+app/lib/hooks/use-auth-mutations.ts(2,10): error TS2724: '"@/lib/supabase/client"' has no exported member named 'getSupabaseClient'. Did you mean 'SupabaseClient'?
+app/lib/hooks/use-employees.ts(7,31): error TS2307: Cannot find module '@/types/database' or its corresponding type declarations.
+app/lib/hooks/use-employees.ts(55,61): error TS2339: Property 'DB_QUERY_ERROR' does not exist on type 'typeof ErrorCode'.
+app/lib/hooks/use-employees.ts(112,70): error TS2339: Property 'updateEmployee' does not exist on type '{ getEmployee(employeeId: string): Promise<{ data: { auth_id: string; consecutive_shifts_count: number | null; created_at: string; created_by: string | null; email: string; first_name: string; ... 11 more ...; schedules: { ...; }[]; }; error: null; } | { ...; }>; getEmployeeByAuthId(authId: string): Promise<...>; se...'.
+app/lib/hooks/use-employees.ts(129,45): error TS2345: Argument of type 'import("/Users/adampeterson/GitHub/shifterino/lib/utils/error-handler").ErrorCode' is not assignable to parameter of type 'AppError'.
+app/lib/hooks/use-query.ts(3,55): error TS2307: Cannot find module '@/lib/utils/query' or its corresponding type declarations.
+app/lib/hooks/use-schedule-mutations.ts(2,10): error TS2724: '"@/lib/supabase/client"' has no exported member named 'getSupabaseClient'. Did you mean 'SupabaseClient'?
+app/lib/hooks/use-schedule-mutations.ts(3,15): error TS2305: Module '"./use-schedules"' has no exported member 'Schedule'.
+app/lib/hooks/use-schedules.ts(45,61): error TS2339: Property 'DB_QUERY_ERROR' does not exist on type 'typeof ErrorCode'.
+app/lib/hooks/use-schedules.ts(112,45): error TS2345: Argument of type 'import("/Users/adampeterson/GitHub/shifterino/lib/utils/error-handler").ErrorCode' is not assignable to parameter of type 'AppError'.
+app/lib/hooks/use-schedules.ts(149,45): error TS2345: Argument of type 'import("/Users/adampeterson/GitHub/shifterino/lib/utils/error-handler").ErrorCode' is not assignable to parameter of type 'AppError'.
+app/lib/hooks/use-schedules.ts(179,45): error TS2345: Argument of type 'import("/Users/adampeterson/GitHub/shifterino/lib/utils/error-handler").ErrorCode' is not assignable to parameter of type 'AppError'.
+app/lib/hooks/use-shift-swaps.ts(2,10): error TS2724: '"@/lib/supabase/client"' has no exported member named 'getSupabaseClient'. Did you mean 'SupabaseClient'?
+app/lib/hooks/use-shifts.ts(5,32): error TS2305: Module '"@/types/models/shift"' has no exported member 'ShiftEvent'.
+app/lib/hooks/use-shifts.ts(39,29): error TS2339: Property 'DB_QUERY_ERROR' does not exist on type 'typeof ErrorCode'.
+app/lib/hooks/use-shifts.ts(41,59): error TS2339: Property 'DB_QUERY_ERROR' does not exist on type 'typeof ErrorCode'.
+app/lib/hooks/use-shifts.ts(70,61): error TS2339: Property 'DB_QUERY_ERROR' does not exist on type 'typeof ErrorCode'.
+app/lib/hooks/use-shifts.ts(104,45): error TS2345: Argument of type 'import("/Users/adampeterson/GitHub/shifterino/lib/utils/error-handler").ErrorCode' is not assignable to parameter of type 'AppError'.
+app/lib/hooks/use-shifts.ts(128,13): error TS2339: Property 'start_time' does not exist on type 'IndividualShift'.
+app/lib/hooks/use-shifts.ts(128,25): error TS2339: Property 'end_time' does not exist on type 'IndividualShift'.
+app/lib/hooks/use-shifts.ts(131,46): error TS2339: Property 'shift_type' does not exist on type 'IndividualShift'.
+app/lib/hooks/use-shifts.ts(137,26): error TS2339: Property 'shift_type' does not exist on type 'IndividualShift'.
+app/lib/hooks/use-shifts.ts(187,45): error TS2345: Argument of type 'import("/Users/adampeterson/GitHub/shifterino/lib/utils/error-handler").ErrorCode' is not assignable to parameter of type 'AppError'.
+app/lib/hooks/use-shifts.ts(216,45): error TS2345: Argument of type 'import("/Users/adampeterson/GitHub/shifterino/lib/utils/error-handler").ErrorCode' is not assignable to parameter of type 'AppError'.
+app/lib/hooks/use-staffing-requirements.ts(2,10): error TS2724: '"@/lib/supabase/client"' has no exported member named 'getSupabaseClient'. Did you mean 'SupabaseClient'?
+app/lib/hooks/use-time-off.ts(45,61): error TS2339: Property 'DB_QUERY_ERROR' does not exist on type 'typeof ErrorCode'.
+app/lib/hooks/use-time-off.ts(77,52): error TS2339: Property 'getTimeOffRequest' does not exist on type '{ searchTimeOffRequests(options?: QueryOptions | undefined): Promise<{ data: any; error: null; } | { data: null; error: AppError; }>; getTimeOffConflicts(employeeId: string, startDate: Date, endDate: Date): Promise<...>; }'.
+app/lib/hooks/use-time-off.ts(95,63): error TS2339: Property 'createTimeOffRequest' does not exist on type '{ searchTimeOffRequests(options?: QueryOptions | undefined): Promise<{ data: any; error: null; } | { data: null; error: AppError; }>; getTimeOffConflicts(employeeId: string, startDate: Date, endDate: Date): Promise<...>; }'.
+app/lib/hooks/use-time-off.ts(96,64): error TS2339: Property 'createTimeOffRequest' does not exist on type '{ searchTimeOffRequests(options?: QueryOptions | undefined): Promise<{ data: any; error: null; } | { data: null; error: AppError; }>; getTimeOffConflicts(employeeId: string, startDate: Date, endDate: Date): Promise<...>; }'.
+app/lib/hooks/use-time-off.ts(112,45): error TS2345: Argument of type 'import("/Users/adampeterson/GitHub/shifterino/lib/utils/error-handler").ErrorCode' is not assignable to parameter of type 'AppError'.
+app/lib/hooks/use-time-off.ts(130,46): error TS2339: Property 'updateTimeOffRequest' does not exist on type '{ searchTimeOffRequests(options?: QueryOptions | undefined): Promise<{ data: any; error: null; } | { data: null; error: AppError; }>; getTimeOffConflicts(employeeId: string, startDate: Date, endDate: Date): Promise<...>; }'.
+app/lib/hooks/use-time-off.ts(132,68): error TS2339: Property 'updateTimeOffRequest' does not exist on type '{ searchTimeOffRequests(options?: QueryOptions | undefined): Promise<{ data: any; error: null; } | { data: null; error: AppError; }>; getTimeOffConflicts(employeeId: string, startDate: Date, endDate: Date): Promise<...>; }'.
+app/lib/hooks/use-time-off.ts(149,45): error TS2345: Argument of type 'import("/Users/adampeterson/GitHub/shifterino/lib/utils/error-handler").ErrorCode' is not assignable to parameter of type 'AppError'.
+app/lib/hooks/use-time-off.ts(163,46): error TS2339: Property 'deleteTimeOffRequest' does not exist on type '{ searchTimeOffRequests(options?: QueryOptions | undefined): Promise<{ data: any; error: null; } | { data: null; error: AppError; }>; getTimeOffConflicts(employeeId: string, startDate: Date, endDate: Date): Promise<...>; }'.
+app/lib/hooks/use-time-off.ts(179,45): error TS2345: Argument of type 'import("/Users/adampeterson/GitHub/shifterino/lib/utils/error-handler").ErrorCode' is not assignable to parameter of type 'AppError'.
+app/lib/rate-limit.ts(51,13): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(relation: "auth_logs" | "employees" | "individual_shifts" | "schedule_periods" | "shift_options" | "profiles" | "schedules" | "scheduling_logs" | "shift_assignment_scores" | "shift_pattern_rules" | "shift_swap_requests" | "staffing_requirements" | "system_settings" | "time_off_requests"): PostgrestQueryBuilder<...>', gave the following error.
+    Argument of type '"rate_limits"' is not assignable to parameter of type '"auth_logs" | "employees" | "individual_shifts" | "schedule_periods" | "shift_options" | "profiles" | "schedules" | "scheduling_logs" | "shift_assignment_scores" | "shift_pattern_rules" | "shift_swap_requests" | "staffing_requirements" | "system_settings" | "time_off_requests"'.
+  Overload 2 of 2, '(relation: "mv_schedule_statistics"): PostgrestQueryBuilder<{ Tables: { auth_logs: { Row: { details: Json; error_message: string | null; id: number; operation: string | null; timestamp: string | null; user_id: string | null; }; Insert: { ...; }; Update: { ...; }; Relationships: []; }; ... 12 more ...; time_off_requests: { ...; }; }; Views: { ...; }; Functions: { ...; }; Enums: { ...; }; CompositeTypes: {}; }, { ...; }, "mv_schedule_statistics", []>', gave the following error.
+    Argument of type '"rate_limits"' is not assignable to parameter of type '"mv_schedule_statistics"'.
+app/lib/rate-limit.ts(67,50): error TS2339: Property 'last_request' does not exist on type 'SelectQueryError<"column 'last_request' does not exist on 'auth_logs'."> | SelectQueryError<"column 'last_request' does not exist on 'employees'."> | ... 11 more ... | SelectQueryError<...>'.
+  Property 'last_request' does not exist on type 'SelectQueryError<"column 'last_request' does not exist on 'auth_logs'.">'.
+app/lib/rate-limit.ts(69,31): error TS2339: Property 'count' does not exist on type 'SelectQueryError<"column 'last_request' does not exist on 'auth_logs'."> | SelectQueryError<"column 'last_request' does not exist on 'employees'."> | ... 11 more ... | SelectQueryError<...>'.
+  Property 'count' does not exist on type 'SelectQueryError<"column 'last_request' does not exist on 'auth_logs'.">'.
+app/lib/rate-limit.ts(81,13): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(relation: "auth_logs" | "employees" | "individual_shifts" | "schedule_periods" | "shift_options" | "profiles" | "schedules" | "scheduling_logs" | "shift_assignment_scores" | "shift_pattern_rules" | "shift_swap_requests" | "staffing_requirements" | "system_settings" | "time_off_requests"): PostgrestQueryBuilder<...>', gave the following error.
+    Argument of type '"rate_limits"' is not assignable to parameter of type '"auth_logs" | "employees" | "individual_shifts" | "schedule_periods" | "shift_options" | "profiles" | "schedules" | "scheduling_logs" | "shift_assignment_scores" | "shift_pattern_rules" | "shift_swap_requests" | "staffing_requirements" | "system_settings" | "time_off_requests"'.
+  Overload 2 of 2, '(relation: "mv_schedule_statistics"): PostgrestQueryBuilder<{ Tables: { auth_logs: { Row: { details: Json; error_message: string | null; id: number; operation: string | null; timestamp: string | null; user_id: string | null; }; Insert: { ...; }; Update: { ...; }; Relationships: []; }; ... 12 more ...; time_off_requests: { ...; }; }; Views: { ...; }; Functions: { ...; }; Enums: { ...; }; CompositeTypes: {}; }, { ...; }, "mv_schedule_statistics", []>', gave the following error.
+    Argument of type '"rate_limits"' is not assignable to parameter of type '"mv_schedule_statistics"'.
+app/lib/rate-limit.ts(82,8): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: { details?: Json | undefined; error_message?: string | null | undefined; id?: number | undefined; operation?: string | null | undefined; timestamp?: string | null | undefined; user_id?: string | ... 1 more ... | undefined; } | ... 12 more ... | { ...; }, options?: { ...; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Object literal may only specify known properties, and 'count' does not exist in type '{ details?: Json | undefined; error_message?: string | null | undefined; id?: number | undefined; operation?: string | null | undefined; timestamp?: string | null | undefined; user_id?: string | ... 1 more ... | undefined; } | ... 12 more ... | { ...; }'.
+  Overload 2 of 2, '(values: ({ details?: Json | undefined; error_message?: string | null | undefined; id?: number | undefined; operation?: string | null | undefined; timestamp?: string | null | undefined; user_id?: string | ... 1 more ... | undefined; } | ... 12 more ... | { ...; })[], options?: { ...; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Object literal may only specify known properties, and 'id' does not exist in type '({ details?: Json | undefined; error_message?: string | null | undefined; id?: number | undefined; operation?: string | null | undefined; timestamp?: string | null | undefined; user_id?: string | ... 1 more ... | undefined; } | ... 12 more ... | { ...; })[]'.
+app/lib/schedule.ts(1,32): error TS2307: Cannot find module '@/types/schedule' or its corresponding type declarations.
+app/lib/scheduling/generate.ts(12,3): error TS2305: Module '"@/app/types"' has no exported member 'StaffingRequirement'.
+app/lib/scheduling/generate.ts(31,25): error TS2305: Module '"@/types/scheduling/schedule"' has no exported member 'ScheduleGenerationOptions'.
+app/lib/scheduling/generate.ts(91,24): error TS2551: Property 'start_date' does not exist on type 'ScheduleGenerationParams'. Did you mean 'startDate'?
+app/lib/scheduling/generate.ts(92,22): error TS2551: Property 'end_date' does not exist on type 'ScheduleGenerationParams'. Did you mean 'endDate'?
+app/lib/scheduling/helpers.ts(3,3): error TS2459: Module '"@/types/models/shift"' declares 'ShiftOption' locally, but it is not exported.
+app/lib/scheduling/helpers.ts(4,3): error TS2305: Module '"@/types/models/shift"' has no exported member 'Employee'.
+app/lib/scheduling/helpers.ts(5,3): error TS2305: Module '"@/types/models/shift"' has no exported member 'ShiftEvent'.
+app/lib/scheduling/helpers.ts(9,3): error TS2305: Module '"@/types/models/schedule"' has no exported member 'ScheduleConflict'.
+app/lib/scheduling/helpers.ts(10,3): error TS2305: Module '"@/types/models/schedule"' has no exported member 'SchedulingContext'.
+app/lib/scheduling/helpers.ts(12,37): error TS2307: Cannot find module '@/types/models/time-off' or its corresponding type declarations.
+app/lib/scheduling/scoring.ts(1,66): error TS2307: Cannot find module '@/types' or its corresponding type declarations.
+app/lib/scheduling/scoring.ts(2,38): error TS2307: Cannot find module '@/types/scheduling' or its corresponding type declarations.
+app/lib/utils/error-handler.ts(70,5): error TS2353: Object literal may only specify known properties, and 'details' does not exist in type 'AppError'.
+app/lib/utils/query.ts(4,30): error TS2307: Cannot find module '@/app/lib/supabase/client' or its corresponding type declarations.
+app/lib/utils/shift-patterns.ts(1,52): error TS2307: Cannot find module '@/types' or its corresponding type declarations.
+app/lib/utils/staffing.ts(1,68): error TS2307: Cannot find module '@/types' or its corresponding type declarations.
+app/providers/root-provider.tsx(5,10): error TS2614: Module '"./supabase-provider"' has no exported member 'SupabaseProvider'. Did you mean to use 'import SupabaseProvider from "./supabase-provider"' instead?
+app/providers/supabase-provider.tsx(9,15): error TS2305: Module '"@/types/supabase"' has no exported member 'Tables'.
+app/providers/theme-provider.tsx(5,41): error TS2307: Cannot find module 'next-themes/dist/types' or its corresponding type declarations.
+app/schedule/_components/schedule-manager.tsx(19,10): error TS2459: Module '"./on-call-schedule"' declares 'OnCallSchedule' locally, but it is not exported.
+app/schedule/_components/schedule-manager.tsx(41,7): error TS2322: Type 'string' is not assignable to type 'Date'.
+app/schedule/_components/schedule-manager.tsx(42,7): error TS2322: Type 'string' is not assignable to type 'Date'.
+app/schedule/_components/schedule-manager.tsx(48,5): error TS2339: Property 'shifts' does not exist on type 'QueryObserverSuccessResult<any, Error> | QueryObserverLoadingResult<any, Error> | QueryObserverPendingResult<any, Error> | QueryObserverPlaceholderResult<...>'.
+app/schedule/_components/schedule-manager.tsx(48,5): error TS2339: Property 'shifts' does not exist on type 'UseQueryResult<any, Error>'.
+app/schedule/_components/schedule-manager.tsx(49,5): error TS2339: Property 'events' does not exist on type 'QueryObserverSuccessResult<any, Error> | QueryObserverLoadingResult<any, Error> | QueryObserverPendingResult<any, Error> | QueryObserverPlaceholderResult<...>'.
+app/schedule/_components/schedule-manager.tsx(49,5): error TS2339: Property 'events' does not exist on type 'UseQueryResult<any, Error>'.
+app/schedule/_components/schedule-manager.tsx(52,5): error TS2339: Property 'updateShift' does not exist on type 'UseQueryResult<any, Error>'.
+app/schedule/_components/schedule-manager.tsx(57,5): error TS2339: Property 'timeOffRequests' does not exist on type 'QueryObserverSuccessResult<any, Error> | QueryObserverLoadingResult<any, Error> | QueryObserverPendingResult<any, Error> | QueryObserverPlaceholderResult<...>'.
+app/schedule/_components/schedule-manager.tsx(57,5): error TS2339: Property 'timeOffRequests' does not exist on type 'UseQueryResult<any, Error>'.
+app/schedule/_components/schedule-manager.tsx(60,5): error TS2339: Property 'approveTimeOff' does not exist on type 'QueryObserverSuccessResult<any, Error> | QueryObserverLoadingResult<any, Error> | QueryObserverPendingResult<any, Error> | QueryObserverPlaceholderResult<...>'.
+app/schedule/_components/schedule-manager.tsx(60,5): error TS2339: Property 'approveTimeOff' does not exist on type 'UseQueryResult<any, Error>'.
+app/schedule/_components/schedule-manager.tsx(61,5): error TS2339: Property 'rejectTimeOff' does not exist on type 'QueryObserverSuccessResult<any, Error> | QueryObserverLoadingResult<any, Error> | QueryObserverPendingResult<any, Error> | QueryObserverPlaceholderResult<...>'.
+app/schedule/_components/schedule-manager.tsx(61,5): error TS2339: Property 'rejectTimeOff' does not exist on type 'UseQueryResult<any, Error>'.
+app/schedule/_components/schedule-manager.tsx(65,5): error TS2339: Property 'swapRequests' does not exist on type 'QueryObserverSuccessResult<any, Error> | QueryObserverLoadingResult<any, Error> | QueryObserverPendingResult<any, Error> | QueryObserverPlaceholderResult<...>'.
+app/schedule/_components/schedule-manager.tsx(65,5): error TS2339: Property 'swapRequests' does not exist on type 'UseQueryResult<any, Error>'.
+app/schedule/_components/schedule-manager.tsx(68,5): error TS2339: Property 'approveSwap' does not exist on type 'QueryObserverSuccessResult<any, Error> | QueryObserverLoadingResult<any, Error> | QueryObserverPendingResult<any, Error> | QueryObserverPlaceholderResult<...>'.
+app/schedule/_components/schedule-manager.tsx(68,5): error TS2339: Property 'approveSwap' does not exist on type 'UseQueryResult<any, Error>'.
+app/schedule/_components/schedule-manager.tsx(69,5): error TS2339: Property 'rejectSwap' does not exist on type 'QueryObserverSuccessResult<any, Error> | QueryObserverLoadingResult<any, Error> | QueryObserverPendingResult<any, Error> | QueryObserverPlaceholderResult<...>'.
+app/schedule/_components/schedule-manager.tsx(69,5): error TS2339: Property 'rejectSwap' does not exist on type 'UseQueryResult<any, Error>'.
+app/schedule/_components/schedule-manager.tsx(92,12): error TS2554: Expected 3 arguments, but got 2.
+app/schedule/_components/schedule-manager.tsx(113,12): error TS2554: Expected 3 arguments, but got 2.
+app/schedule/_components/schedule-manager.tsx(143,50): error TS7006: Parameter 'req' implicitly has an 'any' type.
+app/schedule/_components/schedule-manager.tsx(144,45): error TS7006: Parameter 'req' implicitly has an 'any' type.
+app/schedule/_components/schedule-manager.tsx(157,18): error TS2304: Cannot find name 'UsersIcon'.
+app/schedule/_components/schedule-manager.tsx(170,18): error TS2304: Cannot find name 'SwapIcon'.
+app/schedule/_components/schedule-manager.tsx(204,17): error TS2322: Type '{ shifts: any; requirements: { timeStart: string; timeEnd: string; minStaff: number; supervisorRequired: boolean; }[]; }' is not assignable to type 'IntrinsicAttributes & StaffingRequirementsProps'.
+  Property 'requirements' does not exist on type 'IntrinsicAttributes & StaffingRequirementsProps'.
+app/schedule/_components/schedule-manager.tsx(211,17): error TS2322: Type '{ requests: any; isLoading: boolean; onApprove: any; onReject: any; }' is not assignable to type 'IntrinsicAttributes & TimeOffRequestsProps'.
+  Property 'isLoading' does not exist on type 'IntrinsicAttributes & TimeOffRequestsProps'.
+app/schedule/_components/schedule-manager.tsx(220,17): error TS2322: Type '{ requests: any; isLoading: boolean; onApprove: any; onReject: any; }' is not assignable to type 'IntrinsicAttributes & ShiftSwapRequestsProps'.
+  Property 'isLoading' does not exist on type 'IntrinsicAttributes & ShiftSwapRequestsProps'.
+app/schedule/_components/schedule-manager.tsx(236,15): error TS2322: Type '(shiftId: string, updateData: Partial<ShiftEvent>) => Promise<void>' is not assignable to type '(shiftId: string, updateData: ShiftUpdateData) => Promise<void>'.
+  Types of parameters 'updateData' and 'updateData' are incompatible.
+    Type 'ShiftUpdateData' has no properties in common with type 'Partial<ShiftEvent>'.
+app/schedule/_components/shift-calendar.tsx(12,10): error TS2724: '"@/app/lib/utils/staffing"' has no exported member named 'calculateStaffingLevels'. Did you mean 'calculateStaffingLevel'?
+app/schedule/_components/shift-calendar.tsx(26,44): error TS2304: Cannot find name 'Duration'.
+app/schedule/_components/shift-calendar.tsx(27,46): error TS2304: Cannot find name 'Duration'.
+app/schedule/_components/shift-calendar.tsx(71,25): error TS2554: Expected 3 arguments, but got 2.
+app/schedule/_components/shift-calendar.tsx(72,36): error TS2339: Property 'employeeRole' does not exist on type 'ShiftEvent'.
+app/schedule/_components/shift-calendar.tsx(95,25): error TS2554: Expected 3 arguments, but got 2.
+app/schedule/_components/shift-calendar.tsx(141,30): error TS7006: Parameter 'level' implicitly has an 'any' type.
+app/schedule/_components/shift-calendar.tsx(141,37): error TS7006: Parameter 'index' implicitly has an 'any' type.
+app/schedule/_components/shift-update-form.tsx(25,10): error TS2305: Module '"@/lib/hooks"' has no exported member 'useShiftConflicts'.
+app/schedule/_components/staffing-requirements.tsx(4,15): error TS2305: Module '"@/app/types/shift"' has no exported member 'Shift'.
+app/schedule/shift-swaps/page.tsx(21,26): error TS2307: Cannot find module '@/app/types/supabase/database' or its corresponding type declarations.
+app/types/database.ts(1,15): error TS2307: Cannot find module './supabase/database' or its corresponding type declarations.
+app/types/database.ts(2,31): error TS2307: Cannot find module './supabase/database' or its corresponding type declarations.
+app/types/errors.ts(1,27): error TS2307: Cannot find module '@/lib/utils/error-codes' or its corresponding type declarations.
+app/types/index.ts(31,3): error TS2484: Export declaration conflicts with exported declaration of 'ID'.
+app/types/index.ts(32,3): error TS2484: Export declaration conflicts with exported declaration of 'UUID'.
+app/types/index.ts(33,3): error TS2484: Export declaration conflicts with exported declaration of 'ISO8601DateTime'.
+app/types/index.ts(93,3): error TS2305: Module '"./scheduling"' has no exported member 'SchedulingStaffingRequirement'.
+app/types/index.ts(94,3): error TS2305: Module '"./scheduling"' has no exported member 'SchedulingValidation'.
+app/types/schedule.ts(1,31): error TS2307: Cannot find module './supabase/database' or its corresponding type declarations.
+app/types/scheduling/index.ts(25,3): error TS2305: Module '"./schedule"' has no exported member 'ScheduleStatus'.
+app/types/shift.ts(1,26): error TS2307: Cannot find module './supabase/database' or its corresponding type declarations.
+app/types/supabase/index.ts(2,15): error TS2307: Cannot find module './database' or its corresponding type declarations.
+components/employees/create-button.tsx(33,30): error TS2307: Cannot find module '@/app/lib/supabase/client' or its corresponding type declarations.
+components/employees/data-table.tsx(37,15): error TS2305: Module '"@/app/types/database"' has no exported member 'Employee'.
+components/employees/delete-dialog.tsx(17,30): error TS2307: Cannot find module '@/app/lib/supabase/client' or its corresponding type declarations.
+components/employees/delete-dialog.tsx(20,15): error TS2305: Module '"@/app/types/database"' has no exported member 'Employee'.
+components/ui/sign-out-button.tsx(17,19): error TS2339: Property 'error' does not exist on type 'AppError | { error: string; success?: undefined; } | { success: boolean; error?: undefined; }'.
+  Property 'error' does not exist on type 'AppError'.
+components/ui/sign-out-button.tsx(18,32): error TS2339: Property 'error' does not exist on type 'AppError | { error: string; success?: undefined; } | { success: boolean; error?: undefined; }'.
+  Property 'error' does not exist on type 'AppError'.
+lib/hooks/client/useRealtimeSubscription.ts(36,9): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '"postgres_changes"' is not assignable to parameter of type '"system"'.
+lib/hooks/client/useRealtimeSubscription.ts(39,10): error TS7006: Parameter 'payload' implicitly has an 'any' type.
+lib/hooks/client/useRealtimeSubscription.ts(54,57): error TS2304: Cannot find name 'IndividualShift'.
+lib/hooks/client/useRealtimeSubscription.ts(55,57): error TS2304: Cannot find name 'IndividualShift'.
+lib/hooks/client/useRealtimeSubscription.ts(56,57): error TS2304: Cannot find name 'IndividualShift'.
+lib/hooks/client/useRealtimeSubscription.ts(59,48): error TS2322: Type '"shifts"' is not assignable to type '"auth_logs" | "employees" | "individual_shifts" | "schedule_periods" | "shift_options" | "profiles" | "schedules" | "scheduling_logs" | "shift_assignment_scores" | "shift_pattern_rules" | "shift_swap_requests" | "staffing_requirements" | "system_settings" | "time_off_requests"'.
+lib/hooks/client/useRealtimeSubscription.ts(64,57): error TS2304: Cannot find name 'ShiftSwapRequest'.
+lib/hooks/client/useRealtimeSubscription.ts(65,57): error TS2304: Cannot find name 'ShiftSwapRequest'.
+lib/hooks/client/useRealtimeSubscription.ts(66,57): error TS2304: Cannot find name 'ShiftSwapRequest'.
+lib/hooks/client/useRealtimeSubscription.ts(69,48): error TS2322: Type '"swapRequests"' is not assignable to type '"auth_logs" | "employees" | "individual_shifts" | "schedule_periods" | "shift_options" | "profiles" | "schedules" | "scheduling_logs" | "shift_assignment_scores" | "shift_pattern_rules" | "shift_swap_requests" | "staffing_requirements" | "system_settings" | "time_off_requests"'.
+lib/hooks/client/useRealtimeSubscription.ts(74,57): error TS2304: Cannot find name 'OnCallAssignment'.
+lib/hooks/client/useRealtimeSubscription.ts(75,57): error TS2304: Cannot find name 'OnCallAssignment'.
+lib/hooks/client/useRealtimeSubscription.ts(76,57): error TS2304: Cannot find name 'OnCallAssignment'.
+lib/hooks/client/useRealtimeSubscription.ts(79,48): error TS2322: Type '"onCallAssignments"' is not assignable to type '"auth_logs" | "employees" | "individual_shifts" | "schedule_periods" | "shift_options" | "profiles" | "schedules" | "scheduling_logs" | "shift_assignment_scores" | "shift_pattern_rules" | "shift_swap_requests" | "staffing_requirements" | "system_settings" | "time_off_requests"'.
+lib/hooks/client/useRealtimeSubscription.ts(84,57): error TS2304: Cannot find name 'OnCallActivation'.
+lib/hooks/client/useRealtimeSubscription.ts(85,57): error TS2304: Cannot find name 'OnCallActivation'.
+lib/hooks/client/useRealtimeSubscription.ts(86,57): error TS2304: Cannot find name 'OnCallActivation'.
+lib/hooks/client/useRealtimeSubscription.ts(89,48): error TS2322: Type '"onCallActivations"' is not assignable to type '"auth_logs" | "employees" | "individual_shifts" | "schedule_periods" | "shift_options" | "profiles" | "schedules" | "scheduling_logs" | "shift_assignment_scores" | "shift_pattern_rules" | "shift_swap_requests" | "staffing_requirements" | "system_settings" | "time_off_requests"'.
+lib/hooks/server/use-error-handler.ts(4,53): error TS2304: Cannot find name 'PostgrestError'.
+lib/hooks/server/use-error-handler.ts(21,7): error TS2353: Object literal may only specify known properties, and 'originalError' does not exist in type 'AppError'.
+lib/hooks/server/use-error-handler.ts(28,7): error TS2322: Type '"UNKNOWN_ERROR"' is not assignable to type 'ErrorCode'.
+lib/hooks/server/use-error-handler.ts(38,7): error TS2322: Type '"STRING_ERROR"' is not assignable to type 'ErrorCode'.
+lib/hooks/server/use-error-handler.ts(46,5): error TS2322: Type '"UNKNOWN_ERROR"' is not assignable to type 'ErrorCode'.
+lib/hooks/server/use-error-handler.ts(71,31): error TS2339: Property 'originalError' does not exist on type 'AppError'.
+lib/hooks/server/use-shift-swaps.ts(2,39): error TS2307: Cannot find module '@/types' or its corresponding type declarations.
+lib/hooks/server/use-shift-swaps.ts(3,10): error TS2305: Module '"@/lib/supabase/client"' has no exported member 'supabase'.
+lib/hooks/server/use-shifts.ts(2,55): error TS2307: Cannot find module '@/types' or its corresponding type declarations.
+lib/hooks/server/use-shifts.ts(3,10): error TS2305: Module '"@/lib/supabase/client"' has no exported member 'supabase'.
+lib/hooks/server/use-shifts.ts(77,44): error TS7006: Parameter 'shift' implicitly has an 'any' type.
+lib/hooks/server/use-time-off.ts(2,37): error TS2307: Cannot find module '@/types' or its corresponding type declarations.
+lib/hooks/server/use-time-off.ts(3,10): error TS2305: Module '"@/lib/supabase/client"' has no exported member 'supabase'.
+lib/supabase/data-access.ts(9,3): error TS2305: Module '"@/types/models/shift"' has no exported member 'IndividualShiftWithDetails'.
+lib/supabase/data-access.ts(10,3): error TS2724: '"@/types/models/shift"' has no exported member named 'ShiftUpdateData'. Did you mean 'ShiftUpdate'?
+lib/supabase/data-access.ts(11,3): error TS2305: Module '"@/types/models/shift"' has no exported member 'ShiftSwapRequestWithDetails'.
+lib/supabase/data-access.ts(12,3): error TS2724: '"@/types/models/shift"' has no exported member named 'ShiftSwapRequestCreate'. Did you mean 'ShiftSwapRequest'?
+lib/supabase/data-access.ts(13,3): error TS2724: '"@/types/models/shift"' has no exported member named 'ShiftSwapRequestUpdate'. Did you mean 'ShiftSwapRequest'?
+lib/supabase/data-access.ts(14,3): error TS2305: Module '"@/types/models/shift"' has no exported member 'Employee'.
+lib/supabase/data-access.ts(20,8): error TS2307: Cannot find module '@/types/models/time-off' or its corresponding type declarations.
+lib/supabase/data-access.ts(93,7): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: { created_at?: string | null | undefined; id?: string | undefined; notes?: string | null | undefined; proposed_shift_id?: string | null | undefined; requested_employee_id: string; requester_id: string; shift_id: string; status?: "pending" | ... 2 more ... | undefined; updated_at?: string | ... 1 more ... | undefined; }, options?: { ...; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Object literal may only specify known properties, but 'requesting_employee_id' does not exist in type '{ created_at?: string | null | undefined; id?: string | undefined; notes?: string | null | undefined; proposed_shift_id?: string | null | undefined; requested_employee_id: string; requester_id: string; shift_id: string; status?: "pending" | ... 2 more ... | undefined; updated_at?: string | ... 1 more ... | undefined...'. Did you mean to write 'requested_employee_id'?
+  Overload 2 of 2, '(values: { created_at?: string | null | undefined; id?: string | undefined; notes?: string | null | undefined; proposed_shift_id?: string | null | undefined; requested_employee_id: string; requester_id: string; shift_id: string; status?: "pending" | ... 2 more ... | undefined; updated_at?: string | ... 1 more ... | undefined; }[], options?: { ...; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Object literal may only specify known properties, and 'requesting_employee_id' does not exist in type '{ created_at?: string | null | undefined; id?: string | undefined; notes?: string | null | undefined; proposed_shift_id?: string | null | undefined; requested_employee_id: string; requester_id: string; shift_id: string; status?: "pending" | ... 2 more ... | undefined; updated_at?: string | ... 1 more ... | undefined...'.
+lib/supabase/data-access/employees.ts(190,7): error TS2719: Type 'import("/Users/adampeterson/GitHub/shifterino/node_modules/@supabase/postgrest-js/dist/cjs/PostgrestFilterBuilder").default<{ Tables: { auth_logs: { Row: { details: import("/Users/adampeterson/GitHub/shifterino/types/supabase/database").Json; error_message: string | null; id: number; operation: string | null; timest...' is not assignable to type 'import("/Users/adampeterson/GitHub/shifterino/node_modules/@supabase/postgrest-js/dist/cjs/PostgrestFilterBuilder").default<{ Tables: { auth_logs: { Row: { details: import("/Users/adampeterson/GitHub/shifterino/types/supabase/database").Json; error_message: string | null; id: number; operation: string | null; timest...'. Two different types with this name exist, but they are unrelated.
+  The types returned by 'throwOnError()' are incompatible between these types.
+    Type 'import("/Users/adampeterson/GitHub/shifterino/node_modules/@supabase/postgrest-js/dist/cjs/PostgrestFilterBuilder").default<{ Tables: { auth_logs: { Row: { details: import("/Users/adampeterson/GitHub/shifterino/types/supabase/database").Json; error_message: string | null; id: number; operation: string | null; timest...' is not assignable to type 'import("/Users/adampeterson/GitHub/shifterino/node_modules/@supabase/postgrest-js/dist/cjs/PostgrestFilterBuilder").default<{ Tables: { auth_logs: { Row: { details: import("/Users/adampeterson/GitHub/shifterino/types/supabase/database").Json; error_message: string | null; id: number; operation: string | null; timest...'. Two different types with this name exist, but they are unrelated.
+      Type 'import("/Users/adampeterson/GitHub/shifterino/node_modules/@supabase/postgrest-js/dist/cjs/PostgrestFilterBuilder").default<{ Tables: { auth_logs: { Row: { details: import("/Users/adampeterson/GitHub/shifterino/types/supabase/database").Json; error_message: string | null; id: number; operation: string | null; timest...' is not assignable to type 'import("/Users/adampeterson/GitHub/shifterino/node_modules/@supabase/postgrest-js/dist/cjs/PostgrestFilterBuilder").default<{ Tables: { auth_logs: { Row: { details: import("/Users/adampeterson/GitHub/shifterino/types/supabase/database").Json; error_message: string | null; id: number; operation: string | null; timest...'. Two different types with this name exist, but they are unrelated.
+        Types of property 'then' are incompatible.
+          Type '(<TResult1 = PostgrestSingleResponse<unknown[]>, TResult2 = never>(onfulfilled?: ((value: PostgrestSingleResponse<unknown[]>) => TResult1 | PromiseLike<TResult1>) | null | undefined, onrejected?: ((reason: any) => TResult2 | PromiseLike<...>) | ... 1 more ... | undefined) => PromiseLike<...>) & (<TResult1 = Postgres...' is not assignable to type '<TResult1 = PostgrestSingleResponse<{ auth_id: string; consecutive_shifts_count: number | null; created_at: string; created_by: string | null; email: string; first_name: string; id: string; last_name: string; last_shift_date: string | null; ... 7 more ...; weekly_hours_cap: number; }[]>, TResult2 = never>(onfulfille...'.
+            Types of parameters 'onfulfilled' and 'onfulfilled' are incompatible.
+              Types of parameters 'value' and 'value' are incompatible.
+                Type 'PostgrestSingleResponse<unknown[]>' is not assignable to type 'PostgrestSingleResponse<{ auth_id: string; consecutive_shifts_count: number | null; created_at: string; created_by: string | null; email: string; first_name: string; id: string; last_name: string; last_shift_date: string | null; ... 7 more ...; weekly_hours_cap: number; }[]>'.
+                  Type 'PostgrestResponseSuccess<unknown[]>' is not assignable to type 'PostgrestSingleResponse<{ auth_id: string; consecutive_shifts_count: number | null; created_at: string; created_by: string | null; email: string; first_name: string; id: string; last_name: string; last_shift_date: string | null; ... 7 more ...; weekly_hours_cap: number; }[]>'.
+                    Type 'PostgrestResponseSuccess<unknown[]>' is not assignable to type 'PostgrestResponseSuccess<{ auth_id: string; consecutive_shifts_count: number | null; created_at: string; created_by: string | null; email: string; first_name: string; id: string; last_name: string; last_shift_date: string | null; ... 7 more ...; weekly_hours_cap: number; }[]>'.
+                      Type 'unknown[]' is not assignable to type '{ auth_id: string; consecutive_shifts_count: number | null; created_at: string; created_by: string | null; email: string; first_name: string; id: string; last_name: string; last_shift_date: string | null; ... 7 more ...; weekly_hours_cap: number; }[]'.
+                        Type 'unknown' is not assignable to type '{ auth_id: string; consecutive_shifts_count: number | null; created_at: string; created_by: string | null; email: string; first_name: string; id: string; last_name: string; last_shift_date: string | null; ... 7 more ...; weekly_hours_cap: number; }'.
+lib/supabase/data-access/employees.ts(190,36): error TS2345: Argument of type 'import("/Users/adampeterson/GitHub/shifterino/node_modules/@supabase/postgrest-js/dist/cjs/PostgrestFilterBuilder").default<{ Tables: { auth_logs: { Row: { details: import("/Users/adampeterson/GitHub/shifterino/types/supabase/database").Json; error_message: string | null; id: number; operation: string | null; timest...' is not assignable to parameter of type 'import("/Users/adampeterson/GitHub/shifterino/node_modules/@supabase/postgrest-js/dist/cjs/PostgrestFilterBuilder").default<{ Tables: { auth_logs: { Row: { details: import("/Users/adampeterson/GitHub/shifterino/types/supabase/database").Json; error_message: string | null; id: number; operation: string | null; timest...'.
+  Type '{ auth_id: string; consecutive_shifts_count: number | null; created_at: string; created_by: string | null; email: string; first_name: string; id: string; last_name: string; last_shift_date: string | null; ... 7 more ...; weekly_hours_cap: number; }' is missing the following properties from type '{ avg_hours_per_shift: number | null; avg_score: number | null; employee_id: string | null; first_name: string | null; last_name: string | null; periods_worked: number | null; role: "dispatcher" | ... 2 more ... | null; total_hours: number | null; total_shifts: number | null; }': avg_hours_per_shift, avg_score, employee_id, periods_worked, and 2 more.
+lib/supabase/data-access/schedules.ts(339,7): error TS2719: Type 'import("/Users/adampeterson/GitHub/shifterino/node_modules/@supabase/postgrest-js/dist/cjs/PostgrestFilterBuilder").default<{ Tables: { auth_logs: { Row: { details: import("/Users/adampeterson/GitHub/shifterino/types/supabase/database").Json; error_message: string | null; id: number; operation: string | null; timest...' is not assignable to type 'import("/Users/adampeterson/GitHub/shifterino/node_modules/@supabase/postgrest-js/dist/cjs/PostgrestFilterBuilder").default<{ Tables: { auth_logs: { Row: { details: import("/Users/adampeterson/GitHub/shifterino/types/supabase/database").Json; error_message: string | null; id: number; operation: string | null; timest...'. Two different types with this name exist, but they are unrelated.
+  The types returned by 'throwOnError()' are incompatible between these types.
+    Type 'import("/Users/adampeterson/GitHub/shifterino/node_modules/@supabase/postgrest-js/dist/cjs/PostgrestFilterBuilder").default<{ Tables: { auth_logs: { Row: { details: import("/Users/adampeterson/GitHub/shifterino/types/supabase/database").Json; error_message: string | null; id: number; operation: string | null; timest...' is not assignable to type 'import("/Users/adampeterson/GitHub/shifterino/node_modules/@supabase/postgrest-js/dist/cjs/PostgrestFilterBuilder").default<{ Tables: { auth_logs: { Row: { details: import("/Users/adampeterson/GitHub/shifterino/types/supabase/database").Json; error_message: string | null; id: number; operation: string | null; timest...'. Two different types with this name exist, but they are unrelated.
+      Type 'import("/Users/adampeterson/GitHub/shifterino/node_modules/@supabase/postgrest-js/dist/cjs/PostgrestFilterBuilder").default<{ Tables: { auth_logs: { Row: { details: import("/Users/adampeterson/GitHub/shifterino/types/supabase/database").Json; error_message: string | null; id: number; operation: string | null; timest...' is not assignable to type 'import("/Users/adampeterson/GitHub/shifterino/node_modules/@supabase/postgrest-js/dist/cjs/PostgrestFilterBuilder").default<{ Tables: { auth_logs: { Row: { details: import("/Users/adampeterson/GitHub/shifterino/types/supabase/database").Json; error_message: string | null; id: number; operation: string | null; timest...'. Two different types with this name exist, but they are unrelated.
+        Types of property 'then' are incompatible.
+          Type '(<TResult1 = PostgrestSingleResponse<unknown[]>, TResult2 = never>(onfulfilled?: ((value: PostgrestSingleResponse<unknown[]>) => TResult1 | PromiseLike<TResult1>) | null | undefined, onrejected?: ((reason: any) => TResult2 | PromiseLike<...>) | ... 1 more ... | undefined) => PromiseLike<...>) & (<TResult1 = Postgres...' is not assignable to type '<TResult1 = PostgrestSingleResponse<{ created_at: string; created_by: string; employee_id: string; end_date: string; id: string; is_supervisor: boolean; shift_pattern: "pattern_a" | "pattern_b" | "custom"; shift_type: string; ... 4 more ...; employee: { ...; }; }[]>, TResult2 = never>(onfulfilled?: ((value: Postgres...'.
+            Types of parameters 'onfulfilled' and 'onfulfilled' are incompatible.
+              Types of parameters 'value' and 'value' are incompatible.
+                Type 'PostgrestSingleResponse<unknown[]>' is not assignable to type 'PostgrestSingleResponse<{ created_at: string; created_by: string; employee_id: string; end_date: string; id: string; is_supervisor: boolean; shift_pattern: "pattern_a" | "pattern_b" | "custom"; shift_type: string; ... 4 more ...; employee: { ...; }; }[]>'.
+                  Type 'PostgrestResponseSuccess<unknown[]>' is not assignable to type 'PostgrestSingleResponse<{ created_at: string; created_by: string; employee_id: string; end_date: string; id: string; is_supervisor: boolean; shift_pattern: "pattern_a" | "pattern_b" | "custom"; shift_type: string; ... 4 more ...; employee: { ...; }; }[]>'.
+                    Type 'PostgrestResponseSuccess<unknown[]>' is not assignable to type 'PostgrestResponseSuccess<{ created_at: string; created_by: string; employee_id: string; end_date: string; id: string; is_supervisor: boolean; shift_pattern: "pattern_a" | "pattern_b" | "custom"; shift_type: string; ... 4 more ...; employee: { ...; }; }[]>'.
+                      Type 'unknown[]' is not assignable to type '{ created_at: string; created_by: string; employee_id: string; end_date: string; id: string; is_supervisor: boolean; shift_pattern: "pattern_a" | "pattern_b" | "custom"; shift_type: string; ... 4 more ...; employee: { ...; }; }[]'.
+                        Type 'unknown' is not assignable to type '{ created_at: string; created_by: string; employee_id: string; end_date: string; id: string; is_supervisor: boolean; shift_pattern: "pattern_a" | "pattern_b" | "custom"; shift_type: string; ... 4 more ...; employee: { ...; }; }'.
+lib/supabase/data-access/schedules.ts(339,36): error TS2345: Argument of type 'import("/Users/adampeterson/GitHub/shifterino/node_modules/@supabase/postgrest-js/dist/cjs/PostgrestFilterBuilder").default<{ Tables: { auth_logs: { Row: { details: import("/Users/adampeterson/GitHub/shifterino/types/supabase/database").Json; error_message: string | null; id: number; operation: string | null; timest...' is not assignable to parameter of type 'import("/Users/adampeterson/GitHub/shifterino/node_modules/@supabase/postgrest-js/dist/cjs/PostgrestFilterBuilder").default<{ Tables: { auth_logs: { Row: { details: import("/Users/adampeterson/GitHub/shifterino/types/supabase/database").Json; error_message: string | null; id: number; operation: string | null; timest...'.
+  Type '{ created_at: string; created_by: string; employee_id: string; end_date: string; id: string; is_supervisor: boolean; shift_pattern: "pattern_a" | "pattern_b" | "custom"; shift_type: string; start_date: string; status: string; updated_at: string; updated_by: string; }' is missing the following properties from type '{ avg_hours_per_shift: number | null; avg_score: number | null; employee_id: string | null; first_name: string | null; last_name: string | null; periods_worked: number | null; role: "dispatcher" | ... 2 more ... | null; total_hours: number | null; total_shifts: number | null; }': avg_hours_per_shift, avg_score, first_name, last_name, and 4 more.
+lib/supabase/data-access/shift-swaps.ts(1,30): error TS2307: Cannot find module '@/app/lib/supabase/client' or its corresponding type declarations.
+lib/supabase/data-access/shift-swaps.ts(27,17): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'Error'.
+lib/supabase/data-access/shift-swaps.ts(49,17): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'Error'.
+lib/supabase/data-access/shift-swaps.ts(65,17): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'Error'.
+lib/supabase/data-access/shift-swaps.ts(82,17): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'Error'.
+lib/supabase/data-access/shift-swaps.ts(97,17): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'Error'.
+lib/supabase/data-access/shift-swaps.ts(118,17): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'Error'.
+lib/supabase/data-access/time-off.ts(1,30): error TS2307: Cannot find module '@/app/lib/supabase/client' or its corresponding type declarations.
+lib/supabase/data-access/time-off.ts(26,17): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'Error'.
+lib/supabase/data-access/time-off.ts(46,17): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'Error'.
+lib/supabase/data-access/time-off.ts(62,17): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'Error'.
+lib/supabase/data-access/time-off.ts(79,17): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'Error'.
+lib/supabase/data-access/time-off.ts(94,17): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'Error'.
+lib/supabase/data-access/time-off.ts(115,17): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'Error'.
+lib/supabase/data-access/time-off.ts(239,47): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'Error'.
+lib/supabase/data-access/time-off.ts(259,47): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'Error'.
+lib/supabase/realtime.ts(1,30): error TS2307: Cannot find module '@/app/lib/supabase/client' or its corresponding type declarations.
+lib/supabase/realtime.ts(4,87): error TS2307: Cannot find module '@/types/scheduling' or its corresponding type declarations.
+lib/supabase/realtime.ts(15,44): error TS2344: Type 'T' does not satisfy the constraint '{ [key: string]: any; }'.
+lib/supabase/realtime.ts(45,12): error TS7006: Parameter 'payload' implicitly has an 'any' type.
+lib/supabase/realtime.ts(84,29): error TS2345: Argument of type '"individual_shifts"' is not assignable to parameter of type 'TableName'.
+lib/supabase/realtime.ts(89,27): error TS2345: Argument of type '"individual_shifts"' is not assignable to parameter of type 'TableName'.
+lib/supabase/realtime.ts(110,29): error TS2345: Argument of type '"on_call_assignments"' is not assignable to parameter of type 'TableName'.
+lib/supabase/realtime.ts(115,27): error TS2345: Argument of type '"on_call_assignments"' is not assignable to parameter of type 'TableName'.
+lib/supabase/realtime.ts(123,29): error TS2345: Argument of type '"on_call_activations"' is not assignable to parameter of type 'TableName'.
+lib/supabase/realtime.ts(128,27): error TS2345: Argument of type '"on_call_activations"' is not assignable to parameter of type 'TableName'.
+lib/supabase/realtime.ts(137,26): error TS2341: Property 'supabase' is private and only accessible within class 'RealtimeManager'.
+lib/supabase/realtime.ts(154,26): error TS2341: Property 'supabase' is private and only accessible within class 'RealtimeManager'.
+lib/supabase/realtime.ts(171,26): error TS2341: Property 'supabase' is private and only accessible within class 'RealtimeManager'.
+lib/supabase/realtime.ts(186,19): error TS2341: Property 'supabase' is private and only accessible within class 'RealtimeManager'.
+lib/utils/error-handler.ts(83,17): error TS2352: Conversion of type 'Error' to type 'AppError' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Property 'code' is missing in type 'Error' but required in type 'AppError'.
+types/supabase/index.ts(8,36): error TS2339: Property 'employee_status' does not exist on type '{ employee_role: "dispatcher" | "supervisor" | "manager"; log_severity: "info" | "warning" | "error"; shift_category: "early" | "day" | "swing" | "graveyard"; shift_pattern: "pattern_a" | ... 1 more ... | "custom"; shift_status: "scheduled" | ... 3 more ... | "cancelled"; time_off_status: "pending" | ... 1 more ... ...'.

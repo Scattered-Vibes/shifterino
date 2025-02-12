@@ -19,7 +19,7 @@ import {
   type SignupInput,
   type ResetPasswordInput,
   type UpdatePasswordInput,
-} from '@/lib/validations/auth'
+} from '@/app/lib/validations/auth'
 
 export async function login(data: LoginInput) {
   try {
@@ -32,20 +32,20 @@ export async function login(data: LoginInput) {
     })
 
     if (error) {
-      const appError = handleError(error)
+      const appError = handleError(error as Error)
       return { error: appError.message, code: appError.code }
     }
 
     revalidatePath('/', 'layout')
-    redirect('/overview')
+    return { success: true }
   } catch (error) {
     if (error instanceof z.ZodError) {
       return { 
         error: 'Invalid email or password format',
-        code: ErrorCode.VALIDATION_ERROR
+        code: ErrorCode.VALIDATION
       }
     }
-    const appError = handleError(error)
+    const appError = handleError(error as Error)
     return { error: appError.message, code: appError.code }
   }
 }
@@ -68,17 +68,20 @@ export async function signup(data: SignupInput) {
       },
     })
 
-    if (signUpError) throw signUpError
+    if (signUpError) {
+      const appError = handleError(signUpError as Error)
+      return { error: appError.message, code: appError.code }
+    }
 
     redirect('/auth/check-email')
   } catch (error) {
     if (error instanceof z.ZodError) {
       return { 
         error: 'Invalid form data',
-        code: ErrorCode.VALIDATION_ERROR
+        code: ErrorCode.VALIDATION
       }
     }
-    const appError = handleError(error)
+    const appError = handleError(error as Error)
     return { error: appError.message, code: appError.code }
   }
 }
@@ -89,12 +92,17 @@ export async function signOut() {
     const { error } = await supabase.auth.signOut()
     
     if (error) {
-      return { error: 'Failed to sign out' }
+      const appError = handleError(error as Error)
+      return { error: appError.message }
     }
 
+    revalidatePath('/', 'layout')
     return { success: true }
   } catch (error) {
-    return handleError(error as Error, ErrorCode.AUTH_ERROR)
+    if (error instanceof Error) {
+      return handleError(error, ErrorCode.AUTH_ERROR)
+    }
+    return { error: 'An unexpected error occurred' }
   }
 }
 
@@ -108,7 +116,7 @@ export async function resetPassword(data: ResetPasswordInput) {
     })
 
     if (error) {
-      const appError = handleError(error)
+      const appError = handleError(error as Error)
       return { error: appError.message, code: appError.code }
     }
 
@@ -117,10 +125,10 @@ export async function resetPassword(data: ResetPasswordInput) {
     if (error instanceof z.ZodError) {
       return { 
         error: 'Invalid email format',
-        code: ErrorCode.VALIDATION_ERROR
+        code: ErrorCode.VALIDATION
       }
     }
-    const appError = handleError(error)
+    const appError = handleError(error as Error)
     return { error: appError.message, code: appError.code }
   }
 }
@@ -135,7 +143,7 @@ export async function updatePassword(data: UpdatePasswordInput) {
     })
 
     if (error) {
-      const appError = handleError(error)
+      const appError = handleError(error as Error)
       return { error: appError.message, code: appError.code }
     }
 
@@ -145,10 +153,10 @@ export async function updatePassword(data: UpdatePasswordInput) {
     if (error instanceof z.ZodError) {
       return { 
         error: 'Invalid password format',
-        code: ErrorCode.VALIDATION_ERROR
+        code: ErrorCode.VALIDATION
       }
     }
-    const appError = handleError(error)
+    const appError = handleError(error as Error)
     return { error: appError.message, code: appError.code }
   }
 }

@@ -1,26 +1,28 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useShifts, useTimeOff, useShiftSwaps } from '@/lib/hooks'
 import { ShiftCalendar } from './shift-calendar'
 import { ShiftUpdateForm } from './shift-update-form'
-import { ErrorBoundary } from '@/components/ui/error-boundary'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { 
   CalendarIcon, 
   ClockIcon,
-  BellIcon 
+  BellIcon,
+  PersonIcon,
+  UpdateIcon
 } from '@radix-ui/react-icons'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { StaffingRequirements } from './staffing-requirements'
 import { TimeOffRequests } from './time-off-requests'
 import { ShiftSwapRequests } from './shift-swap-requests'
-import { OnCallSchedule } from './on-call-schedule'
+import { OnCallScheduleManager } from './on-call-schedule'
 import type { ShiftEvent, Duration } from '@/app/types/shift'
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { validateShiftPattern } from '@/app/lib/utils/shift-patterns'
+import { useToast } from '@/components/ui/use-toast'
+import { createClient } from '@/lib/supabase/client'
 
 const STAFFING_REQUIREMENTS = [
   { timeStart: '05:00', timeEnd: '09:00', minStaff: 6, supervisorRequired: true },
@@ -30,43 +32,36 @@ const STAFFING_REQUIREMENTS = [
 ]
 
 export function ScheduleManager() {
+  const { toast } = useToast()
+  const supabase = createClient()
   const [selectedShift, setSelectedShift] = useState<ShiftEvent | null>(null)
   const [view, setView] = useState<'calendar' | 'staffing' | 'time-off' | 'swaps' | 'on-call'>('calendar')
 
-  // Helper function to create a new shift.
-  // This object serves as a template for the "Add Shift" functionality.
-  const createEmptyShift = (): ShiftEvent => {
-    return {
-      id: 'new',
-      start: new Date().toISOString(),
-      end: new Date(Date.now() + 3600000).toISOString(), // default duration: 1 hour
-      // Add any additional default properties here as required.
-    }
-  }
+  const createEmptyShift = (): Partial<ShiftEvent> => ({
+    id: 'new',
+    start: new Date(),
+    end: new Date(Date.now() + 3600000),
+    title: 'New Shift',
+    status: 'scheduled'
+  })
 
   const { 
-    shifts, 
-    events, 
+    data: shifts,
     isLoading: shiftsLoading, 
     error: shiftsError,
-    updateShift,
     refetch: refetchShifts
   } = useShifts()
 
   const {
-    timeOffRequests,
+    data: timeOffRequests,
     isLoading: timeOffLoading,
-    error: timeOffError,
-    approveTimeOff,
-    rejectTimeOff
+    error: timeOffError
   } = useTimeOff()
 
   const {
-    swapRequests,
+    data: swapRequests,
     isLoading: swapsLoading,
-    error: swapsError,
-    approveSwap,
-    rejectSwap
+    error: swapsError
   } = useShiftSwaps()
 
   const handleEventClick = (event: ShiftEvent) => {
@@ -136,6 +131,92 @@ export function ScheduleManager() {
     }
   }
 
+  const handleTimeOffSubmit = useCallback(async (request) => {
+    try {
+      const { error } = await supabase
+        .from('time_off_requests')
+        .insert([request])
+      
+      if (error) throw error
+      
+      toast({
+        title: 'Success',
+        description: 'Time off request submitted successfully',
+      })
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to submit time off request',
+        variant: 'destructive',
+      })
+    }
+  }, [supabase, toast])
+
+  const handleTimeOffAction = useCallback(async (id: string, action: 'approved' | 'rejected') => {
+    try {
+      const { error } = await supabase
+        .from('time_off_requests')
+        .update({ status: action })
+        .eq('id', id)
+      
+      if (error) throw error
+      
+      toast({
+        title: 'Success',
+        description: `Time off request ${action} successfully`,
+      })
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: `Failed to ${action} time off request`,
+        variant: 'destructive',
+      })
+    }
+  }, [supabase, toast])
+
+  const handleShiftSwapSubmit = useCallback(async (request) => {
+    try {
+      const { error } = await supabase
+        .from('shift_swap_requests')
+        .insert([request])
+      
+      if (error) throw error
+      
+      toast({
+        title: 'Success',
+        description: 'Shift swap request submitted successfully',
+      })
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to submit shift swap request',
+        variant: 'destructive',
+      })
+    }
+  }, [supabase, toast])
+
+  const handleShiftSwapAction = useCallback(async (id: string, action: 'approved' | 'rejected') => {
+    try {
+      const { error } = await supabase
+        .from('shift_swap_requests')
+        .update({ status: action })
+        .eq('id', id)
+      
+      if (error) throw error
+      
+      toast({
+        title: 'Success',
+        description: `Shift swap request ${action} successfully`,
+      })
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: `Failed to ${action} shift swap request`,
+        variant: 'destructive',
+      })
+    }
+  }, [supabase, toast])
+
   if (shiftsError || timeOffError || swapsError) {
     throw shiftsError || timeOffError || swapsError
   }
@@ -144,101 +225,101 @@ export function ScheduleManager() {
   const pendingSwaps = swapRequests?.filter(req => !req.reviewedAt).length ?? 0
 
   return (
-    <ErrorBoundary>
-      <div className="space-y-8">
-        <Card className="p-6">
-          <Tabs value={view} onValueChange={(v) => setView(v as 'calendar' | 'staffing' | 'time-off' | 'swaps' | 'on-call')}>
-            <TabsList>
-              <TabsTrigger value="calendar">
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                Calendar View
-              </TabsTrigger>
-              <TabsTrigger value="staffing">
-                <UsersIcon className="mr-2 h-4 w-4" />
-                Staffing Requirements
-              </TabsTrigger>
-              <TabsTrigger value="time-off">
-                <ClockIcon className="mr-2 h-4 w-4" />
-                Time Off
-                {pendingTimeOff > 0 && (
-                  <Badge variant="destructive" className="ml-2">
-                    {pendingTimeOff}
-                  </Badge>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="swaps">
-                <SwapIcon className="mr-2 h-4 w-4" />
-                Shift Swaps
-                {pendingSwaps > 0 && (
-                  <Badge variant="destructive" className="ml-2">
-                    {pendingSwaps}
-                  </Badge>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="on-call">
-                <BellIcon className="mr-2 h-4 w-4" />
-                On-Call
-              </TabsTrigger>
-            </TabsList>
+    <div className="space-y-8">
+      <Card className="p-6">
+        <Tabs value={view} onValueChange={(v) => setView(v as 'calendar' | 'staffing' | 'time-off' | 'swaps' | 'on-call')}>
+          <TabsList>
+            <TabsTrigger value="calendar">
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              Calendar View
+            </TabsTrigger>
+            <TabsTrigger value="staffing">
+              <PersonIcon className="mr-2 h-4 w-4" />
+              Staffing Requirements
+            </TabsTrigger>
+            <TabsTrigger value="time-off">
+              <ClockIcon className="mr-2 h-4 w-4" />
+              Time Off
+              {pendingTimeOff > 0 && (
+                <Badge variant="destructive" className="ml-2">
+                  {pendingTimeOff}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="swaps">
+              <UpdateIcon className="mr-2 h-4 w-4" />
+              Shift Swaps
+              {pendingSwaps > 0 && (
+                <Badge variant="destructive" className="ml-2">
+                  {pendingSwaps}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="on-call">
+              <BellIcon className="mr-2 h-4 w-4" />
+              On-Call
+            </TabsTrigger>
+          </TabsList>
 
-            <TabsContent value="calendar" className="mt-6">
-              <div className="flex justify-end mb-4">
-                <Button onClick={() => setSelectedShift(createEmptyShift())}>
-                  Add Shift
-                </Button>
-              </div>
+          <TabsContent value="calendar" className="mt-6">
+            <div className="flex justify-end mb-4">
+              <Button onClick={() => setSelectedShift(createEmptyShift())}>
+                Add Shift
+              </Button>
+            </div>
 
-              <ShiftCalendar
-                events={events}
-                isLoading={shiftsLoading}
-                staffingRequirements={STAFFING_REQUIREMENTS}
-                onEventClick={handleEventClick}
-                onEventDrop={handleEventDrop}
-                onEventResize={handleEventResize}
-              />
-            </TabsContent>
-
-            <TabsContent value="staffing" className="mt-6">
-              <StaffingRequirements 
-                shifts={shifts}
-                requirements={STAFFING_REQUIREMENTS}
-              />
-            </TabsContent>
-
-            <TabsContent value="time-off" className="mt-6">
-              <TimeOffRequests
-                requests={timeOffRequests}
-                isLoading={timeOffLoading}
-                onApprove={approveTimeOff}
-                onReject={rejectTimeOff}
-              />
-            </TabsContent>
-
-            <TabsContent value="swaps" className="mt-6">
-              <ShiftSwapRequests
-                requests={swapRequests}
-                isLoading={swapsLoading}
-                onApprove={approveSwap}
-                onReject={rejectSwap}
-              />
-            </TabsContent>
-
-            <TabsContent value="on-call" className="mt-6">
-              <OnCallSchedule />
-            </TabsContent>
-          </Tabs>
-        </Card>
-
-        {selectedShift && (
-          <Card className="p-6">
-            <ShiftUpdateForm
-              shift={selectedShift}
-              onUpdate={handleShiftUpdate}
-              onCancel={() => setSelectedShift(null)}
+            <ShiftCalendar
+              events={events}
+              isLoading={shiftsLoading}
+              staffingRequirements={STAFFING_REQUIREMENTS}
+              onEventClick={handleEventClick}
+              onEventDrop={handleEventDrop}
+              onEventResize={handleEventResize}
             />
-          </Card>
-        )}
-      </div>
-    </ErrorBoundary>
+          </TabsContent>
+
+          <TabsContent value="staffing" className="mt-6">
+            <StaffingRequirements 
+              shifts={shifts}
+              requirements={STAFFING_REQUIREMENTS}
+            />
+          </TabsContent>
+
+          <TabsContent value="time-off" className="mt-6">
+            <TimeOffRequests
+              requests={timeOffRequests}
+              isLoading={timeOffLoading}
+              onSubmit={handleTimeOffSubmit}
+              onApprove={(id) => handleTimeOffAction(id, 'approved')}
+              onReject={(id) => handleTimeOffAction(id, 'rejected')}
+            />
+          </TabsContent>
+
+          <TabsContent value="swaps" className="mt-6">
+            <ShiftSwapRequests
+              requests={swapRequests}
+              isLoading={swapsLoading}
+              onSubmit={handleShiftSwapSubmit}
+              onApprove={(id) => handleShiftSwapAction(id, 'approved')}
+              onReject={(id) => handleShiftSwapAction(id, 'rejected')}
+            />
+          </TabsContent>
+
+          <TabsContent value="on-call" className="mt-6">
+            <OnCallScheduleManager />
+          </TabsContent>
+        </Tabs>
+      </Card>
+
+      {selectedShift && (
+        <Card className="p-6">
+          <ShiftUpdateForm
+            shift={selectedShift}
+            onUpdate={handleShiftUpdate}
+            onCancel={() => setSelectedShift(null)}
+          />
+        </Card>
+      )}
+    </div>
   )
 }

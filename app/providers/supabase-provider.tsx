@@ -1,97 +1,75 @@
 'use client';
 
-import { createBrowserClient } from '@supabase/ssr'
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import type { SupabaseClient } from '@/lib/supabase/client'
+import type { Session } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
-import type { SupabaseClient, User, AuthChangeEvent } from '@supabase/supabase-js'
-import type { Database } from '@/types/supabase'
-import { useToast } from '@/components/ui/use-toast'
+import type { AuthChangeEvent } from '@supabase/supabase-js'
+import type { Employee } from '@/types'
 
 type SupabaseContext = {
-  supabase: SupabaseClient<Database>
-  user: User | null
+  supabase: SupabaseClient
+  session: Session | null
+  employee: Employee | null
 }
 
 const Context = createContext<SupabaseContext | undefined>(undefined)
 
-export function SupabaseProvider({
+export default function SupabaseProvider({
   children,
+  session: initialSession,
 }: {
   children: React.ReactNode
+  session: Session | null
 }) {
-  const [user, setUser] = useState<User | null>(null)
+  const [supabase] = useState(() => createClient())
+  const [session, setSession] = useState<Session | null>(initialSession)
+  const [employee, setEmployee] = useState<Employee | null>(null)
   const router = useRouter()
-  const { toast } = useToast()
 
-  const [supabase] = useState(() =>
-    createBrowserClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
-  )
+  const fetchEmployee = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('employees')
+        .select('*')
+        .eq('auth_id', userId)
+        .single()
+
+      if (error) throw error
+      // Cast the data to Employee type since we know the shape matches
+      setEmployee(data as Employee)
+      return data
+    } catch (error) {
+      console.error('Error fetching employee:', error)
+      return null
+    }
+  }
+
+  useEffect(() => {
+    if (session?.user) {
+      fetchEmployee(session.user.id)
+    }
+  }, [session])
 
   useEffect(() => {
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session) => {
-      if (event === 'SIGNED_OUT') {
-        setUser(null)
-        router.push('/login')
-        return
-      }
+    } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, currentSession) => {
+      setSession(currentSession)
 
-      if (session?.user) {
-        try {
-          // Verify user exists in auth
-          const { data: { user: verifiedUser }, error: userError } = await supabase.auth.getUser()
-          
-          if (userError || !verifiedUser) {
-            console.error('User verification failed:', userError)
-            await supabase.auth.signOut()
-            router.push('/login')
-            return
+      if (event === 'SIGNED_IN') {
+        if (currentSession?.user) {
+          const employee = await fetchEmployee(currentSession.user.id)
+          if (!employee) {
+            router.push('/complete-profile')
+          } else {
+            router.push('/overview')
           }
-
-          // Only check for employee record if not signing up
-          if (event !== 'SIGNED_UP') {
-            const { data: employee, error: employeeError } = await supabase
-              .from('employees')
-              .select('id')
-              .eq('auth_id', verifiedUser.id)
-              .maybeSingle()
-
-            if (employeeError) {
-              console.error('Error verifying employee:', employeeError)
-              toast({
-                title: 'Error',
-                description: 'There was an error verifying your account. Please try signing in again.',
-                variant: 'destructive',
-              })
-              await supabase.auth.signOut()
-              router.push('/login')
-              return
-            }
-
-            if (!employee) {
-              router.push('/complete-profile')
-              return
-            }
-          }
-
-          setUser(verifiedUser)
-        } catch (error) {
-          console.error('Error in auth state change:', error)
-          toast({
-            title: 'Error',
-            description: 'An unexpected error occurred. Please try again.',
-            variant: 'destructive',
-          })
-          await supabase.auth.signOut()
-          router.push('/login')
-          return
         }
-      } else {
-        setUser(null)
+      } else if (event === 'SIGNED_OUT') {
+        setEmployee(null)
+        router.push('/login')
       }
 
       router.refresh()
@@ -100,19 +78,25 @@ export function SupabaseProvider({
     return () => {
       subscription.unsubscribe()
     }
-  }, [supabase, router, toast])
+  }, [supabase, router])
+
+  const value = {
+    supabase,
+    session,
+    employee,
+  }
 
   return (
-    <Context.Provider value={{ supabase, user }}>
+    <Context.Provider value={value}>
       {children}
     </Context.Provider>
   )
 }
 
-export const useSupabase = () => {
+export function useSupabase() {
   const context = useContext(Context)
   if (context === undefined) {
-    throw new Error('useSupabase must be used within a SupabaseProvider')
+    throw new Error('useSupabase must be used inside SupabaseProvider')
   }
   return context
 } 

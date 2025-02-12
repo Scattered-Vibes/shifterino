@@ -18,7 +18,8 @@ const MANAGER_ROUTES = [
 ]
 
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({
+  // Create a single response that we'll modify with cookies
+  const response = NextResponse.next({
     request: {
       headers: request.headers,
     },
@@ -33,15 +34,11 @@ export async function middleware(request: NextRequest) {
           return request.cookies.get(name)?.value
         },
         set(name: string, value: string, options: CookieOptions) {
+          // Set cookie on both request and response
           request.cookies.set({
             name,
             value,
             ...options,
-          })
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
           })
           response.cookies.set({
             name,
@@ -49,22 +46,10 @@ export async function middleware(request: NextRequest) {
             ...options,
           })
         },
-        remove(name: string, options: CookieOptions) {
-          request.cookies.set({
-            name,
-            value: '',
-            ...options,
-          })
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
-          response.cookies.set({
-            name,
-            value: '',
-            ...options,
-          })
+        remove(name: string, _options: CookieOptions) {
+          // Remove cookie from both request and response
+          request.cookies.delete(name)
+          response.cookies.delete(name)
         },
       },
     }
@@ -72,37 +57,32 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
-  // Refresh session if expired - required for Server Components
-  const { data: { session } } = await supabase.auth.getSession()
-
-  // Allow public routes
+  // Check if the route is public
   if (PUBLIC_ROUTES.some(route => pathname.startsWith(route))) {
-    if (session) {
-      // Redirect authenticated users away from auth pages
-      return NextResponse.redirect(new URL('/overview', request.url))
-    }
     return response
   }
 
-  // Check if user is authenticated
+  // Get the session
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+
+  if (sessionError) {
+    console.error('Session error:', sessionError)
+    return NextResponse.redirect(new URL('/login', request.url))
+  }
+
   if (!session) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // Check manager routes
+  // For manager routes, check if user has manager role
   if (MANAGER_ROUTES.some(route => pathname.startsWith(route))) {
-    try {
-      const { data: employee } = await supabase
-        .from('employees')
-        .select('role')
-        .eq('auth_id', session.user.id)
-        .single()
+    const { data: employee } = await supabase
+      .from('employees')
+      .select('role')
+      .eq('auth_id', session.user.id)
+      .single()
 
-      if (employee?.role !== 'manager') {
-        return NextResponse.redirect(new URL('/overview', request.url))
-      }
-    } catch (error) {
-      console.error('Error checking user role:', error)
+    if (!employee || employee.role !== 'manager') {
       return NextResponse.redirect(new URL('/overview', request.url))
     }
   }
