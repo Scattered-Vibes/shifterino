@@ -16,27 +16,21 @@ import {
   UpdateIcon,
 } from '@radix-ui/react-icons'
 import { createClient } from '@/lib/supabase/server'
-import { createClient } from '@/lib/supabase/server'
 import { formatDistanceToNow } from 'date-fns'
 import Link from 'next/link'
-import type { Tables } from '@/types/supabase'
+import type { Database } from '@/types/supabase/database'
+import { Badge } from '@/components/ui/badge'
 
-type EmployeeInfo = Pick<Tables['employees']['Row'], 'first_name' | 'last_name'>
-
-type TimeOffRequest = Tables['time_off_requests']['Row'] & {
-  employees: EmployeeInfo | null
+type Employee = Database['public']['Tables']['employees']['Row']
+type TimeOffRequest = Database['public']['Tables']['time_off_requests']['Row'] & {
+  employee: Employee
 }
-
-type OvertimeRequest = Tables['overtime_requests']['Row'] & {
-  employees: EmployeeInfo | null
+type ShiftSwapRequest = Database['public']['Tables']['shift_swap_requests']['Row'] & {
+  requesting_employee: Employee
+  receiving_employee: Employee
 }
-
-type ShiftSwapRequest = Tables['shift_swap_requests']['Row'] & {
-  employees: EmployeeInfo | null
-}
-
-type OnCallAssignment = Tables['on_call_assignments']['Row'] & {
-  employees: EmployeeInfo | null
+type SchedulingLog = Database['public']['Tables']['scheduling_logs']['Row'] & {
+  employee: Employee
 }
 
 // Metric Card Component
@@ -135,33 +129,33 @@ function QuickActions() {
 async function PendingRequests() {
   const supabase = createClient()
 
-  const [timeOffData, overtimeData, swapData] = await Promise.all([
-    supabase
-      .from('time_off_requests')
-      .select('*, employees(first_name, last_name)')
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false })
-      .limit(5)
-      .then(res => ({ data: res.data as TimeOffRequest[] | null })),
-    supabase
-      .from('overtime_requests')
-      .select('*, employees!overtime_requests_employee_id_fkey(first_name, last_name)')
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false })
-      .limit(5)
-      .then(res => ({ data: res.data as OvertimeRequest[] | null })),
-    supabase
-      .from('shift_swap_requests')
-      .select('*, employees!shift_swap_requests_requester_id_fkey(first_name, last_name)')
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false })
-      .limit(5)
-      .then(res => ({ data: res.data as ShiftSwapRequest[] | null })),
-  ])
+  const { data: timeOffRequests } = await supabase
+    .from('time_off_requests')
+    .select(`
+      *,
+      employee:employees(*)
+    `)
+    .order('created_at', { ascending: false })
+    .limit(5)
 
-  const timeOffRequests = timeOffData.data
-  const overtimeRequests = overtimeData.data
-  const swapRequests = swapData.data
+  const { data: shiftSwaps } = await supabase
+    .from('shift_swap_requests')
+    .select(`
+      *,
+      requesting_employee:employees!requesting_employee_id(*),
+      receiving_employee:employees!receiving_employee_id(*)
+    `)
+    .order('created_at', { ascending: false })
+    .limit(5)
+
+  const { data: scheduleChanges } = await supabase
+    .from('scheduling_logs')
+    .select(`
+      *,
+      employee:employees(*)
+    `)
+    .order('created_at', { ascending: false })
+    .limit(5)
 
   return (
     <Card>
@@ -199,47 +193,18 @@ async function PendingRequests() {
             </div>
           </div>
 
-          {/* Overtime Requests */}
-          <div>
-            <h3 className="text-lg font-semibold">Overtime</h3>
-            <div className="mt-2 space-y-2">
-              {overtimeRequests?.map((request) => (
-                <div
-                  key={request.id}
-                  className="flex items-center justify-between rounded-lg border p-3"
-                >
-                  <div>
-                    <p className="font-medium">
-                      {request.employees?.first_name} {request.employees?.last_name}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {formatDistanceToNow(new Date(request.created_at), {
-                        addSuffix: true,
-                      })}
-                    </p>
-                  </div>
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link href={`/overtime/${request.id}`}>
-                      <ArrowRightIcon className="h-4 w-4" />
-                    </Link>
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </div>
-
           {/* Shift Swap Requests */}
           <div>
             <h3 className="text-lg font-semibold">Shift Swaps</h3>
             <div className="mt-2 space-y-2">
-              {swapRequests?.map((request) => (
+              {shiftSwaps?.map((request) => (
                 <div
                   key={request.id}
                   className="flex items-center justify-between rounded-lg border p-3"
                 >
                   <div>
                     <p className="font-medium">
-                      {request.employees?.first_name} {request.employees?.last_name}
+                      {request.requesting_employee.first_name} → {request.receiving_employee.first_name}
                     </p>
                     <p className="text-sm text-muted-foreground">
                       {formatDistanceToNow(new Date(request.created_at), {
@@ -249,6 +214,35 @@ async function PendingRequests() {
                   </div>
                   <Button variant="ghost" size="sm" asChild>
                     <Link href={`/swaps/${request.id}`}>
+                      <ArrowRightIcon className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Schedule Changes */}
+          <div>
+            <h3 className="text-lg font-semibold">Schedule Changes</h3>
+            <div className="mt-2 space-y-2">
+              {scheduleChanges?.map((change) => (
+                <div
+                  key={change.id}
+                  className="flex items-center justify-between rounded-lg border p-3"
+                >
+                  <div>
+                    <p className="font-medium">
+                      {change.employee.first_name} {change.employee.last_name}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {formatDistanceToNow(new Date(change.created_at), {
+                        addSuffix: true,
+                      })}
+                    </p>
+                  </div>
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link href={`/schedule-changes/${change.id}`}>
                       <ArrowRightIcon className="h-4 w-4" />
                     </Link>
                   </Button>

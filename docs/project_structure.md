@@ -2,196 +2,246 @@
 
 ## Overview
 
-This document outlines the organization of the project's codebase.
+This document outlines the interactions between the frontend and backend of the project.
 
 ```mermaid  
 flowchart TD
-  %% Frontend (Next.js App)
-  subgraph FE[Frontend: Next.js Application]
-    A1["Authentication (app/(auth))"]
-    A2["Dashboard & Management (app/(dashboard))"]
-    A3["Scheduling UI (app/schedule)"]
-    A4["Shared UI & Feature Components (components/ui, components/shared, components/features)"]
+  %% Frontend Group
+  subgraph FE[Frontend Layer]
+    subgraph Pages[Server Pages]
+      P1["Authentication Pages\n(app/(auth))"]
+      P2["Dashboard Pages\n(app/(dashboard))"]
+      P3["Schedule Pages\n(app/schedule)"]
+      P4["Shift Options Page\n(app/(dashboard)/shift-options)"]
+    end
+
+    subgraph Components[Client Components]
+      C1["Auth Forms\n(components/auth)"]
+      C2["Data Tables\n(components/tables)"]
+      C3["Dialogs & Modals\n(components/dialogs)"]
+      C4["UI Components\n(components/ui)"]
+    end
+
+    subgraph Loading[Loading & Error States]
+      L1["Loading Skeletons\n(*/loading.tsx)"]
+      L2["Error Boundaries\n(*/error.tsx)"]
+      L3["Not Found\n(*/not-found.tsx)"]
+    end
+
+    subgraph RT[Real-time Updates]
+      RT1["Schedule Updates"]
+      RT2["Shift Changes"]
+      RT3["Time Off Updates"]
+    end
   end
 
-  %% Backend Server & API
-  subgraph BE[Backend: Server & API]
-    B1["API Routes (app/api)"]
-    B2["Server Actions & Middleware (app/actions, middleware.ts)"]
-    B3["Scheduling Module (lib/scheduling/generate.ts)"]
-    B4["Utility Functions (lib/utils, lib/supabase)"]
+  %% Middleware Layer
+  subgraph MW[Middleware]
+    M1["Auth Middleware\n(middleware.ts)"]
+    M2["Error Handler\n(error.ts)"]
+    M3["Real-time Handler\n(realtime.ts)"]
   end
 
-  %% Business Logic and Scheduling Rules
+  %% Backend Group
+  subgraph BE[Backend Layer]
+    subgraph Server[Server Components]
+      S1["Page Components\n(*/page.tsx)"]
+      S2["Layouts\n(*/layout.tsx)"]
+      S3["Server Actions\n(*/actions.ts)"]
+    end
+
+    subgraph API[API Routes]
+      A1["Schedule API\n(app/api/schedules)"]
+      A2["Shift Options API\n(app/api/shift-options)"]
+      A3["Employee API\n(app/api/employees)"]
+    end
+
+    subgraph Lib[Libraries]
+      LB1["Supabase Client\n(lib/supabase)"]
+      LB2["Schedule Generator\n(lib/schedule)"]
+      LB3["Utils & Helpers\n(lib/utils)"]
+    end
+  end
+
+  %% Business Logic Layer
   subgraph BL[Business Logic]
-    C1["Staffing Requirements"]
-    C2["Employee Shift Patterns<br/>(Pattern A: 4x10hr, Pattern B: 3x12hr + 1x4hr)"]
-    C3["Shift Options Matching<br/>(Early, Day, Swing, Graveyard)"]
-    C4["Scheduling Constraints<br/>(40 hrs/wk cap, Time Off, Consistency)"]
-    C5["Scheduling Priorities<br/>(Min Staffing, Supervisor Coverage, Fairness, Overtime)"]
+    subgraph Rules[Scheduling Rules]
+      SR1["Shift Patterns\n(4x10 or 3x12+4)"]
+      SR2["Time Constraints\n(40hr weekly cap)"]
+      SR3["Coverage Requirements\n(min staff per period)"]
+    end
+
+    subgraph Validation[Validation Logic]
+      V1["Pattern Validator"]
+      V2["Schedule Validator"]
+      V3["Time Off Validator"]
+    end
+
+    subgraph Generation[Schedule Generation]
+      G1["Pattern Matcher"]
+      G2["Coverage Optimizer"]
+      G3["Conflict Resolver"]
+    end
   end
 
-  %% Database (Supabase)
+  %% Database Group
   subgraph DB[Supabase Database]
-    D1["Employees Table"]
-    D2["Shift Options Table"]
-    D3["Schedule Periods Table"]
-    D4["Staffing Requirements Table<br/>(Time Blocks with min staff & supervisor flag)"]
-    D5["Shift Pattern Rules Table"]
-    D6["Time Off Requests Table"]
-    D7["Assigned Shifts (Individual Shifts) Table"]
-    D8["Shift Swap Requests Table"]
-    D9["Profiles Table"]
-    D10["Auth Logs Table"]
-    D11["System Settings Table"]
-    D12["Other Supporting Tables & Views"]
-    D13["DB Functions & Triggers<br/>(handle_new_user, set_updated_at, validate_session, etc.)"]
+    subgraph Auth[Authentication]
+      AU1["auth.users"]
+      AU2["auth.sessions"]
+    end
+
+    subgraph Data[Application Data]
+      D1["employees"]
+      D2["shift_options"]
+      D3["schedules"]
+      D4["assigned_shifts"]
+      D5["time_off_requests"]
+      D6["shift_pattern_rules"]
+      D7["staffing_requirements"]
+    end
+
+    subgraph Security[RLS Policies]
+      R1["Employee Access"]
+      R2["Manager Access"]
+      R3["Admin Access"]
+    end
   end
 
-  %% Testing and Integration
-  subgraph TEST[Testing & Integration]
-    T1["Unit Tests (__tests__/unit)"]
-    T2["Integration Tests (__tests__/integration)"]
-    T3["E2E Tests (__tests__/e2e)"]
+  %% Testing Group
+  subgraph TEST[Testing]
+    T1["Unit Tests\n(__tests__/unit)"]
+    T2["Integration Tests\n(__tests__/integration)"]
+    T3["E2E Tests\n(playwright)"]
   end
 
-  %% Connections between Frontend and Backend
-  A1 --> B1
-  A2 --> B2
-  A3 --> B3
-  A4 --- A1
-  A4 --- A2
-  A4 --- A3
+  %% Connections
+  %% Auth Flow
+  P1 --> M1
+  M1 --> S1
+  M1 --> AU1
 
-  %% Backend internal flow
-  B1 --> B2
-  B2 --> B3
-  B3 --> B4
-  B3 --> D1
-  B3 --> D2
-  B3 --> D3
-  B3 --> D4
-  B3 --> D5
-  B3 --> D6
-  B3 --> D7
-  B3 --> D11
+  %% Page Flow
+  P2 --> M1
+  P3 --> M1
+  P4 --> M1
 
-  %% Business Logic links
-  B3 --> C1
-  B3 --> C2
-  B3 --> C3
-  B3 --> C4
-  B3 --> C5
+  %% Server Actions
+  S1 --> LB1
+  S3 --> LB1
   
-  %% Database Functionality and Rules
-  D13 --- D1
-  D13 --- D9
-  D13 --- D10
+  %% Client to Server
+  C1 --> S3
+  C2 --> S3
+  C3 --> S3
 
-  %% Links between Business Logic and Database
-  C1 --- D4
-  C2 --- D5
-  C3 --- D2
-  C4 --- D6
-  C5 --- D4
+  %% Loading States
+  L1 -.-> Pages
+  L2 -.-> Pages
+  L3 -.-> Pages
 
-  %% Frontend -> Backend -> Database (End-to-End Flow)
-  A3 --> B3
-  B3 --> D7
+  %% Error Handling
+  M2 --> L2
+  S1 --> M2
+  S3 --> M2
 
-  %% Testing connections
-  T1 --- A1
-  T1 --- A2
-  T2 --- B1
-  T2 --- B3
-  T3 --- A3
+  %% Real-time Updates
+  RT1 --> M3
+  RT2 --> M3
+  RT3 --> M3
+  M3 --> LB1
 
-  %% Visual Styling Notes
-  classDef feStyle fill:#F0F8FF,stroke:#333,stroke-width:1px;
-  classDef beStyle fill:#FFFACD,stroke:#333,stroke-width:1px;
-  classDef dbStyle fill:#e6ffe6,stroke:#333,stroke-width:1px;
-  classDef blStyle fill:#ffe6ff,stroke:#333,stroke-width:1px;
-  classDef testStyle fill:#d3d3d3,stroke:#333,stroke-width:1px;
+  %% API Layer
+  A1 --> LB1
+  A2 --> LB1
+  A3 --> LB1
 
-  class FE feStyle;
-  class BE beStyle;
-  class DB dbStyle;
-  class BL blStyle;
-  class TEST testStyle;
+  %% Business Logic Flow
+  LB2 --> SR1
+  LB2 --> SR2
+  LB2 --> SR3
+  
+  SR1 --> V1
+  SR2 --> V2
+  SR3 --> V3
+  
+  V1 --> G1
+  V2 --> G2
+  V3 --> G3
+  
+  G1 --> D4
+  G2 --> D4
+  G3 --> D4
+
+  %% Database Access
+  LB1 --> Auth
+  LB1 --> Data
+
+  %% Security
+  Auth --> R1
+  Auth --> R2
+  Auth --> R3
+
+  R1 --> Data
+  R2 --> Data
+  R3 --> Data
+
+  %% Data Relationships
+  D1 --> D3
+  D2 --> D4
+  D3 --> D4
+  D5 --> D4
+  D6 --> D4
+  D7 --> D4
+
+  %% Testing
+  T1 --> LB3
+  T2 --> A1
+  T2 --> A2
+  T2 --> A3
+  T3 --> FE
+
+  %% Style
+  classDef error fill:#ff6b6b,stroke:#ff6b6b,color:white
+  classDef realtime fill:#4ecdc4,stroke:#4ecdc4,color:white
+  classDef auth fill:#45b7d1,stroke:#45b7d1,color:white
+  
+  class L2,M2 error
+  class RT1,RT2,RT3,M3 realtime
+  class M1,AU1,AU2 auth
 ```
 
-## Component Organization
+## Additional Scheduling Context
 
-### UI Components
-- Located in `components/ui/`
-- Base components from shadcn/ui
-- Consistent styling and behavior
-- Examples: Button, Input, Card
+To develop a comprehensive 24/7 schedule for a 911 dispatch center that meets specific staffing requirements, consider the following structured approach:
 
-### Feature Components
-- Located in `components/features/`
-- Specific to business features
-- Composed of UI components
-- Examples: Calendar, ShiftEditor, EmployeeSelector
+1. **Staffing Requirements:**
+   - **Morning (5:00 AM – 9:00 AM):** Minimum of 6 employees, including 1 shift supervisor.
+   - **Daytime (9:00 AM – 9:00 PM):** Minimum of 8 employees, including 1 shift supervisor.
+   - **Evening (9:00 PM – 1:00 AM):** Minimum of 7 employees, including 1 shift supervisor.
+   - **Night (1:00 AM – 5:00 AM):** Minimum of 6 employees, including 1 shift supervisor.
 
-### Shared Components
-- Located in `components/shared/`
-- Used across multiple features
-- Common layouts and error handling
-- Examples: DashboardLayout, ErrorBoundary
+2. **Employee Shift Patterns:**
+   - **Pattern A:** Four consecutive 10‑hour shifts.
+   - **Pattern B:** Three consecutive 12‑hour shifts plus one 4‑hour shift, scheduled consecutively.
 
-## Best Practices
+3. **Shift Options:**
+   - **Early Shift:** Options include 5:00 AM–9:00 AM (4‑hr), 5:00 AM–3:00 PM (10‑hr), 5:00 AM–5:00 PM (12‑hr)
+   - **Day Shift:** Options include 9:00 AM–1:00 PM (4‑hr), 9:00 AM–7:00 PM (10‑hr), 9:00 AM–9:00 PM (12‑hr)
+   - **Swing Shift:** Options include 1:00 PM–5:00 PM (4‑hr), 3:00 PM–1:00 AM (10‑hr), 3:00 PM–3:00 AM (12‑hr)
+   - **Graveyard Shift:** Options include 1:00 AM–5:00 AM (4‑hr), 7:00 PM–5:00 AM (10‑hr), 5:00 PM–5:00 AM (12‑hr)
 
-1. Component Structure
-   - Use named exports
-   - Include displayName
-   - Add proper TypeScript types
-   - Include JSDoc comments for complex props
+4. **Scheduling Constraints:**
+   - Employees must not exceed 40 hours per week without managerial approval.
+   - Schedules are planned in four‑month blocks with consistent weekly patterns.
+   - Time off requests must be integrated: approved requests are honored, and pending ones are accommodated when possible.
+   - Employees should generally work the same shift type on their scheduled days.
 
-2. File Organization
-   - Group related components
-   - Keep files focused and small
-   - Use index files for exports
+5. **Scheduling Priorities:**
+   - **Primary Objective:** Ensure minimum staffing levels for each time period.
+   - **Supervisor Coverage:** Guarantee at least one supervisor per period.
+   - **Employee Preferences:** Factor in default shift types and time off requests.
+   - **Pattern Adherence:** Schedule employees based on their assigned patterns.
+   - **Fairness & Optimization:** Distribute shifts equitably and minimize unfulfilled staffing requirements and overtime.
 
-3. Testing
-   - Co-locate test files
-   - Use proper test utilities
-   - Follow testing patterns
-
-4. Styling
-   - Use Tailwind CSS
-   - Follow class ordering
-   - Use cn utility for conditionals
-
-## Dependencies
-
-- Next.js 14 (App Router)
-- TypeScript
-- Supabase
-- shadcn/ui
-- Tailwind CSS
-- date-fns
-- React Query
-
-## Development Guidelines
-
-1. Component Creation
-   - Start with UI components
-   - Compose feature components
-   - Add proper types
-   - Include tests
-
-2. State Management
-   - Use React Query for server state
-   - Local state with useState/useReducer
-   - Context for shared state
-
-3. Data Fetching
-   - Server Components first
-   - React Query for client state
-   - Proper error handling
-
-4. Performance
-   - Lazy loading when needed
-   - Proper suspense boundaries
-   - Optimistic updates
+All these variables are handled by the scheduling module (`lib/scheduling/generate.ts`) and integrated into our database through an **Assigned Shifts Table** that tracks individual employee assignments per day. Note that the minimum counts and supervisor requirement flags are maintained in the **Staffing Requirements Table**.

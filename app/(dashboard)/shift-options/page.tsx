@@ -9,9 +9,6 @@ import { ShiftOptionsDataTable } from './data-table'
 import { ShiftOptionsTableSkeleton } from './loading'
 import { CreateShiftOptionButton } from './create-button'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
-import type { Database } from '@/types/supabase/database'
-
-type ShiftOption = Database['public']['Tables']['shift_options']['Row']
 
 async function getShiftOptions() {
   const supabase = createClient()
@@ -51,6 +48,9 @@ export default async function ShiftOptionsPage() {
       redirect('/unauthorized')
     }
 
+    // Fetch shift options data
+    const options = await getShiftOptions()
+
     return (
       <div className="space-y-6 p-6">
         <div className="flex items-center justify-between">
@@ -70,7 +70,7 @@ export default async function ShiftOptionsPage() {
           <CardContent>
             <ErrorBoundary>
               <Suspense fallback={<ShiftOptionsTableSkeleton />}>
-                <ShiftOptionsDataTable promise={getShiftOptions()} />
+                <ShiftOptionsDataTable options={options} />
               </Suspense>
             </ErrorBoundary>
           </CardContent>

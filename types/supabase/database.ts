@@ -7,594 +7,451 @@ export type Json =
   | Json[]
 
 export type Database = {
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          operationName?: string
+          query?: string
+          variables?: Json
+          extensions?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
-      auth_logs: {
+      assigned_shifts: {
         Row: {
-          details: Json | null
-          error_message: string | null
-          id: number
-          operation: string | null
-          timestamp: string | null
-          user_id: string | null
-        }
-        Insert: {
-          details?: Json | null
-          error_message?: string | null
-          id?: number
-          operation?: string | null
-          timestamp?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          details?: Json | null
-          error_message?: string | null
-          id?: number
-          operation?: string | null
-          timestamp?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
-      employees: {
-        Row: {
-          auth_id: string
-          consecutive_shifts_count: number | null
+          actual_hours_worked: number | null
           created_at: string
           created_by: string | null
-          email: string
-          first_name: string
-          id: string
-          last_name: string
-          last_shift_date: string | null
-          max_overtime_hours: number | null
-          preferred_shift_category:
-            | Database["public"]["Enums"]["shift_category"]
-            | null
-          role: Database["public"]["Enums"]["employee_role"]
-          shift_pattern: Database["public"]["Enums"]["shift_pattern"]
-          total_hours_current_week: number | null
-          updated_at: string
-          weekly_hours: number
-          weekly_hours_cap: number
-        }
-        Insert: {
-          auth_id: string
-          consecutive_shifts_count?: number | null
-          created_at?: string
-          created_by?: string | null
-          email: string
-          first_name: string
-          id?: string
-          last_name: string
-          last_shift_date?: string | null
-          max_overtime_hours?: number | null
-          preferred_shift_category?:
-            | Database["public"]["Enums"]["shift_category"]
-            | null
-          role: Database["public"]["Enums"]["employee_role"]
-          shift_pattern: Database["public"]["Enums"]["shift_pattern"]
-          total_hours_current_week?: number | null
-          updated_at?: string
-          weekly_hours?: number
-          weekly_hours_cap?: number
-        }
-        Update: {
-          auth_id?: string
-          consecutive_shifts_count?: number | null
-          created_at?: string
-          created_by?: string | null
-          email?: string
-          first_name?: string
-          id?: string
-          last_name?: string
-          last_shift_date?: string | null
-          max_overtime_hours?: number | null
-          preferred_shift_category?:
-            | Database["public"]["Enums"]["shift_category"]
-            | null
-          role?: Database["public"]["Enums"]["employee_role"]
-          shift_pattern?: Database["public"]["Enums"]["shift_pattern"]
-          total_hours_current_week?: number | null
-          updated_at?: string
-          weekly_hours?: number
-          weekly_hours_cap?: number
-        }
-        Relationships: []
-      }
-      individual_shifts: {
-        Row: {
-          actual_end_time: string | null
-          actual_hours_worked: number | null
-          actual_start_time: string | null
-          break_duration_minutes: number | null
-          break_end_time: string | null
-          break_start_time: string | null
-          created_at: string
           date: string
-          employee_id: string
-          fatigue_level: number | null
+          employee_id: string | null
           id: string
-          is_overtime: boolean
-          is_regular_schedule: boolean
           notes: string | null
-          schedule_conflict_notes: string | null
+          overtime_approved: boolean | null
+          overtime_approved_at: string | null
+          overtime_approved_by: string | null
           schedule_period_id: string | null
-          shift_option_id: string
-          shift_score: number | null
+          shift_option_id: string | null
           status: Database["public"]["Enums"]["shift_status"]
-          supervisor_approved_at: string | null
-          supervisor_approved_by: string | null
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
-          actual_end_time?: string | null
           actual_hours_worked?: number | null
-          actual_start_time?: string | null
-          break_duration_minutes?: number | null
-          break_end_time?: string | null
-          break_start_time?: string | null
           created_at?: string
+          created_by?: string | null
           date: string
-          employee_id: string
-          fatigue_level?: number | null
+          employee_id?: string | null
           id?: string
-          is_overtime?: boolean
-          is_regular_schedule?: boolean
           notes?: string | null
-          schedule_conflict_notes?: string | null
+          overtime_approved?: boolean | null
+          overtime_approved_at?: string | null
+          overtime_approved_by?: string | null
           schedule_period_id?: string | null
-          shift_option_id: string
-          shift_score?: number | null
+          shift_option_id?: string | null
           status?: Database["public"]["Enums"]["shift_status"]
-          supervisor_approved_at?: string | null
-          supervisor_approved_by?: string | null
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
-          actual_end_time?: string | null
           actual_hours_worked?: number | null
-          actual_start_time?: string | null
-          break_duration_minutes?: number | null
-          break_end_time?: string | null
-          break_start_time?: string | null
           created_at?: string
+          created_by?: string | null
           date?: string
-          employee_id?: string
-          fatigue_level?: number | null
+          employee_id?: string | null
           id?: string
-          is_overtime?: boolean
-          is_regular_schedule?: boolean
           notes?: string | null
-          schedule_conflict_notes?: string | null
+          overtime_approved?: boolean | null
+          overtime_approved_at?: string | null
+          overtime_approved_by?: string | null
           schedule_period_id?: string | null
-          shift_option_id?: string
-          shift_score?: number | null
+          shift_option_id?: string | null
           status?: Database["public"]["Enums"]["shift_status"]
-          supervisor_approved_at?: string | null
-          supervisor_approved_by?: string | null
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "individual_shifts_employee_id_fkey"
+            foreignKeyName: "assigned_shifts_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "individual_shifts_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "mv_schedule_statistics"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "individual_shifts_schedule_period_id_fkey"
-            columns: ["schedule_period_id"]
-            isOneToOne: false
-            referencedRelation: "schedule_periods"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "individual_shifts_shift_option_id_fkey"
+            foreignKeyName: "assigned_shifts_shift_option_id_fkey"
             columns: ["shift_option_id"]
             isOneToOne: false
             referencedRelation: "shift_options"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      employees: {
+        Row: {
+          auth_id: string | null
+          created_at: string | null
+          created_by: string | null
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          max_overtime_hours: number | null
+          preferred_shift_category: Database["public"]["Enums"]["shift_category"]
+          role: Database["public"]["Enums"]["employee_role"]
+          shift_pattern: Database["public"]["Enums"]["shift_pattern"]
+          team_id: string | null
+          updated_at: string | null
+          updated_by: string | null
+          weekly_hours_cap: number | null
+        }
+        Insert: {
+          auth_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          email: string
+          first_name: string
+          id?: string
+          last_name: string
+          max_overtime_hours?: number | null
+          preferred_shift_category: Database["public"]["Enums"]["shift_category"]
+          role: Database["public"]["Enums"]["employee_role"]
+          shift_pattern: Database["public"]["Enums"]["shift_pattern"]
+          team_id?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          weekly_hours_cap?: number | null
+        }
+        Update: {
+          auth_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          email?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          max_overtime_hours?: number | null
+          preferred_shift_category?: Database["public"]["Enums"]["shift_category"]
+          role?: Database["public"]["Enums"]["employee_role"]
+          shift_pattern?: Database["public"]["Enums"]["shift_pattern"]
+          team_id?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          weekly_hours_cap?: number | null
+        }
+        Relationships: []
+      }
+      holidays: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          date: string
+          id: string
+          name: string
+          type: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          date: string
+          id?: string
+          name: string
+          type: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          id?: string
+          name?: string
+          type?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      on_call_activations: {
+        Row: {
+          activation_time: string
+          assignment_id: string | null
+          created_at: string | null
+          deactivation_time: string | null
+          id: string
+          notes: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          activation_time: string
+          assignment_id?: string | null
+          created_at?: string | null
+          deactivation_time?: string | null
+          id?: string
+          notes?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          activation_time?: string
+          assignment_id?: string | null
+          created_at?: string | null
+          deactivation_time?: string | null
+          id?: string
+          notes?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
           {
-            foreignKeyName: "individual_shifts_supervisor_approved_by_fkey"
-            columns: ["supervisor_approved_by"]
+            foreignKeyName: "on_call_activations_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "on_call_assignments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      on_call_assignments: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          employee_id: string
+          end_datetime: string
+          id: string
+          schedule_period_id: string
+          start_datetime: string
+          status: Database["public"]["Enums"]["on_call_status"]
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          employee_id: string
+          end_datetime: string
+          id?: string
+          schedule_period_id: string
+          start_datetime: string
+          status?: Database["public"]["Enums"]["on_call_status"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          employee_id?: string
+          end_datetime?: string
+          id?: string
+          schedule_period_id?: string
+          start_datetime?: string
+          status?: Database["public"]["Enums"]["on_call_status"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "on_call_assignments_employee_id_fkey"
+            columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "individual_shifts_supervisor_approved_by_fkey"
-            columns: ["supervisor_approved_by"]
-            isOneToOne: false
-            referencedRelation: "mv_schedule_statistics"
-            referencedColumns: ["employee_id"]
-          },
         ]
-      }
-      profiles: {
-        Row: {
-          created_at: string | null
-          email: string
-          id: string
-          is_email_verified: boolean | null
-          role: string
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          email: string
-          id: string
-          is_email_verified?: boolean | null
-          role: string
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          email?: string
-          id?: string
-          is_email_verified?: boolean | null
-          role?: string
-          updated_at?: string | null
-        }
-        Relationships: []
       }
       schedule_periods: {
         Row: {
           created_at: string | null
-          description: string | null
+          created_by: string | null
           end_date: string
           id: string
-          is_active: boolean | null
+          is_published: boolean | null
           start_date: string
           updated_at: string | null
+          updated_by: string | null
         }
         Insert: {
           created_at?: string | null
-          description?: string | null
+          created_by?: string | null
           end_date: string
           id?: string
-          is_active?: boolean | null
+          is_published?: boolean | null
           start_date: string
           updated_at?: string | null
+          updated_by?: string | null
         }
         Update: {
           created_at?: string | null
-          description?: string | null
+          created_by?: string | null
           end_date?: string
           id?: string
-          is_active?: boolean | null
+          is_published?: boolean | null
           start_date?: string
           updated_at?: string | null
+          updated_by?: string | null
         }
         Relationships: []
       }
-      schedules: {
-        Row: {
-          created_at: string
-          created_by: string
-          employee_id: string
-          end_date: string
-          id: string
-          is_supervisor: boolean
-          shift_pattern: Database["public"]["Enums"]["shift_pattern"]
-          shift_type: string
-          start_date: string
-          status: string
-          updated_at: string
-          updated_by: string
-        }
-        Insert: {
-          created_at?: string
-          created_by: string
-          employee_id: string
-          end_date: string
-          id?: string
-          is_supervisor?: boolean
-          shift_pattern: Database["public"]["Enums"]["shift_pattern"]
-          shift_type: string
-          start_date: string
-          status?: string
-          updated_at?: string
-          updated_by: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string
-          employee_id?: string
-          end_date?: string
-          id?: string
-          is_supervisor?: boolean
-          shift_pattern?: Database["public"]["Enums"]["shift_pattern"]
-          shift_type?: string
-          start_date?: string
-          status?: string
-          updated_at?: string
-          updated_by?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "schedules_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["auth_id"]
-          },
-        ]
-      }
-      scheduling_logs: {
+      shift_options: {
         Row: {
           created_at: string | null
           created_by: string | null
+          duration_hours: number
+          end_time: string
           id: string
-          log_message: string
-          related_employee_id: string | null
-          schedule_period_id: string | null
-          severity: Database["public"]["Enums"]["log_severity"]
-          timestamp: string | null
+          is_default: boolean | null
+          name: string
+          start_time: string
+          updated_at: string | null
+          updated_by: string | null
         }
         Insert: {
           created_at?: string | null
           created_by?: string | null
+          duration_hours: number
+          end_time: string
           id?: string
-          log_message: string
-          related_employee_id?: string | null
-          schedule_period_id?: string | null
-          severity: Database["public"]["Enums"]["log_severity"]
-          timestamp?: string | null
+          is_default?: boolean | null
+          name: string
+          start_time: string
+          updated_at?: string | null
+          updated_by?: string | null
         }
         Update: {
           created_at?: string | null
           created_by?: string | null
-          id?: string
-          log_message?: string
-          related_employee_id?: string | null
-          schedule_period_id?: string | null
-          severity?: Database["public"]["Enums"]["log_severity"]
-          timestamp?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "scheduling_logs_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "scheduling_logs_related_employee_id_fkey"
-            columns: ["related_employee_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "scheduling_logs_related_employee_id_fkey"
-            columns: ["related_employee_id"]
-            isOneToOne: false
-            referencedRelation: "mv_schedule_statistics"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "scheduling_logs_schedule_period_id_fkey"
-            columns: ["schedule_period_id"]
-            isOneToOne: false
-            referencedRelation: "schedule_periods"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      shift_assignment_scores: {
-        Row: {
-          created_at: string | null
-          employee_id: string
-          fairness_score: number
-          fatigue_score: number
-          id: string
-          preference_score: number
-          schedule_period_id: string
-          shift_id: string
-          total_score: number
-        }
-        Insert: {
-          created_at?: string | null
-          employee_id: string
-          fairness_score: number
-          fatigue_score: number
-          id?: string
-          preference_score: number
-          schedule_period_id: string
-          shift_id: string
-          total_score: number
-        }
-        Update: {
-          created_at?: string | null
-          employee_id?: string
-          fairness_score?: number
-          fatigue_score?: number
-          id?: string
-          preference_score?: number
-          schedule_period_id?: string
-          shift_id?: string
-          total_score?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "shift_assignment_scores_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "shift_assignment_scores_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "mv_schedule_statistics"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "shift_assignment_scores_schedule_period_id_fkey"
-            columns: ["schedule_period_id"]
-            isOneToOne: false
-            referencedRelation: "schedule_periods"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "shift_assignment_scores_shift_id_fkey"
-            columns: ["shift_id"]
-            isOneToOne: false
-            referencedRelation: "individual_shifts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      shift_options: {
-        Row: {
-          category: Database["public"]["Enums"]["shift_category"]
-          created_at: string
-          duration_hours: number
-          end_time: string
-          id: string
-          name: string
-          start_time: string
-          updated_at: string
-        }
-        Insert: {
-          category: Database["public"]["Enums"]["shift_category"]
-          created_at?: string
-          duration_hours: number
-          end_time: string
-          id?: string
-          name: string
-          start_time: string
-          updated_at?: string
-        }
-        Update: {
-          category?: Database["public"]["Enums"]["shift_category"]
-          created_at?: string
           duration_hours?: number
           end_time?: string
           id?: string
+          is_default?: boolean | null
           name?: string
           start_time?: string
-          updated_at?: string
+          updated_at?: string | null
+          updated_by?: string | null
         }
         Relationships: []
       }
       shift_pattern_rules: {
         Row: {
-          consecutive_shifts: number
           created_at: string
+          employee_id: string
+          end_date: string | null
           id: string
-          min_rest_hours: number
+          is_default: boolean
           pattern: Database["public"]["Enums"]["shift_pattern"]
-          shift_durations: number[]
+          start_date: string
           updated_at: string
         }
         Insert: {
-          consecutive_shifts: number
           created_at?: string
+          employee_id: string
+          end_date?: string | null
           id?: string
-          min_rest_hours?: number
+          is_default?: boolean
           pattern: Database["public"]["Enums"]["shift_pattern"]
-          shift_durations: number[]
+          start_date: string
           updated_at?: string
         }
         Update: {
-          consecutive_shifts?: number
           created_at?: string
+          employee_id?: string
+          end_date?: string | null
           id?: string
-          min_rest_hours?: number
+          is_default?: boolean
           pattern?: Database["public"]["Enums"]["shift_pattern"]
-          shift_durations?: number[]
+          start_date?: string
           updated_at?: string
-        }
-        Relationships: []
-      }
-      shift_swap_requests: {
-        Row: {
-          created_at: string | null
-          id: string
-          notes: string | null
-          proposed_shift_id: string | null
-          requested_employee_id: string
-          requester_id: string
-          shift_id: string
-          status: Database["public"]["Enums"]["time_off_status"]
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          notes?: string | null
-          proposed_shift_id?: string | null
-          requested_employee_id: string
-          requester_id: string
-          shift_id: string
-          status?: Database["public"]["Enums"]["time_off_status"]
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          notes?: string | null
-          proposed_shift_id?: string | null
-          requested_employee_id?: string
-          requester_id?: string
-          shift_id?: string
-          status?: Database["public"]["Enums"]["time_off_status"]
-          updated_at?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "shift_swap_requests_proposed_shift_id_fkey"
-            columns: ["proposed_shift_id"]
+            foreignKeyName: "shift_pattern_rules_employee_id_fkey"
+            columns: ["employee_id"]
             isOneToOne: false
-            referencedRelation: "individual_shifts"
+            referencedRelation: "employees"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      shift_swap_requests: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          receiving_employee_id: string
+          receiving_shift_id: string | null
+          requesting_employee_id: string
+          requesting_shift_id: string
+          status: Database["public"]["Enums"]["swap_request_status"]
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          receiving_employee_id: string
+          receiving_shift_id?: string | null
+          requesting_employee_id: string
+          requesting_shift_id: string
+          status?: Database["public"]["Enums"]["swap_request_status"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          receiving_employee_id?: string
+          receiving_shift_id?: string | null
+          requesting_employee_id?: string
+          requesting_shift_id?: string
+          status?: Database["public"]["Enums"]["swap_request_status"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
           {
-            foreignKeyName: "shift_swap_requests_requested_employee_id_fkey"
-            columns: ["requested_employee_id"]
+            foreignKeyName: "shift_swap_requests_receiving_employee_id_fkey"
+            columns: ["receiving_employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "shift_swap_requests_requested_employee_id_fkey"
-            columns: ["requested_employee_id"]
+            foreignKeyName: "shift_swap_requests_receiving_shift_id_fkey"
+            columns: ["receiving_shift_id"]
             isOneToOne: false
-            referencedRelation: "mv_schedule_statistics"
-            referencedColumns: ["employee_id"]
+            referencedRelation: "assigned_shifts"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "shift_swap_requests_requester_id_fkey"
-            columns: ["requester_id"]
+            foreignKeyName: "shift_swap_requests_requesting_employee_id_fkey"
+            columns: ["requesting_employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "shift_swap_requests_requester_id_fkey"
-            columns: ["requester_id"]
+            foreignKeyName: "shift_swap_requests_requesting_shift_id_fkey"
+            columns: ["requesting_shift_id"]
             isOneToOne: false
-            referencedRelation: "mv_schedule_statistics"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "shift_swap_requests_shift_id_fkey"
-            columns: ["shift_id"]
-            isOneToOne: false
-            referencedRelation: "individual_shifts"
+            referencedRelation: "assigned_shifts"
             referencedColumns: ["id"]
           },
         ]
@@ -602,108 +459,78 @@ export type Database = {
       staffing_requirements: {
         Row: {
           created_at: string
+          created_by: string | null
+          day_of_week: string | null
           id: string
-          is_holiday: boolean | null
-          min_supervisors: number
-          min_total_staff: number
-          name: string
-          override_reason: string | null
+          min_employees: number
           schedule_period_id: string | null
           time_block_end: string
           time_block_start: string
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           created_at?: string
+          created_by?: string | null
+          day_of_week?: string | null
           id?: string
-          is_holiday?: boolean | null
-          min_supervisors?: number
-          min_total_staff: number
-          name: string
-          override_reason?: string | null
+          min_employees: number
           schedule_period_id?: string | null
           time_block_end: string
           time_block_start: string
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           created_at?: string
+          created_by?: string | null
+          day_of_week?: string | null
           id?: string
-          is_holiday?: boolean | null
-          min_supervisors?: number
-          min_total_staff?: number
-          name?: string
-          override_reason?: string | null
+          min_employees?: number
           schedule_period_id?: string | null
           time_block_end?: string
           time_block_start?: string
           updated_at?: string
-        }
-        Relationships: []
-      }
-      system_settings: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          id: string
-          is_encrypted: boolean | null
-          setting_key: string
-          setting_value: string
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          is_encrypted?: boolean | null
-          setting_key: string
-          setting_value: string
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          is_encrypted?: boolean | null
-          setting_key?: string
-          setting_value?: string
-          updated_at?: string | null
+          updated_by?: string | null
         }
         Relationships: []
       }
       time_off_requests: {
         Row: {
           created_at: string
+          created_by: string | null
           employee_id: string
           end_date: string
           id: string
-          notes: string | null
-          reason: string
+          reason: string | null
           start_date: string
           status: Database["public"]["Enums"]["time_off_status"]
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           created_at?: string
+          created_by?: string | null
           employee_id: string
           end_date: string
           id?: string
-          notes?: string | null
-          reason: string
+          reason?: string | null
           start_date: string
           status?: Database["public"]["Enums"]["time_off_status"]
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           created_at?: string
+          created_by?: string | null
           employee_id?: string
           end_date?: string
           id?: string
-          notes?: string | null
-          reason?: string
+          reason?: string | null
           start_date?: string
           status?: Database["public"]["Enums"]["time_off_status"]
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -713,51 +540,381 @@ export type Database = {
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "time_off_requests_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "mv_schedule_statistics"
-            referencedColumns: ["employee_id"]
-          },
         ]
       }
     }
     Views: {
-      mv_schedule_statistics: {
-        Row: {
-          avg_hours_per_shift: number | null
-          avg_score: number | null
-          employee_id: string | null
-          first_name: string | null
-          last_name: string | null
-          periods_worked: number | null
-          role: Database["public"]["Enums"]["employee_role"] | null
-          total_hours: number | null
-          total_shifts: number | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
-      validate_session: {
+      gbt_bit_compress: {
         Args: {
-          session_token: string
+          "": unknown
         }
+        Returns: unknown
+      }
+      gbt_bool_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_bool_fetch: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_bpchar_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_bytea_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_cash_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_cash_fetch: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_date_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_date_fetch: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_decompress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_enum_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_enum_fetch: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_float4_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_float4_fetch: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_float8_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_float8_fetch: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_inet_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_int2_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_int2_fetch: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_int4_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_int4_fetch: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_int8_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_int8_fetch: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_intv_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_intv_decompress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_intv_fetch: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_macad_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_macad_fetch: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_macad8_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_macad8_fetch: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_numeric_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_oid_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_oid_fetch: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_text_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_time_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_time_fetch: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_timetz_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_ts_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_ts_fetch: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_tstz_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_uuid_compress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_uuid_fetch: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_var_decompress: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbt_var_fetch: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbtreekey_var_in: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbtreekey_var_out: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbtreekey16_in: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbtreekey16_out: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbtreekey2_in: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbtreekey2_out: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbtreekey32_in: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbtreekey32_out: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbtreekey4_in: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbtreekey4_out: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbtreekey8_in: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      gbtreekey8_out: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      get_auth_users: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          email: string
+          created_at: string
+        }[]
+      }
+      get_team_members: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          employee_id: string
+        }[]
+      }
+      is_manager: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_supervisor_or_above: {
+        Args: Record<PropertyKey, never>
         Returns: boolean
       }
     }
     Enums: {
       employee_role: "dispatcher" | "supervisor" | "manager"
-      log_severity: "info" | "warning" | "error"
-      shift_category: "early" | "day" | "swing" | "graveyard"
-      shift_pattern: "pattern_a" | "pattern_b" | "custom"
-      shift_status:
-        | "scheduled"
-        | "in_progress"
-        | "completed"
-        | "missed"
-        | "cancelled"
+      holiday_type: "FEDERAL" | "COMPANY" | "OTHER"
+      on_call_status: "scheduled" | "active" | "completed" | "cancelled"
+      schedule_status: "draft" | "published" | "archived"
+      shift_category: "DAY" | "SWING" | "NIGHT"
+      shift_pattern: "4_10" | "3_12_4"
+      shift_status: "scheduled" | "completed" | "cancelled"
+      swap_request_status: "pending" | "approved" | "rejected" | "cancelled"
       time_off_status: "pending" | "approved" | "rejected"
     }
     CompositeTypes: {
@@ -862,3 +1019,4 @@ export type CompositeTypes<
   : PublicCompositeTypeNameOrOptions extends keyof PublicSchema["CompositeTypes"]
     ? PublicSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
+

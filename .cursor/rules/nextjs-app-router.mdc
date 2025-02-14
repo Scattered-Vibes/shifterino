@@ -1,0 +1,21 @@
+---
+description: Next.js 14 App Router & File-Based Routing Guidelines
+globs: app/**/*.tsx , app/**/*.ts
+---
+# Next.js App Router Guidelines
+
+- **Server Components by Default**  
+  • Leverage server components unless client interactivity is required.
+
+- **File Structure & Routing**  
+  • Use route groups (e.g. `(auth)`, `(dashboard)`) for logical grouping without affecting URL paths.  
+  • Define a root layout (e.g. `layout.tsx`) for shared UI and metadata.  
+  • Create `loading.tsx` and `error.tsx` files for managing loading states and error handling.
+
+- **Metadata & Server Actions**  
+  • Define metadata for SEO in `layout.tsx` (use Next.js’s Metadata object).  
+  • Use server actions (in files like `actions.ts`) for form submissions and backend interactions.
+
+- **Best Practices**  
+  • Maintain kebab-case for file names.  
+  • Co-locate tests with components for better maintainability.

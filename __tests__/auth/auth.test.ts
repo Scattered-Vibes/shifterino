@@ -1,5 +1,7 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { getUser, requireAuth } from '@/lib/auth/server'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { createClient } from '@/lib/supabase/server'
+import { getUser } from '@/lib/supabase/server'
+import { mockSupabaseClient } from '../helpers/supabase-mock'
 import { redirect } from 'next/navigation'
 import { User, AuthError, UserResponse } from '@supabase/supabase-js'
 import type { Database } from '@/types/supabase/database'
@@ -18,30 +20,144 @@ vi.mock('next/navigation', () => ({
   redirect: vi.fn(),
 }))
 
-vi.mock('@/lib/supabase/server', () => {
-  const mockFrom = vi.fn()
-  const mockSelect = vi.fn()
-  const mockEq = vi.fn()
-  const mockSingle = vi.fn()
-
-  mockFrom.mockReturnValue({ select: mockSelect })
-  mockSelect.mockReturnValue({ eq: mockEq })
-  mockEq.mockReturnValue({ single: mockSingle })
-
-  return {
-    createClient: () => ({
-      auth: {
-        getUser: vi.fn(),
-      },
-      from: mockFrom,
-    }),
-  }
-})
+vi.mock('@/lib/supabase/server', () => ({
+  createClient: vi.fn(() => mockSupabaseClient),
+  getUser: vi.fn(),
+}))
 
 vi.mock('@/lib/auth/server', () => ({
   getUser: vi.fn(),
   requireAuth: vi.fn(),
 }))
+
+describe('Authentication', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  afterEach(() => {
+    vi.resetAllMocks()
+  })
+
+  describe('Session Management', () => {
+    it('should return null when no session exists', async () => {
+      mockSupabaseClient.auth.getSession.mockResolvedValueOnce({ 
+        data: { session: null }, 
+        error: null 
+      })
+      
+      const user = await getUser()
+      expect(user).toBeNull()
+    })
+
+    it('should return user data when session exists', async () => {
+      const mockUser = {
+        id: '123',
+        email: 'test@example.com',
+        role: 'dispatcher'
+      }
+
+      mockSupabaseClient.auth.getSession.mockResolvedValueOnce({
+        data: { 
+          session: { 
+            user: mockUser,
+            access_token: 'mock-token',
+            refresh_token: 'mock-refresh-token',
+            expires_at: Date.now() + 3600
+          }
+        },
+        error: null
+      })
+
+      const user = await getUser()
+      expect(user).toEqual(mockUser)
+    })
+
+    it('should handle auth errors gracefully', async () => {
+      mockSupabaseClient.auth.getSession.mockResolvedValueOnce({
+        data: { session: null },
+        error: new Error('Auth error')
+      })
+
+      const user = await getUser()
+      expect(user).toBeNull()
+    })
+  })
+
+  describe('Role-Based Access', () => {
+    it('should identify dispatcher role', async () => {
+      const mockUser = {
+        id: '123',
+        email: 'dispatcher@example.com',
+        role: 'dispatcher'
+      }
+
+      mockSupabaseClient.from('employees').select('role')
+        .eq('auth_id', mockUser.id)
+        .single()
+        .mockResolvedValueOnce({
+          data: { role: 'dispatcher' },
+          error: null
+        })
+
+      const { data } = await mockSupabaseClient
+        .from('employees')
+        .select('role')
+        .eq('auth_id', mockUser.id)
+        .single()
+
+      expect(data?.role).toBe('dispatcher')
+    })
+
+    it('should identify supervisor role', async () => {
+      const mockUser = {
+        id: '456',
+        email: 'supervisor@example.com',
+        role: 'supervisor'
+      }
+
+      mockSupabaseClient.from('employees').select('role')
+        .eq('auth_id', mockUser.id)
+        .single()
+        .mockResolvedValueOnce({
+          data: { role: 'supervisor' },
+          error: null
+        })
+
+      const { data } = await mockSupabaseClient
+        .from('employees')
+        .select('role')
+        .eq('auth_id', mockUser.id)
+        .single()
+
+      expect(data?.role).toBe('supervisor')
+    })
+
+    it('should handle database errors when checking roles', async () => {
+      const mockUser = {
+        id: '789',
+        email: 'error@example.com',
+        role: 'dispatcher'
+      }
+
+      mockSupabaseClient.from('employees').select('role')
+        .eq('auth_id', mockUser.id)
+        .single()
+        .mockResolvedValueOnce({
+          data: null,
+          error: new Error('Database error')
+        })
+
+      const { error } = await mockSupabaseClient
+        .from('employees')
+        .select('role')
+        .eq('auth_id', mockUser.id)
+        .single()
+
+      expect(error).toBeTruthy()
+    })
+  })
+})
 
 describe('Auth Utilities', () => {
   beforeEach(async () => {

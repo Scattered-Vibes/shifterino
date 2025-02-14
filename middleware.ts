@@ -12,81 +12,127 @@ const PUBLIC_ROUTES = [
   '/api/auth/signup',
   '/api/auth/reset-password',
   '/api/auth/callback',
+  '/api/public',
+  '/api/test-auth',
+  '/api/auth-debug',
+  '/favicon.ico',
+  '/assets',
 ]
 
-const MANAGER_ROUTES = [
-  '/manage/employees',
-  '/manage/settings',
-  '/manage/requirements', 
-  '/api/admin',
-]
+const MANAGER_ROUTES = ['/admin', '/manage']
 
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  })
 
-  if (PUBLIC_ROUTES.some(route => pathname.startsWith(route))) {
-    return NextResponse.next()
-  }
+  try {
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return request.cookies.get(name)?.value
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            try {
+              request.cookies.set({
+                name,
+                value,
+                ...options,
+              })
+              response = NextResponse.next({
+                request: {
+                  headers: request.headers,
+                },
+              })
+              response.cookies.set({
+                name,
+                value,
+                ...options,
+              })
+            } catch (error) {
+              console.error('Error setting cookie:', error)
+            }
+          },
+          remove(name: string, _options: CookieOptions) {
+            try {
+              request.cookies.delete(name)
+              response = NextResponse.next({
+                request: {
+                  headers: request.headers,
+                },
+              })
+              response.cookies.delete(name)
+            } catch (error) {
+              console.error('Error removing cookie:', error)
+            }
+          },
+        },
+      }
+    )
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          request.cookies.set({
-            name,
-            value,
-            ...options,
-          })
-        },
-        remove(name: string, options: CookieOptions) {
-          request.cookies.set({
-            name,
-            value: '',
-            ...options,
-          })
-        },
-      },
+    const { pathname } = request.nextUrl
+    const isPublicRoute = PUBLIC_ROUTES.some(route => 
+      pathname.startsWith(route) || pathname === route
+    )
+
+    // Early return for public routes
+    if (isPublicRoute) {
+      return response
     }
-  )
 
-  const {
-    data: { user },
-    error: userError
-  } = await supabase.auth.getUser()
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
-  if (userError || !user) {
-    return NextResponse.redirect(new URL('/login', request.url))
+    if (sessionError) {
+      console.error('Session error:', sessionError)
+      await supabase.auth.signOut()
+      
+      const redirectUrl = new URL('/login', request.url)
+      redirectUrl.searchParams.set('redirectTo', pathname)
+      return NextResponse.redirect(redirectUrl)
+    }
+
+    // Handle authentication based routes
+    if (!session) {
+      const redirectUrl = new URL('/login', request.url)
+      redirectUrl.searchParams.set('redirectTo', pathname)
+      return NextResponse.redirect(redirectUrl)
+    }
+
+    // Check manager routes
+    if (MANAGER_ROUTES.some(route => pathname.startsWith(route))) {
+      const { data: profile } = await supabase
+        .from('employees')
+        .select('role')
+        .eq('auth_id', session.user.id)
+        .single()
+
+      if (!profile || profile.role !== 'manager') {
+        return NextResponse.redirect(new URL('/unauthorized', request.url))
+      }
+    }
+
+    // Add auth context headers
+    const requestHeaders = new Headers(request.headers)
+    requestHeaders.set('x-user-id', session.user.id)
+
+    return NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    })
+  } catch (error) {
+    console.error('Middleware error:', error)
+    return response
   }
-
-  const { data: profile, error: profileError } = await supabase
-    .from('employees')
-    .select('role')
-    .eq('auth_id', user.id)
-    .single()
-
-  if (profileError) {
-    console.error('Error fetching user profile:', profileError)
-    return NextResponse.redirect(new URL('/login', request.url))
-  }
-
-  if (!profile) {
-    return NextResponse.redirect(new URL('/login', request.url))
-  }
-
-  if (MANAGER_ROUTES.some(route => pathname.startsWith(route)) && profile.role !== 'manager') {
-    return NextResponse.redirect(new URL('/overview', request.url))
-  }
-
-  return NextResponse.next()
 }
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

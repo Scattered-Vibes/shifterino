@@ -3,26 +3,16 @@
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ui/use-toast'
-import { signOut } from '../actions'
-import { getUserFriendlyMessage } from '@/lib/utils/error-handler'
+import { useAuth } from '@/app/hooks/use-auth'
 
 export function SignOutButton() {
   const router = useRouter()
   const { toast } = useToast()
+  const { signOut } = useAuth()
 
   const handleSignOut = async () => {
     try {
-      const result = await signOut()
-      
-      if (result?.error) {
-        toast({
-          title: 'Error signing out',
-          description: result.code ? getUserFriendlyMessage({ message: result.error, code: result.code }) : result.error,
-          variant: 'destructive',
-        })
-        return
-      }
-      
+      await signOut()
       router.push('/login')
       router.refresh()
     } catch {

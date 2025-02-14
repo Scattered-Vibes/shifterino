@@ -1,0 +1,1 @@
+-- This migration intentionally left blank. It reverts the erroneous 20240317000008_enable_rls_shifts.sql migration.

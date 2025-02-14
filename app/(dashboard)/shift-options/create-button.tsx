@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
-import { differenceInHours, parse } from 'date-fns'
 import * as z from 'zod'
 import { Button } from '@/components/ui/button'
 import {
@@ -33,8 +32,8 @@ import {
 } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/components/ui/use-toast'
-import { createClient } from '@/lib/supabase/server'
 import { PlusIcon } from '@radix-ui/react-icons'
+import { createShiftOption } from './actions'
 
 const shiftOptionSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -72,50 +71,24 @@ export function CreateShiftOptionButton() {
   async function onSubmit(data: ShiftOptionFormValues) {
     try {
       setIsPending(true)
-      const supabase = createClient()
+      
+      const result = await createShiftOption(data)
 
-      // Calculate duration
-      const startTime = parse(data.start_time, 'HH:mm', new Date())
-      const endTime = parse(data.end_time, 'HH:mm', new Date())
-      const duration = differenceInHours(endTime, startTime)
-
-      if (duration <= 0) {
-        form.setError('end_time', {
-          type: 'manual',
-          message: 'End time must be after start time',
-        })
+      if (result.error) {
+        if (result.field) {
+          form.setError(result.field as keyof ShiftOptionFormValues, {
+            type: 'manual',
+            message: result.error,
+          })
+        } else {
+          toast({
+            title: 'Error',
+            description: result.error,
+            variant: 'destructive',
+          })
+        }
         return
       }
-
-      // Check for overlapping shift options
-      const { data: existing, error: checkError } = await supabase
-        .from('shift_options')
-        .select('*')
-        .or(
-          `and(start_time,lte,${data.end_time},end_time,gte,${data.start_time})`
-        )
-        .eq('category', data.category)
-
-      if (checkError) throw checkError
-
-      if (existing && existing.length > 0) {
-        toast({
-          title: 'Validation Error',
-          description: 'A shift option already exists in this time range.',
-          variant: 'destructive',
-        })
-        return
-      }
-
-      const { error: insertError } = await supabase.from('shift_options').insert({
-        name: data.name,
-        category: data.category,
-        start_time: data.start_time,
-        end_time: data.end_time,
-        duration_hours: duration,
-      })
-
-      if (insertError) throw insertError
 
       toast({
         title: 'Success',

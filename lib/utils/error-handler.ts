@@ -68,6 +68,12 @@ export function handleError(error: unknown): { message: string; code: ErrorCodeT
     if ('status' in error && typeof error.status === 'number') {
       switch (error.status) {
         case 400:
+          if (error.message.includes('schema')) {
+            return {
+              message: 'Database configuration error. Please contact support.',
+              code: ErrorCode.DB_ERROR
+            }
+          }
           return {
             message: 'Invalid request. Please check your input.',
             code: ErrorCode.VALIDATION_ERROR
@@ -87,6 +93,17 @@ export function handleError(error: unknown): { message: string; code: ErrorCodeT
             message: 'Too many attempts. Please try again later.',
             code: ErrorCode.RATE_LIMIT
           }
+        case 500:
+          if (error.message.includes('schema')) {
+            return {
+              message: 'Database configuration error. Please contact support.',
+              code: ErrorCode.DB_ERROR
+            }
+          }
+          return {
+            message: 'An unexpected server error occurred.',
+            code: ErrorCode.SERVER_ERROR
+          }
       }
     }
 
@@ -94,6 +111,13 @@ export function handleError(error: unknown): { message: string; code: ErrorCodeT
       return {
         message: 'Invalid email or password',
         code: ErrorCode.INVALID_CREDENTIALS
+      }
+    }
+
+    if (error.message.includes('schema')) {
+      return {
+        message: 'Database configuration error. Please contact support.',
+        code: ErrorCode.DB_ERROR
       }
     }
 

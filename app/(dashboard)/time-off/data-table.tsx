@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { format, parseISO, differenceInDays } from 'date-fns'
 import {
@@ -32,13 +32,14 @@ type TimeOffRequest = Database['public']['Tables']['time_off_requests']['Row'] &
   employee: Database['public']['Tables']['employees']['Row']
 }
 
-interface DataTableProps {
-  promise: Promise<TimeOffRequest[]>
-  isManager: boolean
-}
+export function TimeOffDataTable({ promise, isManager }: { promise: Promise<TimeOffRequest[]>, isManager: boolean }) {
+  const [requests, setRequests] = useState<TimeOffRequest[]>([])
 
-export async function TimeOffDataTable({ promise, isManager }: DataTableProps) {
-  const requests = await promise
+  // Use effect to handle the promise
+  useEffect(() => {
+    promise.then((data) => setRequests(data))
+  }, [promise])
+
   return <DataTable requests={requests} isManager={isManager} />
 }
 

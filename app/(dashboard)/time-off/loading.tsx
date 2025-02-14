@@ -1,39 +1,50 @@
 import { Skeleton } from '@/components/ui/skeleton'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
-export function TimeOffTableSkeleton() {
+export default function Loading() {
   return (
-    <div className="space-y-4">
-      <div className="rounded-md border">
-        <div className="h-16 border-b px-4">
-          <div className="flex h-full items-center justify-between">
-            <Skeleton className="h-4 w-[250px]" />
-            <div className="flex items-center gap-2">
-              <Skeleton className="h-8 w-[100px]" />
-              <Skeleton className="h-8 w-[100px]" />
-            </div>
-          </div>
+    <div className="space-y-6 p-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Time Off Requests</h1>
+          <p className="text-muted-foreground">
+            Manage time off requests.
+          </p>
         </div>
-        <div className="p-4">
-          {[...Array(5)].map((_, i) => (
-            <div
-              key={i}
-              className="flex items-center justify-between border-b py-4 last:border-0"
-            >
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-[200px]" />
-                <div className="flex items-center gap-4">
+        <Skeleton className="h-10 w-[140px]" />
+      </div>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>All Requests</CardTitle>
+            <Skeleton className="h-10 w-[200px]" />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Skeleton className="h-4 w-[250px]" />
+              <Skeleton className="h-4 w-[100px]" />
+            </div>
+            {[...Array(5)].map((_, i) => (
+              <div
+                key={i}
+                className="flex items-center justify-between border-b py-4"
+              >
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-[200px]" />
                   <Skeleton className="h-4 w-[150px]" />
-                  <Skeleton className="h-4 w-[100px]" />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Skeleton className="h-8 w-[80px]" />
+                  <Skeleton className="h-8 w-[80px]" />
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Skeleton className="h-8 w-[70px]" />
-                <Skeleton className="h-8 w-[70px]" />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 } 

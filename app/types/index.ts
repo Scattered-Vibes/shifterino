@@ -142,7 +142,35 @@ export * from './realtime';
 export * from './forms';
 export * from './routes';
 
-// Re-export common types
-export type ID = string;
-export type UUID = string;
-export type ISO8601DateTime = string; 
+// Basic Types
+export type ID = string
+export type UUID = string
+export type ISO8601DateTime = string
+
+// Database Types
+export type {
+  Database,
+  Tables,
+  TablesInsert,
+  TablesUpdate,
+  Enums,
+  CompositeTypes
+} from './supabase/database'
+
+// Auth Types
+export type { UserRole } from '@/lib/auth/core'
+
+// Rate Limiting Types
+export type {
+  RateLimitConfig,
+  RateLimitResult,
+  RateLimitHeaders
+} from '@/lib/middleware/rate-limit-core'
+
+// Error Handling Types
+export type { AppError } from '@/lib/utils/errorHandling'
+
+// Realtime Types
+export type {
+  SubscriptionOptions
+} from '@/lib/supabase/realtime/generic-subscription' 

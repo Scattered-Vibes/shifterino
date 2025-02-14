@@ -26,15 +26,10 @@ import type { Database } from '@/types/supabase/database'
 type ShiftOption = Database['public']['Tables']['shift_options']['Row']
 
 interface DataTableProps {
-  promise: Promise<ShiftOption[]>
+  options: ShiftOption[]
 }
 
-export async function ShiftOptionsDataTable({ promise }: DataTableProps) {
-  const options = await promise
-  return <DataTable options={options} />
-}
-
-function DataTable({ options }: { options: ShiftOption[] }) {
+export function ShiftOptionsDataTable({ options }: DataTableProps) {
   const [editingOption, setEditingOption] = useState<ShiftOption | null>(null)
   const [deletingOption, setDeletingOption] = useState<ShiftOption | null>(null)
 

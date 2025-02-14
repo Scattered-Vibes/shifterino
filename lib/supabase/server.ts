@@ -1,149 +1,80 @@
+'use server'
+
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { type Database } from '@/types/supabase/database'
+import type { Database } from '@/types/supabase/database'
 
-// Validate required environment variables
-function validateEnvVars() {
-  const required = [
-    'NEXT_PUBLIC_SUPABASE_URL',
-    'NEXT_PUBLIC_SUPABASE_ANON_KEY',
-    'SUPABASE_SERVICE_ROLE_KEY'
-  ]
-  
-  const missing = required.filter(key => !process.env[key])
-  
-  if (missing.length > 0) {
-    throw new Error(`Missing required environment variables: ${missing.join(', ')}`)
+// Assert environment variables are set
+function assertEnvVars() {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    throw new Error('Missing required environment variable NEXT_PUBLIC_SUPABASE_URL')
   }
-
-  // Validate URL format
-  try {
-    new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!)
-  } catch {
-    throw new Error('Invalid NEXT_PUBLIC_SUPABASE_URL format')
-  }
-
-  console.log('Environment variables validated successfully')
-}
-
-// Initialize client with enhanced error handling
-export function createClient() {
-  console.log('=== Creating Supabase server client ===')
-  
-  try {
-    validateEnvVars()
-    
-    const cookieStore = cookies()
-    console.log('Cookie store initialized')
-
-    return createServerClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            const cookie = cookieStore.get(name)
-            console.log('Reading cookie:', { 
-              name, 
-              exists: !!cookie,
-              value: cookie ? '[PRESENT]' : '[NOT FOUND]'
-            })
-            return cookie?.value
-          },
-          set(name: string, value: string, options: CookieOptions) {
-            try {
-              console.log('Setting cookie:', { 
-                name, 
-                options: {
-                  ...options,
-                  value: name.includes('token') ? '[REDACTED]' : value
-                }
-              })
-              cookieStore.set({ name, value, ...options })
-            } catch (error) {
-              console.warn('Cookie set failed (expected if called from Server Component):', {
-                error: error instanceof Error ? error.message : 'Unknown error',
-                name,
-                options: {
-                  ...options,
-                  value: name.includes('token') ? '[REDACTED]' : value
-                }
-              })
-            }
-          },
-          remove(name: string, options: CookieOptions) {
-            try {
-              console.log('Removing cookie:', { name, options })
-              cookieStore.set({ name, value: '', ...options })
-            } catch (error) {
-              console.warn('Cookie remove failed (expected if called from Server Component):', {
-                error: error instanceof Error ? error.message : 'Unknown error',
-                name,
-                options
-              })
-            }
-          },
-        },
-        auth: {
-          detectSessionInUrl: true,
-          persistSession: true,
-          autoRefreshToken: true,
-        }
-      }
-    )
-  } catch (error) {
-    console.error('Failed to create Supabase client:', {
-      error,
-      stack: error instanceof Error ? error.stack : undefined,
-      message: error instanceof Error ? error.message : 'Unknown error'
-    })
-    throw error
+  if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    throw new Error('Missing required environment variable NEXT_PUBLIC_SUPABASE_ANON_KEY')
   }
 }
 
-/**
- * Create a Supabase client with service role for administrative operations
- * This should only be used server-side for operations that require elevated privileges
- */
-export function createServiceClient() {
-  console.log('=== Creating Supabase service client ===')
-  
-  try {
-    validateEnvVars()
-    
-    console.log('Creating service client with elevated privileges')
-    return createServerClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          persistSession: false,
-          detectSessionInUrl: false,
-          autoRefreshToken: false
+export function createServerSupabaseClient() {
+  assertEnvVars()
+  const cookieStore = cookies()
+
+  return createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value
         },
-        cookies: {
-          get: () => {
-            console.log('Service client: Cookie get operation blocked')
-            return undefined
-          },
-          set: () => {
-            console.log('Service client: Cookie set operation blocked')
-          },
-          remove: () => {
-            console.log('Service client: Cookie remove operation blocked')
-          }
-        }
-      }
-    )
-  } catch (error) {
-    console.error('Failed to create Supabase service client:', {
-      error,
-      stack: error instanceof Error ? error.stack : undefined,
-      message: error instanceof Error ? error.message : 'Unknown error'
-    })
-    throw error
+        set(name: string, value: string, options: CookieOptions) {
+          cookieStore.set({ name, value, ...options })
+        },
+        remove(name: string, options: CookieOptions) {
+          cookieStore.delete({ name, ...options })
+        },
+      },
+    }
+  )
+}
+
+// For admin operations that require service role
+export function createServiceSupabaseClient() {
+  assertEnvVars()
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error('Missing required environment variable SUPABASE_SERVICE_ROLE_KEY')
   }
+
+  return createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    {
+      cookies: {
+        get(name: string) {
+          return cookies().get(name)?.value
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          cookies().set({ name, value, ...options })
+        },
+        remove(name: string, options: CookieOptions) {
+          cookies().delete({ name, ...options })
+        },
+      },
+    }
+  )
 }
 
 // Re-export types that might be needed by consumers
 export type { Database }
+
+// Helper to get authenticated user server-side
+export async function getUser() {
+  const supabase = createServerSupabaseClient()
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser()
+    if (error) throw error
+    return user
+  } catch (error) {
+    console.error('Error getting user:', error)
+    return null
+  }
+}

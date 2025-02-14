@@ -20,6 +20,13 @@ import {
 import { Input } from '@/components/ui/input'
 import { Calendar } from '@/components/ui/calendar'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -31,6 +38,7 @@ import { createClient } from '@/lib/supabase/client'
 const formSchema = z.object({
   startDate: z.date(),
   endDate: z.date(),
+  type: z.enum(['vacation', 'sick', 'personal', 'other']),
   reason: z.string().min(1, 'Reason is required'),
   notes: z.string().optional(),
 })
@@ -43,6 +51,7 @@ export function TimeOffRequestForm() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      type: 'vacation',
       notes: '',
     },
   })
@@ -59,6 +68,7 @@ export function TimeOffRequestForm() {
           employee_id: session.user.id,
           start_date: data.startDate.toISOString(),
           end_date: data.endDate.toISOString(),
+          type: data.type,
           reason: data.reason,
           notes: data.notes,
           status: 'pending',
@@ -170,6 +180,33 @@ export function TimeOffRequestForm() {
             )}
           />
         </div>
+
+        <FormField
+          control={form.control}
+          name="type"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Type of Leave</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select type of leave" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="vacation">Vacation</SelectItem>
+                  <SelectItem value="sick">Sick Leave</SelectItem>
+                  <SelectItem value="personal">Personal Leave</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormDescription>
+                Select the type of leave you are requesting
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <FormField
           control={form.control}

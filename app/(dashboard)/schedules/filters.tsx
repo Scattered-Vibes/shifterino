@@ -45,16 +45,16 @@ export function ScheduleFilters() {
   return (
     <div className="flex items-center gap-2">
       <Select
-        defaultValue={searchParams.get('shift_type') || ''}
+        defaultValue={searchParams.get('shift_type') || 'all'}
         onValueChange={(value) => {
-          router.push(pathname + '?' + createQueryString('shift_type', value))
+          router.push(pathname + '?' + createQueryString('shift_type', value === 'all' ? '' : value))
         }}
       >
         <SelectTrigger className="w-[180px]">
           <SelectValue placeholder="Filter by shift type" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">All shift types</SelectItem>
+          <SelectItem value="all">All shift types</SelectItem>
           {shiftTypes.map((type) => (
             <SelectItem key={type.value} value={type.value}>
               {type.label}

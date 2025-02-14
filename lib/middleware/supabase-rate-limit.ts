@@ -1,54 +1,18 @@
-import { createServiceClient } from '@/lib/supabase/server'
 import { NextRequest } from 'next/server'
+import {
+  type RateLimitConfig,
+  type RateLimitResult,
+  generateRateLimitKey,
+  calculateRetryAfter,
+  isRetryableError,
+  validateConfig,
+  debug,
+  errorLog
+} from './rate-limit-core'
+import { selectFromTable, upsertTable } from '../supabase/query-helper'
 import type { Database } from '@/types/supabase/database'
-import type { SupabaseClient } from '@supabase/supabase-js'
 
-// Rate limit configuration types
-export interface RateLimitConfig {
-  maxRequests: number
-  windowMs: number
-  keyPrefix?: string
-  failOnError?: boolean
-}
-
-export interface RateLimitResult {
-  success: boolean
-  retryAfter: number
-  error?: string
-}
-
-// Default configurations
-const DEFAULT_CONFIG: RateLimitConfig = {
-  maxRequests: parseInt(process.env.API_MAX_REQUESTS || '100', 10),
-  windowMs: parseInt(process.env.API_RATE_LIMIT_WINDOW || '60000', 10), // 1 minute
-  keyPrefix: 'api',
-  failOnError: true // Default to failing closed on errors
-}
-
-const debug = (...args: unknown[]) => {
-  console.log('[RATE_LIMIT]', ...args)
-}
-
-const errorLog = (...args: unknown[]) => {
-  console.error('[RATE_LIMIT_ERROR]', ...args)
-}
-
-/**
- * Generate a unique key for rate limiting based on IP and path
- */
-function generateRateLimitKey(request: NextRequest, prefix: string = 'api'): string {
-  // Try different headers for IP address
-  const ip = request.headers.get('x-forwarded-for') || 
-             request.headers.get('x-real-ip') || 
-             request.ip || 
-             request.headers.get('x-client-ip') || 
-             'anonymous'
-             
-  const path = request.nextUrl.pathname
-  const key = `rate_limit:${prefix}:${ip}:${path}`
-  debug('Generated key:', key)
-  return key
-}
+type RateLimitEntry = Database['public']['Tables']['rate_limits']['Row']
 
 export interface RateLimiter {
   check: (request: NextRequest) => Promise<RateLimitResult>
@@ -58,106 +22,116 @@ export interface RateLimiter {
  * Create a rate limiter instance with custom configuration
  */
 export function createRateLimiter(config: Partial<RateLimitConfig> = {}): RateLimiter {
-  const finalConfig: RateLimitConfig = {
-    ...DEFAULT_CONFIG,
-    ...config
-  }
+  const finalConfig = validateConfig(config)
 
   return {
     check: async (request: NextRequest): Promise<RateLimitResult> => {
       const key = generateRateLimitKey(request, finalConfig.keyPrefix)
-      debug('Creating service client')
-      const supabase = createServiceClient() as SupabaseClient<Database>
+      debug('Checking rate limit for key:', key)
 
-      try {
-        debug('Checking rate limit for key:', key)
-        // Check current rate limit status
-        const { data: rateLimitData, error: rateLimitError } = await supabase
-          .from('rate_limits')
-          .select('count, last_request')
-          .eq('id', key)
-
-        if (rateLimitError) {
-          errorLog('Rate limit check error:', rateLimitError)
-          // If configured to fail on errors, deny the request
-          if (finalConfig.failOnError) {
-            return { 
-              success: false, 
-              retryAfter: 60, // Default to 1 minute retry on errors
-              error: 'Rate limit check failed'
+      let attempt = 1
+      while (attempt <= (finalConfig.maxRetries || 1)) {
+        try {
+          // Check current rate limit status
+          let rateLimitData: RateLimitEntry | null = null
+          try {
+            rateLimitData = await selectFromTable('rate_limits', {
+              eq: { id: key },
+              isServer: true
+            })
+          } catch (error) {
+            if (!isRetryableError(error)) {
+              throw error
             }
           }
-          // Otherwise, let it through but log the error
-          return { success: true, retryAfter: 0, error: 'Rate limit check error' }
-        }
 
-        const now = Date.now()
-        let count = 1
-        const resetTime = now + finalConfig.windowMs
+          const now = Date.now()
+          let count = 1
+          const resetTime = now + finalConfig.windowMs
 
-        // Get the most recent rate limit entry if it exists
-        const latestEntry = rateLimitData?.[0]
-        if (latestEntry) {
-          debug('Found existing rate limit data:', latestEntry)
-          const lastRequest = new Date(latestEntry.last_request).getTime()
-          if (now - lastRequest < finalConfig.windowMs) {
-            count = latestEntry.count + 1
-            debug('Incrementing count within window:', { count, windowMs: finalConfig.windowMs })
+          // Get the most recent rate limit entry if it exists
+          if (rateLimitData) {
+            debug('Found existing rate limit data:', rateLimitData)
+            const lastRequest = new Date(rateLimitData.last_request).getTime()
+            if (now - lastRequest < finalConfig.windowMs) {
+              count = rateLimitData.count + 1
+              debug('Incrementing count within window:', { count, windowMs: finalConfig.windowMs })
+            } else {
+              debug('Outside rate limit window, resetting count')
+            }
           } else {
-            debug('Outside rate limit window, resetting count')
+            debug('No existing rate limit found, creating new entry')
           }
-        } else {
-          debug('No existing rate limit found, creating new entry')
-        }
 
-        // Check if rate limit is exceeded
-        if (count > finalConfig.maxRequests) {
-          const retryAfter = Math.ceil((resetTime - now) / 1000)
-          debug('Rate limit exceeded:', { count, maxRequests: finalConfig.maxRequests, retryAfter })
-          return { success: false, retryAfter }
-        }
+          // Check if rate limit is exceeded
+          if (count > finalConfig.maxRequests) {
+            const retryAfter = Math.ceil((resetTime - now) / 1000)
+            debug('Rate limit exceeded:', { count, maxRequests: finalConfig.maxRequests, retryAfter })
+            return { 
+              success: false, 
+              retryAfter,
+              remainingRequests: 0,
+              resetTime
+            }
+          }
 
-        debug('Updating rate limit counter:', { key, count })
-        // Update the rate limit counter
-        const { error: updateError } = await supabase
-          .from('rate_limits')
-          .upsert(
-            {
+          debug('Updating rate limit counter:', { key, count })
+          // Update the rate limit counter
+          try {
+            await upsertTable('rate_limits', {
               id: key,
               count,
-              last_request: new Date().toISOString(),
-            },
-            { onConflict: 'id' }
+              last_request: new Date().toISOString()
+            }, {
+              onConflict: 'id',
+              isServer: true
+            })
+          } catch (error) {
+            if (!isRetryableError(error)) {
+              throw error
+            }
+          }
+
+          debug('Rate limit updated successfully')
+          return { 
+            success: true, 
+            retryAfter: 0,
+            remainingRequests: finalConfig.maxRequests - count,
+            resetTime
+          }
+        } catch (err) {
+          const retryAfter = calculateRetryAfter(
+            attempt,
+            finalConfig.retryStrategy,
+            finalConfig.baseRetryMs
           )
 
-        if (updateError) {
-          errorLog('Rate limit update error:', updateError)
-          // If configured to fail on errors, deny the request
+          if (attempt < (finalConfig.maxRetries || 1) && isRetryableError(err)) {
+            debug(`Retry attempt ${attempt} failed, waiting ${retryAfter}ms before next attempt`)
+            await new Promise(resolve => setTimeout(resolve, retryAfter))
+            attempt++
+            continue
+          }
+
+          errorLog('Rate limiting error:', err)
           if (finalConfig.failOnError) {
             return { 
               success: false, 
               retryAfter: 60,
-              error: 'Rate limit update failed'
+              error: 'Rate limiting error',
+              resetTime: Date.now() + 60000
             }
           }
-          // Otherwise, let it through but log the error
-          return { success: true, retryAfter: 0, error: 'Rate limit update error' }
+          return { success: true, retryAfter: 0 }
         }
+      }
 
-        debug('Rate limit updated successfully')
-        return { success: true, retryAfter: 0 }
-      } catch (err) {
-        errorLog('Unexpected error in rate limiting:', err)
-        // If configured to fail on errors, deny the request
-        if (finalConfig.failOnError) {
-          return { 
-            success: false, 
-            retryAfter: 60,
-            error: 'Unexpected rate limit error'
-          }
-        }
-        // Otherwise, let it through but log the error
-        return { success: true, retryAfter: 0, error: 'Unexpected rate limit error' }
+      // If we've exhausted all retries
+      return { 
+        success: false, 
+        retryAfter: 60,
+        error: 'Rate limiting failed after all retry attempts',
+        resetTime: Date.now() + 60000
       }
     }
   }
@@ -168,7 +142,10 @@ export const authRateLimiter = createRateLimiter({
   maxRequests: parseInt(process.env.AUTH_MAX_REQUESTS || '5', 10),
   windowMs: parseInt(process.env.AUTH_RATE_LIMIT_WINDOW || '60000', 10),
   keyPrefix: 'auth',
-  failOnError: true
+  failOnError: true,
+  retryStrategy: 'exponential',
+  maxRetries: 3,
+  baseRetryMs: 1000
 })
 
 export const apiRateLimiter = createRateLimiter() // Uses default config

@@ -1,82 +1,103 @@
-# 911 Dispatch Center Scheduling System
+# Shifterino - 911 Dispatch Center Scheduling System
 
-A comprehensive scheduling system built with Next.js 14, TypeScript, Supabase (using Supabase SSR), and Shadcn UI for managing 24/7 911 dispatch center staffing.
-
-## Security
-
-This project implements comprehensive security measures including:
-- Supabase Auth with secure session management
-- Row Level Security (RLS) policies
-- Rate limiting and API protection
-- Role-based access control
-- Audit logging
-
-For detailed security documentation, see [SECURITY.md](docs/SECURITY.md).
-
+A modern web application built with Next.js 14, TypeScript, and Supabase for managing 24/7 staffing schedules at 911 dispatch centers.
 
 ## Features
 
-- **Authentication & Authorization**
-  - Secure login leveraging Supabase Auth via SSR (using the modern @supabase/ssr module)
-  - Role-based access (Supervisors vs. Employees)
-  - Protected routes and API endpoints integrated within Next.js 14 App Router
+- 24/7 schedule management with minimum staffing requirements
+- Employee shift pattern management (4x10 or 3x12+4)
+- Time-off request handling
+- Shift swap management
+- Role-based access control (Manager, Supervisor, Dispatcher)
+- Real-time updates using Supabase
 
-- **Schedule Management**
-  - Real-time staffing level monitoring
-  - Shift assignment and management with support for multiple shift patterns:
-    - **Pattern A:** Four consecutive 10-hour shifts
-    - **Pattern B:** Three consecutive 12-hour shifts plus one 4-hour shift
-  - Automatic supervisor coverage verification
+## Prerequisites
 
-- **Time-Off Management**
-  - Request submission and approval workflow
-  - Calendar integration with interactive scheduling views
-  - Conflict detection to ensure balanced staffing
+- Node.js 18.17 or later
+- Docker Desktop
+- Supabase CLI
 
-- **Staff Management**
-  - Employee profiles and preferences management
-  - Shift pattern assignment for streamlined scheduling
-  - Weekly hours tracking and overtime management
+## Setup
 
-## Tech Stack
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/shifterino.git
+cd shifterino
+```
 
-- **Frontend:** Next.js 14 (App Router), TypeScript, Tailwind CSS
-- **UI Components:** Shadcn UI (with modern shadcn commands) and Radix UI for accessible components
-- **Backend:** Supabase (Database, Real-time updates, and Auth via Supabase SSR)
-- **Authentication:** Secure user authentication using Supabase Auth with SSR, leveraging the new @supabase/ssr module for robust cookie and session management
-- **Styling:** Tailwind CSS with custom configurations and reusable Shadcn UI components
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Set up environment variables:
+```bash
+cp .env.example .env.local
+```
+Edit `.env.local` with your Supabase credentials.
+
+4. Start Supabase locally:
+```bash
+supabase start
+```
+
+5. Reset the database and apply migrations:
+```bash
+npm run db:reset
+```
+
+6. Create test users:
+```bash
+npm run create:users
+```
+
+7. Start the development server:
+```bash
+npm run dev
+```
+
+## Test Users
+
+The following test users are created by default:
+
+- Manager:
+  - Email: manager@dispatch911.com
+  - Password: Manager@123
+
+- Supervisor:
+  - Email: supervisor1@dispatch911.com
+  - Password: Super@123
+
+- Dispatcher:
+  - Email: dispatcher1@dispatch911.com
+  - Password: Dispatch@123
+
+## Database Schema
+
+The application uses the following main tables:
+
+- employees: Employee profiles and preferences
+- assigned_shifts: Scheduled shifts for employees
+- time_off_requests: Employee time-off requests
+- shift_swap_requests: Shift swap requests between employees
+- staffing_requirements: Minimum staffing requirements per time block
+- shift_options: Available shift types and times
 
 ## Development
 
-### Available Commands
-
-- `npm run dev` – Start the development server
-- `npm run build` – Build the production bundle
-- `npm run start` – Launch the production server
-- `npm run lint` – Run ESLint for code quality checks
-- `npm run type-check` – Run the TypeScript compiler to enforce type safety
-
-### Database Management
-
-- Start local Supabase: `supabase start`
-- Reset database (apply migrations and seed data): `supabase db reset`
-- Generate type definitions: `supabase gen types typescript --local > types/database.ts`
-
-## Deployment
-
-1. Configure the required environment variables on your hosting platform.
-2. Set up and configure your production Supabase project.
-3. Deploy using your preferred platform (e.g., Vercel):
-
-   ```bash
-   npm run build
-   ```
+- Run tests: `npm test`
+- Generate database types: `npm run db:types`
+- Lint code: `npm run lint`
+- Build for production: `npm run build`
 
 ## Contributing
 
-1. Fork the repository.
-2. Create your feature branch: `git checkout -b feature/my-feature`
-3. Commit your changes: `git commit -am 'Add my feature'`
-4. Push to the branch: `git push origin feature/my-feature`
-5. Open a pull request.
+1. Fork the repository
+2. Create your feature branch: `git checkout -b feature/my-new-feature`
+3. Commit your changes: `git commit -am 'Add some feature'`
+4. Push to the branch: `git push origin feature/my-new-feature`
+5. Submit a pull request
 
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.

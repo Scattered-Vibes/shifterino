@@ -1,0 +1,21 @@
+---
+description: Base Coding Standards, Project Structure & TypeScript Guidelines
+globs: "*"
+---
+# Base Guidelines
+
+- **TypeScript First**  
+  • Write all code in TypeScript.  
+  • Avoid using `any`—prefer interfaces over types.  
+  • Enable strict type checking.
+
+- **Project Structure**  
+  • Use a clear folder structure:  
+  - `app/` for Next.js pages, layouts, and route groups.  
+  - `components/` for shared UI components.  
+  - `lib/` for utilities, helpers, and business logic.  
+  - `styles/` for Tailwind CSS or CSS Modules.
+  
+- **Styling & Documentation**  
+  • Use Tailwind CSS or CSS Modules consistently.  
+  • Update documentation and rule files as the project evolves.

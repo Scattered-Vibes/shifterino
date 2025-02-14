@@ -22,11 +22,10 @@ type ScheduleWithDetails = Database['public']['Tables']['individual_shifts']['Ro
 }
 
 interface CalendarViewProps {
-  promise: Promise<ScheduleWithDetails[]>
+  shifts: ScheduleWithDetails[]
 }
 
-export async function ScheduleCalendar({ promise }: CalendarViewProps) {
-  const shifts = await promise
+export function ScheduleCalendar({ shifts }: CalendarViewProps) {
   return <CalendarView shifts={shifts} />
 }
 

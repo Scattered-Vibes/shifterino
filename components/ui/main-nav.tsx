@@ -1,23 +1,55 @@
 'use client'
 
 import Link from 'next/link'
-import { cn } from '@/lib/utils/index'
+import { usePathname } from 'next/navigation'
+import { cn } from '@/lib/utils'
 
-export function MainNav({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLElement>) {
+const navItems = [
+  {
+    title: 'Overview',
+    href: '/overview',
+  },
+  {
+    title: 'Schedules',
+    href: '/schedules',
+  },
+  {
+    title: 'Time Off',
+    href: '/time-off',
+  },
+  {
+    title: 'Shift Options',
+    href: '/shift-options',
+  },
+]
+
+export function MainNav() {
+  const pathname = usePathname()
+
   return (
-    <nav
-      className={cn('flex items-center space-x-4 lg:space-x-6', className)}
-      {...props}
-    >
+    <nav className="flex items-center space-x-6 lg:space-x-8">
       <Link
         href="/overview"
-        className="text-sm font-medium transition-colors hover:text-primary"
+        className="hidden items-center space-x-2 md:flex"
       >
-        911 Dispatch Scheduler
+        <span className="hidden font-bold sm:inline-block">
+          Shifterino
+        </span>
       </Link>
+      {navItems.map((item) => (
+        <Link
+          key={item.href}
+          href={item.href}
+          className={cn(
+            'text-sm font-medium transition-colors hover:text-primary',
+            pathname === item.href
+              ? 'text-foreground'
+              : 'text-muted-foreground'
+          )}
+        >
+          {item.title}
+        </Link>
+      ))}
     </nav>
   )
 } 

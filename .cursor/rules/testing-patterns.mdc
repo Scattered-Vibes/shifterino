@@ -1,0 +1,21 @@
+---
+description: Testing Guidelines for Unit, Integration & E2E Tests
+globs: "**/__tests__/**/*.ts" ,  "**/__tests__/**/*.tsx"
+---
+# Testing Patterns
+
+- **Co-located Tests**  
+  • Place tests close to the components they verify (e.g. `Button.test.tsx` alongside `Button.tsx`).
+
+- **Unit Tests**  
+  • Use frameworks such as Vitest and React Testing Library for testing isolated logic.
+
+- **Integration and API Tests**  
+  • Test interactions between components and API endpoints.  
+  • Verify error states and edge cases.
+
+- **End-to-End (E2E) Tests**  
+  • Use Playwright for complete user flow tests covering authentication, scheduling, and real-time updates.
+
+- **Organizational Structure**  
+  • Organize tests in directories such as `__tests__/unit`, `__tests__/integration`, and `__tests__/e2e` for clarity.

@@ -1,90 +1,69 @@
 'use client'
 
 import { useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 import type { Database } from '@/types/supabase/database'
+import { subscribeToTable, type SubscriptionOptions } from '@/lib/supabase/realtime/generic-subscription'
 
 type DatabaseTables = Database['public']['Tables']
 type TableName = keyof DatabaseTables
-type Event = 'INSERT' | 'UPDATE' | 'DELETE' | '*'
-
-interface UseRealtimeSubscriptionProps<T extends TableName> {
-  schema?: string
-  table: T
-  event?: Event
-  filter?: string
-  onData: (payload: RealtimePostgresChangesPayload<DatabaseTables[T]['Row']>) => void
-}
 
 /**
  * Hook to subscribe to Supabase realtime changes
  * @template T - The table name from the database
  */
-export function useRealtimeSubscription<T extends TableName>({
-  schema = 'public',
-  table,
-  event = '*',
-  filter,
-  onData
-}: UseRealtimeSubscriptionProps<T>) {
+export function useRealtimeSubscription<T extends TableName>(
+  options: SubscriptionOptions<T>
+) {
   useEffect(() => {
-    const supabase = createClient()
-    const channel = supabase
-      .channel(`${schema}:${table}`)
-      .on(
-        'postgres_changes' as const,
-        { event, schema, table, filter },
-        // Type assertion needed due to Supabase types not being fully compatible
-        (payload) => onData(payload as RealtimePostgresChangesPayload<DatabaseTables[T]['Row']>)
-      )
-      .subscribe()
-
+    const unsubscribe = subscribeToTable(options)
     return () => {
-      channel.unsubscribe().catch(error => {
-        console.error('Error unsubscribing from channel:', error)
-      })
+      unsubscribe()
     }
-  }, [schema, table, event, filter, onData])
+  }, [options])
 }
 
 // Type-safe hooks for specific subscriptions
 export function useShiftSubscription(
-  options: Omit<UseRealtimeSubscriptionProps<TableName>, 'table'> & {
-    onInsert?: (payload: RealtimePostgresChangesPayload<IndividualShift>) => void
-    onUpdate?: (payload: RealtimePostgresChangesPayload<IndividualShift>) => void
-    onDelete?: (payload: RealtimePostgresChangesPayload<IndividualShift>) => void
-  }
+  onData: (payload: RealtimePostgresChangesPayload<DatabaseTables['individual_shifts']['Row']>) => void,
+  filter?: string
 ) {
-  return useRealtimeSubscription({ ...options, table: 'shifts' })
+  useRealtimeSubscription({
+    table: 'individual_shifts',
+    onData,
+    filter
+  })
 }
 
 export function useSwapRequestSubscription(
-  options: Omit<UseRealtimeSubscriptionProps<TableName>, 'table'> & {
-    onInsert?: (payload: RealtimePostgresChangesPayload<ShiftSwapRequest>) => void
-    onUpdate?: (payload: RealtimePostgresChangesPayload<ShiftSwapRequest>) => void
-    onDelete?: (payload: RealtimePostgresChangesPayload<ShiftSwapRequest>) => void
-  }
+  onData: (payload: RealtimePostgresChangesPayload<DatabaseTables['shift_swap_requests']['Row']>) => void,
+  filter?: string
 ) {
-  return useRealtimeSubscription({ ...options, table: 'swapRequests' })
+  useRealtimeSubscription({
+    table: 'shift_swap_requests',
+    onData,
+    filter
+  })
 }
 
-export function useOnCallAssignmentSubscription(
-  options: Omit<UseRealtimeSubscriptionProps<TableName>, 'table'> & {
-    onInsert?: (payload: RealtimePostgresChangesPayload<OnCallAssignment>) => void
-    onUpdate?: (payload: RealtimePostgresChangesPayload<OnCallAssignment>) => void
-    onDelete?: (payload: RealtimePostgresChangesPayload<OnCallAssignment>) => void
-  }
+export function useTimeOffRequestSubscription(
+  onData: (payload: RealtimePostgresChangesPayload<DatabaseTables['time_off_requests']['Row']>) => void,
+  filter?: string
 ) {
-  return useRealtimeSubscription({ ...options, table: 'onCallAssignments' })
+  useRealtimeSubscription({
+    table: 'time_off_requests',
+    onData,
+    filter
+  })
 }
 
-export function useOnCallActivationSubscription(
-  options: Omit<UseRealtimeSubscriptionProps<TableName>, 'table'> & {
-    onInsert?: (payload: RealtimePostgresChangesPayload<OnCallActivation>) => void
-    onUpdate?: (payload: RealtimePostgresChangesPayload<OnCallActivation>) => void
-    onDelete?: (payload: RealtimePostgresChangesPayload<OnCallActivation>) => void
-  }
+export function useStaffingRequirementSubscription(
+  onData: (payload: RealtimePostgresChangesPayload<DatabaseTables['staffing_requirements']['Row']>) => void,
+  filter?: string
 ) {
-  return useRealtimeSubscription({ ...options, table: 'onCallActivations' })
+  useRealtimeSubscription({
+    table: 'staffing_requirements',
+    onData,
+    filter
+  })
 } 

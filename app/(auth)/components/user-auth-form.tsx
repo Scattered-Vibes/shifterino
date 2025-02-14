@@ -1,35 +1,28 @@
 'use client'
 
-import { useState } from 'react'
+import * as React from 'react'
 import { useRouter } from 'next/navigation'
-import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { useToast } from '@/components/ui/use-toast'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { useToast } from '@/components/ui/use-toast'
-import { createClient } from '@/lib/supabase/client'
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { loginSchema, signupSchema, type SignupInput } from '@/lib/validations/auth'
-import { handleError } from '@/lib/utils/error-handler'
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form"
-import { toast } from "sonner"
+import { useAuth } from '@/app/hooks/use-auth'
+import { loginSchema, signupSchema } from '@/lib/validations/auth'
 
 interface UserAuthFormProps {
   className?: string
 }
 
+type SignupInput = z.infer<typeof signupSchema>
+
 export function UserAuthForm({ className }: UserAuthFormProps) {
   const router = useRouter()
   const { toast } = useToast()
-  const supabase = createClient()
+  const { signIn, signUp } = useAuth()
   const [isLoading, setIsLoading] = React.useState(false)
 
   const loginForm = useForm({
@@ -53,34 +46,17 @@ export function UserAuthForm({ className }: UserAuthFormProps) {
   async function onSignIn(data: z.infer<typeof loginSchema>) {
     try {
       setIsLoading(true)
-      
-      const { error } = await supabase.auth.signInWithPassword({
-        email: data.email,
-        password: data.password,
-      })
-
-      if (error) {
-        const appError = handleError(error)
-        toast({
-          title: 'Error',
-          description: appError.message,
-          variant: 'destructive',
-        })
-        return
-      }
-
+      await signIn(data)
       router.refresh()
       router.push('/overview')
-      
       toast({
         title: 'Welcome back!',
         description: 'You have successfully signed in.',
       })
     } catch (error) {
-      const appError = handleError(error)
       toast({
         title: 'Error',
-        description: appError.message,
+        description: error instanceof Error ? error.message : 'An unexpected error occurred',
         variant: 'destructive',
       })
     } finally {
@@ -88,40 +64,18 @@ export function UserAuthForm({ className }: UserAuthFormProps) {
     }
   }
 
-  async function onSignUp(data: z.infer<typeof signupSchema>) {
+  async function onSignUp(data: SignupInput) {
     try {
       setIsLoading(true)
-      
-      const { error } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          data: {
-            role: data.role,
-          },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      })
-
-      if (error) {
-        const appError = handleError(error)
-        toast({
-          title: 'Error',
-          description: appError.message,
-          variant: 'destructive',
-        })
-        return
-      }
-
+      await signUp(data)
       toast({
-        title: 'Check your email',
-        description: 'We sent you a confirmation link to complete your registration.',
+        title: 'Success!',
+        description: 'Please check your email to confirm your account.',
       })
     } catch (error) {
-      const appError = handleError(error)
       toast({
         title: 'Error',
-        description: appError.message,
+        description: error instanceof Error ? error.message : 'An unexpected error occurred',
         variant: 'destructive',
       })
     } finally {
@@ -181,7 +135,7 @@ export function UserAuthForm({ className }: UserAuthFormProps) {
           </form>
         </Form>
       </TabsContent>
-
+      
       <TabsContent value="signup">
         <Form {...signupForm}>
           <form onSubmit={signupForm.handleSubmit(onSignUp)} className="space-y-4">
@@ -220,7 +174,7 @@ export function UserAuthForm({ className }: UserAuthFormProps) {
                 </FormItem>
               )}
             />
-
+            
             <FormField
               control={signupForm.control}
               name="confirmPassword"
@@ -238,7 +192,7 @@ export function UserAuthForm({ className }: UserAuthFormProps) {
                 </FormItem>
               )}
             />
-
+            
             <FormField
               control={signupForm.control}
               name="role"
@@ -248,11 +202,11 @@ export function UserAuthForm({ className }: UserAuthFormProps) {
                   <FormControl>
                     <select
                       {...field}
-                      className="w-full rounded-md border px-3 py-2"
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <option value="EMPLOYEE">Employee</option>
-                      <option value="SUPERVISOR">Supervisor</option>
                       <option value="MANAGER">Manager</option>
+                      <option value="SUPERVISOR">Supervisor</option>
                     </select>
                   </FormControl>
                   <FormMessage />
@@ -261,11 +215,11 @@ export function UserAuthForm({ className }: UserAuthFormProps) {
             />
 
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Creating account...' : 'Create Account'}
+              {isLoading ? 'Signing up...' : 'Sign Up'}
             </Button>
           </form>
         </Form>
       </TabsContent>
     </Tabs>
   )
-} 
+}

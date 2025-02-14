@@ -3,7 +3,7 @@
 import { useCallback, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { format } from 'date-fns'
-import { Calendar as CalendarIcon } from '@radix-ui/react-icons'
+import { CalendarIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import {
@@ -27,6 +27,7 @@ import {
 import { cn } from '@/lib/utils/index'
 
 const statuses = [
+  { value: 'all', label: 'All statuses' },
   { value: 'pending', label: 'Pending' },
   { value: 'approved', label: 'Approved' },
   { value: 'rejected', label: 'Rejected' },
@@ -68,16 +69,15 @@ export function TimeOffFilters() {
   return (
     <div className="flex items-center gap-2">
       <Select
-        defaultValue={searchParams?.get('status') || ''}
+        defaultValue={searchParams?.get('status') || 'all'}
         onValueChange={(value) =>
-          updateFilters({ status: value || null })
+          updateFilters({ status: value === 'all' ? null : value })
         }
       >
         <SelectTrigger className="h-8 w-[130px]">
           <SelectValue placeholder="Filter status" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">All statuses</SelectItem>
           {statuses.map((status) => (
             <SelectItem key={status.value} value={status.value}>
               {status.label}

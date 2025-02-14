@@ -12,11 +12,10 @@ type ScheduleWithDetails = Database['public']['Tables']['individual_shifts']['Ro
 }
 
 interface ListViewProps {
-  promise: Promise<ScheduleWithDetails[]>
+  shifts: ScheduleWithDetails[]
 }
 
-export async function ScheduleList({ promise }: ListViewProps) {
-  const shifts = await promise
+export function ScheduleList({ shifts }: ListViewProps) {
   return <ListView shifts={shifts} />
 }
 

@@ -1,0 +1,260 @@
+---
+description: Supabase Database Schema, RLS Policies & Error Handling Rules
+globs: database/**/*.sql, supabase/migrations/**/*.sql
+---
+ # Supabase Database Rules
+
+## Database Schema Patterns
+
+1. **Table Naming and Structure**
+   ```sql
+   -- Use plural names for tables
+   CREATE TABLE public.employees (
+     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+     user_id uuid REFERENCES auth.users(id),
+     role text NOT NULL CHECK (role IN ('dispatcher', 'supervisor')),
+     shift_pattern text NOT NULL CHECK (shift_pattern IN ('pattern_a', 'pattern_b')),
+     created_at timestamptz DEFAULT now(),
+     updated_at timestamptz DEFAULT now()
+   );
+
+   -- Use junction tables for many-to-many relationships
+   CREATE TABLE public.shift_assignments (
+     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+     employee_id uuid REFERENCES public.employees(id) ON DELETE CASCADE,
+     shift_id uuid REFERENCES public.shifts(id) ON DELETE CASCADE,
+     status text DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'completed', 'cancelled')),
+     UNIQUE(employee_id, shift_id)
+   );
+   ```
+
+2. **Row Level Security (RLS)**
+   ```sql
+   -- Enable RLS
+   ALTER TABLE public.employees ENABLE ROW LEVEL SECURITY;
+
+   -- Supervisors can read all employees
+   CREATE POLICY "supervisors_read_all_employees"
+   ON public.employees
+   FOR SELECT
+   USING (
+     EXISTS (
+       SELECT 1 FROM public.employees
+       WHERE user_id = auth.uid()
+       AND role = 'supervisor'
+     )
+   );
+
+   -- Employees can read their own data
+   CREATE POLICY "employees_read_own_data"
+   ON public.employees
+   FOR SELECT
+   USING (user_id = auth.uid());
+
+   -- Supervisors can update employee schedules
+   CREATE POLICY "supervisors_update_schedules"
+   ON public.shift_assignments
+   FOR UPDATE
+   USING (
+     EXISTS (
+       SELECT 1 FROM public.employees
+       WHERE user_id = auth.uid()
+       AND role = 'supervisor'
+     )
+   );
+   ```
+
+3. **Real-time Subscriptions**
+   ```typescript
+   // Correct pattern for real-time subscriptions
+   const channel = supabase
+     .channel('schedule-changes')
+     .on(
+       'postgres_changes',
+       {
+         event: '*',
+         schema: 'public',
+         table: 'shift_assignments',
+         filter: `employee_id=eq.${employeeId}`
+       },
+       (payload) => handleScheduleChange(payload)
+     )
+     .subscribe()
+
+   // Clean up on component unmount
+   return () => {
+     supabase.removeChannel(channel)
+   }
+   ```
+
+4. **Type Generation**
+   ```bash
+   # Generate types after schema changes
+   npx supabase gen types typescript --project-id your-project-id > types/supabase.ts
+   ```
+
+   ```typescript
+   // Use generated types
+   interface Database {
+     public: {
+       Tables: {
+         employees: {
+           Row: {
+             id: string
+             user_id: string
+             role: 'dispatcher' | 'supervisor'
+             shift_pattern: 'pattern_a' | 'pattern_b'
+             created_at: string
+             updated_at: string
+           }
+           Insert: {
+             user_id: string
+             role: 'dispatcher' | 'supervisor'
+             shift_pattern: 'pattern_a' | 'pattern_b'
+           }
+           Update: {
+             role?: 'dispatcher' | 'supervisor'
+             shift_pattern?: 'pattern_a' | 'pattern_b'
+           }
+         }
+       }
+     }
+   }
+   ```
+
+5. **Database Functions**
+   ```sql
+   -- Function to check minimum staffing levels
+   CREATE OR REPLACE FUNCTION check_minimum_staffing()
+   RETURNS trigger AS $$
+   BEGIN
+     -- Check if minimum staffing requirements are met
+     IF NOT EXISTS (
+       SELECT 1
+       FROM shift_assignments sa
+       JOIN employees e ON sa.employee_id = e.id
+       WHERE sa.shift_id = NEW.shift_id
+       GROUP BY sa.shift_id
+       HAVING COUNT(*) >= 
+         CASE 
+           WHEN EXTRACT(HOUR FROM NEW.start_time) BETWEEN 5 AND 8 THEN 6
+           WHEN EXTRACT(HOUR FROM NEW.start_time) BETWEEN 9 AND 20 THEN 8
+           WHEN EXTRACT(HOUR FROM NEW.start_time) BETWEEN 21 AND 24 THEN 7
+           ELSE 6
+         END
+     ) THEN
+       RAISE EXCEPTION 'Minimum staffing requirements not met';
+     END IF;
+     RETURN NEW;
+   END;
+   $$ LANGUAGE plpgsql;
+   ```
+
+6. **Indexes and Performance**
+   ```sql
+   -- Add indexes for frequently queried columns
+   CREATE INDEX idx_shift_assignments_employee_id ON shift_assignments(employee_id);
+   CREATE INDEX idx_shift_assignments_shift_id ON shift_assignments(shift_id);
+   CREATE INDEX idx_shift_assignments_status ON shift_assignments(status);
+   CREATE INDEX idx_employees_role ON employees(role);
+   ```
+
+7. **Data Validation**
+   ```sql
+   -- Add check constraints for business rules
+   ALTER TABLE shifts
+   ADD CONSTRAINT valid_shift_duration
+   CHECK (
+     (EXTRACT(EPOCH FROM end_time - start_time) / 3600) IN (4, 10, 12)
+   );
+
+   ALTER TABLE shift_assignments
+   ADD CONSTRAINT no_overlapping_shifts
+   EXCLUDE USING gist (
+     employee_id WITH =,
+     tsrange(start_time, end_time) WITH &&
+   );
+   ```
+
+8. **Error Handling Patterns**
+   ```typescript
+   async function createShiftAssignment(data: ShiftAssignmentInsert) {
+     const { data: assignment, error } = await supabase
+       .from('shift_assignments')
+       .insert(data)
+       .select()
+       .single()
+
+     if (error) {
+       if (error.code === '23514') {
+         throw new Error('Shift assignment violates business rules')
+       }
+       if (error.code === '23P01') {
+         throw new Error('Overlapping shift assignment')
+       }
+       throw error
+     }
+
+     return assignment
+   }
+   ```
+
+9. **Migrations and Versioning**
+   ```sql
+   -- In supabase/migrations/[timestamp]_add_scheduling_constraints.sql
+   BEGIN;
+
+   -- Add new constraints
+   ALTER TABLE shifts ADD COLUMN requires_supervisor boolean DEFAULT true;
+   
+   -- Add new functions
+   CREATE OR REPLACE FUNCTION check_supervisor_coverage()
+   RETURNS trigger AS $$
+   BEGIN
+     IF NEW.requires_supervisor AND NOT EXISTS (
+       SELECT 1 FROM shift_assignments sa
+       JOIN employees e ON sa.employee_id = e.id
+       WHERE sa.shift_id = NEW.id
+       AND e.role = 'supervisor'
+     ) THEN
+       RAISE EXCEPTION 'Shift requires supervisor coverage';
+     END IF;
+     RETURN NEW;
+   END;
+   $$ LANGUAGE plpgsql;
+
+   -- Create triggers
+   CREATE TRIGGER ensure_supervisor_coverage
+   AFTER INSERT OR UPDATE ON shift_assignments
+   FOR EACH ROW
+   EXECUTE FUNCTION check_supervisor_coverage();
+
+   COMMIT;
+   ```
+
+10. **Testing Database Functions**
+    ```sql
+    -- In supabase/tests/database/scheduling.test.sql
+    BEGIN;
+    SELECT plan(3);
+
+    -- Test minimum staffing function
+    SELECT lives_ok(
+      $$
+        INSERT INTO shift_assignments (employee_id, shift_id)
+        VALUES ('test-employee-id', 'test-shift-id')
+      $$,
+      'Should allow assignment when minimum staffing met'
+    );
+
+    SELECT throws_ok(
+      $$
+        INSERT INTO shift_assignments (employee_id, shift_id)
+        VALUES ('test-employee-id', 'understaffed-shift-id')
+      $$,
+      'Minimum staffing requirements not met'
+    );
+
+    SELECT finish();
+    ROLLBACK;
+    ```

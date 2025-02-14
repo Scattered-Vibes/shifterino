@@ -1,3 +1,7 @@
+import { Metadata } from 'next'
+import { LoginForm } from './login-form'
+import { type SearchParams } from '@/types/next'
+
 /**
  * Login page component for the 911 Dispatch Center application
  * Provides email/password authentication with error handling and loading states
@@ -15,92 +19,30 @@
  * <LoginPage />
  * ```
  */
-'use client'
 
-import { useFormState, useFormStatus } from 'react-dom'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
-import { login } from '@/app/(auth)/actions'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Icons } from '@/components/ui/icons'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { type LoginState } from '@/app/(auth)/auth'
-
-function LoginButton() {
-  const { pending } = useFormStatus()
- 
-  return (
-    <Button type="submit" className="w-full" disabled={pending}>
-      {pending ? (
-        <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-      ) : null}
-      Login
-    </Button>
-  )
+export const metadata: Metadata = {
+  title: 'Login',
+  description: 'Login to your account',
 }
 
-export default function LoginPage() {
-  const router = useRouter()
-  const [state, formAction] = useFormState<LoginState | null, FormData>(login, null)
+interface LoginPageProps {
+  searchParams: SearchParams
+}
 
-  useEffect(() => {
-    if (state === null) {
-      router.replace('/overview')
-    }
-  }, [state, router])
+export default function LoginPage({ searchParams }: LoginPageProps) {
+  const redirectTo = searchParams.redirectTo as string | undefined
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Login</CardTitle>
-        <CardDescription>
-          Enter your email and password to access your account
-        </CardDescription>
-      </CardHeader>
-      <form action={formAction}>
-        <CardContent className="space-y-4">
-          {state?.error ? (
-            <div className="text-sm text-red-500">
-              {state.error.message}
-            </div>
-          ) : null}
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              placeholder="name@example.com"
-              required
-              autoComplete="email"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              name="password"
-              type="password"
-              required
-              autoComplete="current-password"
-            />
-          </div>
-        </CardContent>
-        <CardFooter className="flex flex-col space-y-4">
-          <LoginButton />
-          <div className="text-sm text-muted-foreground text-center">
-            <Link
-              href="/reset-password"
-              className="hover:text-primary underline underline-offset-4"
-            >
-              Forgot your password?
-            </Link>
-          </div>
-        </CardFooter>
-      </form>
-    </Card>
+    <>
+      <div className="flex flex-col space-y-2 text-center">
+        <h1 className="text-2xl font-semibold tracking-tight">
+          Welcome back
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Enter your credentials to sign in
+        </p>
+      </div>
+      <LoginForm redirectTo={redirectTo} />
+    </>
   )
 }

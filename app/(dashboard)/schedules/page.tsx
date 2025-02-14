@@ -89,7 +89,10 @@ export default async function SchedulesPage() {
               <TabsContent value="calendar" className="space-y-4">
                 <ErrorBoundary>
                   <Suspense fallback={<ScheduleCalendarSkeleton />}>
-                    <ScheduleCalendar promise={getSchedules(startDate, endDate)} />
+                    {/* @ts-expect-error Async Server Component */}
+                    <ScheduleData startDate={startDate} endDate={endDate}>
+                      {(shifts) => <ScheduleCalendar shifts={shifts} />}
+                    </ScheduleData>
                   </Suspense>
                 </ErrorBoundary>
               </TabsContent>
@@ -97,7 +100,10 @@ export default async function SchedulesPage() {
               <TabsContent value="list" className="space-y-4">
                 <ErrorBoundary>
                   <Suspense fallback={<ScheduleCalendarSkeleton />}>
-                    <ScheduleList promise={getSchedules(startDate, endDate)} />
+                    {/* @ts-expect-error Async Server Component */}
+                    <ScheduleData startDate={startDate} endDate={endDate}>
+                      {(shifts) => <ScheduleList shifts={shifts} />}
+                    </ScheduleData>
                   </Suspense>
                 </ErrorBoundary>
               </TabsContent>
@@ -109,4 +115,17 @@ export default async function SchedulesPage() {
   } catch (error) {
     throw handleError(error)
   }
+}
+
+async function ScheduleData({ 
+  startDate, 
+  endDate,
+  children 
+}: { 
+  startDate: string
+  endDate: string
+  children: (shifts: ScheduleWithDetails[]) => React.ReactNode 
+}) {
+  const shifts = await getSchedules(startDate, endDate)
+  return children(shifts)
 }

@@ -23,9 +23,15 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
+import { PasswordRequirements } from '@/components/ui/password-requirements'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 export function SignupForm() {
   const { toast } = useToast()
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const router = useRouter()
+  
   const form = useForm<SignupInput>({
     resolver: zodResolver(signupSchema),
     defaultValues: {
@@ -34,19 +40,19 @@ export function SignupForm() {
       confirmPassword: '',
       first_name: '',
       last_name: '',
-      role: undefined,
+      role: 'dispatcher',
     },
+    mode: 'onChange'
   })
 
   const onSubmit: SubmitHandler<SignupInput> = async (data) => {
     try {
+      setIsSubmitting(true)
+      
       const formData = new FormData()
-      formData.append('email', data.email)
-      formData.append('password', data.password)
-      formData.append('confirmPassword', data.confirmPassword)
-      formData.append('first_name', data.first_name)
-      formData.append('last_name', data.last_name)
-      formData.append('role', data.role)
+      Object.entries(data).forEach(([key, value]) => {
+        if (value) formData.append(key, value)
+      })
       
       const result = await signup(null, formData)
       
@@ -64,15 +70,21 @@ export function SignupForm() {
         description: 'Your account has been created. Please check your email to verify your account.',
       })
       
-      // Redirect will be handled by the server action
-    } catch {
+      form.reset()
+      router.push('/login')
+    } catch (error) {
+      console.error('Signup error:', error)
       toast({
         variant: 'destructive',
         title: 'Error',
         description: 'An unexpected error occurred. Please try again.',
       })
+    } finally {
+      setIsSubmitting(false)
     }
   }
+
+  const password = form.watch('password')
 
   return (
     <Form {...form}>
@@ -143,16 +155,19 @@ export function SignupForm() {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Role</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select 
+                onValueChange={field.onChange} 
+                defaultValue={field.value}
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select your role" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="manager">Manager</SelectItem>
-                  <SelectItem value="supervisor">Supervisor</SelectItem>
                   <SelectItem value="dispatcher">Dispatcher</SelectItem>
+                  <SelectItem value="supervisor">Supervisor</SelectItem>
+                  <SelectItem value="manager">Manager</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -200,8 +215,14 @@ export function SignupForm() {
           )}
         />
 
-        <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-          {form.formState.isSubmitting ? 'Creating account...' : 'Sign Up'}
+        <PasswordRequirements password={password} />
+
+        <Button 
+          type="submit" 
+          className="w-full" 
+          disabled={isSubmitting || !form.formState.isValid}
+        >
+          {isSubmitting ? 'Creating account...' : 'Sign Up'}
         </Button>
       </form>
     </Form>

@@ -1,42 +1,57 @@
-import { Icons } from '@/components/ui/icons'
+'use client'
+
+import { CheckCircle2, XCircle } from 'lucide-react'
 
 interface PasswordRequirementsProps {
   password: string
 }
 
 export function PasswordRequirements({ password }: PasswordRequirementsProps) {
-  const hasMinLength = password.length >= 8
-  const hasMaxLength = password.length <= 100
-  const hasUppercase = /[A-Z]/.test(password)
-  const hasLowercase = /[a-z]/.test(password)
-  const hasNumber = /\d/.test(password)
-  const hasSpecialChar = /[@$!%*?&]/.test(password)
-
   const requirements = [
-    { text: 'At least 8 characters', met: hasMinLength },
-    { text: 'Maximum 100 characters', met: hasMaxLength },
-    { text: 'One uppercase letter', met: hasUppercase },
-    { text: 'One lowercase letter', met: hasLowercase },
-    { text: 'One number', met: hasNumber },
-    { text: 'One special character (@$!%*?&)', met: hasSpecialChar },
+    {
+      text: 'At least 8 characters',
+      test: (pass: string) => pass.length >= 8,
+    },
+    {
+      text: 'At least one uppercase letter',
+      test: (pass: string) => /[A-Z]/.test(pass),
+    },
+    {
+      text: 'At least one lowercase letter',
+      test: (pass: string) => /[a-z]/.test(pass),
+    },
+    {
+      text: 'At least one number',
+      test: (pass: string) => /[0-9]/.test(pass),
+    },
+    {
+      text: 'At least one special character (@$!%*?&)',
+      test: (pass: string) => /[@$!%*?&]/.test(pass),
+    },
   ]
 
   return (
     <div className="space-y-2">
       <p className="text-sm font-medium text-muted-foreground">Password Requirements:</p>
-      <ul className="text-sm space-y-1">
-        {requirements.map(({ text, met }) => (
-          <li key={text} className="flex items-center space-x-2">
-            {met ? (
-              <Icons.check className="h-4 w-4 text-green-500" />
-            ) : (
-              <Icons.minus className="h-4 w-4 text-muted-foreground" />
-            )}
-            <span className={met ? 'text-green-500' : 'text-muted-foreground'}>
-              {text}
-            </span>
-          </li>
-        ))}
+      <ul className="space-y-1">
+        {requirements.map((req, index) => {
+          const isMet = password ? req.test(password) : false
+          return (
+            <li
+              key={index}
+              className="flex items-center gap-2 text-sm"
+            >
+              {isMet ? (
+                <CheckCircle2 className="h-4 w-4 text-green-500" />
+              ) : (
+                <XCircle className="h-4 w-4 text-red-500" />
+              )}
+              <span className={isMet ? 'text-green-700' : 'text-red-700'}>
+                {req.text}
+              </span>
+            </li>
+          )
+        })}
       </ul>
     </div>
   )

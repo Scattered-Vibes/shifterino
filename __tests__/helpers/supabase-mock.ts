@@ -1,6 +1,6 @@
 import { vi } from 'vitest'
-import type { SupabaseClient, User, RealtimeChannel } from '@supabase/supabase-js'
-import type { Database } from '@/types/supabase/database'
+import type { SupabaseClient, User, RealtimeChannel, AuthError } from '@supabase/supabase-js'
+import type { Database } from '@/types/supabase'
 
 // Mock data
 export const mockUser = {
@@ -254,4 +254,86 @@ export function createMockRealtimeClient() {
       }
     }
   } as unknown as MockSupabaseClient
+}
+
+type MockResponse<T> = {
+  data: T | null
+  error: Error | null
+}
+
+export const mockSupabaseClient = {
+  auth: {
+    getSession: vi.fn(),
+    getUser: vi.fn(),
+    signOut: vi.fn(),
+    onAuthStateChange: vi.fn(() => ({
+      data: { subscription: { unsubscribe: vi.fn() } }
+    })),
+  },
+  from: vi.fn(() => ({
+    select: vi.fn(() => ({
+      eq: vi.fn(() => ({
+        single: vi.fn(),
+        mockResolvedValueOnce: vi.fn(),
+      })),
+      mockResolvedValueOnce: vi.fn(),
+    })),
+    insert: vi.fn(() => ({
+      select: vi.fn(),
+      mockResolvedValueOnce: vi.fn(),
+    })),
+    update: vi.fn(() => ({
+      eq: vi.fn(() => ({
+        single: vi.fn(),
+        mockResolvedValueOnce: vi.fn(),
+      })),
+      mockResolvedValueOnce: vi.fn(),
+    })),
+    delete: vi.fn(() => ({
+      eq: vi.fn(() => ({
+        mockResolvedValueOnce: vi.fn(),
+      })),
+    })),
+    mockResolvedValueOnce: vi.fn(),
+  })),
+} as unknown as jest.Mocked<SupabaseClient<Database>>
+
+// Helper to reset all mocks
+export const resetSupabaseMocks = () => {
+  Object.values(mockSupabaseClient.auth).forEach(mock => {
+    if (typeof mock === 'function') {
+      (mock as jest.Mock).mockReset()
+    }
+  })
+  ;(mockSupabaseClient.from as jest.Mock).mockReset()
+}
+
+// Helper to setup auth session
+export const mockAuthSession = (user: Partial<User> | null = null, error: AuthError | null = null) => {
+  mockSupabaseClient.auth.getSession.mockResolvedValueOnce({
+    data: { 
+      session: user ? { 
+        user: user as User,
+        expires_at: Date.now() + 3600,
+        access_token: 'mock-token',
+        refresh_token: 'mock-refresh-token'
+      } : null 
+    },
+    error,
+  })
+}
+
+// Helper to setup database query responses
+export const mockDbResponse = <T>(
+  table: keyof Database['public']['Tables'], 
+  data: T | null = null, 
+  error: Error | null = null
+) => {
+  const mockChain = {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    single: vi.fn().mockResolvedValueOnce({ data, error } as MockResponse<T>),
+  }
+  ;(mockSupabaseClient.from as jest.Mock).mockReturnValueOnce(mockChain)
+  return mockChain
 } 

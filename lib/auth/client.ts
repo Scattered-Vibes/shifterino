@@ -2,17 +2,9 @@
 
 import { useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import type { Database } from '@/types/supabase/database'
+import type { AuthenticatedUser, UserRole } from './core'
 
-export type UserRole = Database['public']['Enums']['employee_role']
-
-export interface AuthenticatedUser {
-  userId: string
-  employeeId: string
-  role: UserRole
-  email: string
-  isNewUser: boolean
-}
+export type { AuthenticatedUser, UserRole }
 
 /**
  * Get the current user from the client-side Supabase instance
@@ -38,15 +30,22 @@ export function useAuthListener(
   useEffect(() => {
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session?.user && onSignIn) {
+        // Get employee details
+        const { data: employee } = await supabase
+          .from('employees')
+          .select('id, role, first_name, last_name')
+          .eq('auth_id', session.user.id)
+          .single()
+
         // Convert Supabase user to our AuthenticatedUser type
         const user: AuthenticatedUser = {
           userId: session.user.id,
-          employeeId: session.user.user_metadata.employee_id || '',
-          role: session.user.user_metadata.role as UserRole,
+          employeeId: employee?.id || '',
+          role: employee?.role || 'dispatcher',
           email: session.user.email || '',
-          isNewUser: !session.user.user_metadata.employee_id
+          isNewUser: !employee || !employee.first_name || !employee.last_name
         }
         onSignIn(user)
       } else if (event === 'SIGNED_OUT' && onSignOut) {

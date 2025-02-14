@@ -1,11 +1,11 @@
 'use client'
 
 import * as React from 'react'
-import { createClient } from '@/lib/supabase/client'
-import type { SupabaseClient } from '@/lib/supabase/client'
+import { createBrowserClient } from '@supabase/ssr'
+import { type Database } from '@/types/supabase'
 
 interface SupabaseContext {
-  supabase: SupabaseClient
+  supabase: ReturnType<typeof createBrowserClient<Database>>
 }
 
 const Context = React.createContext<SupabaseContext | undefined>(undefined)
@@ -15,7 +15,12 @@ export function SupabaseProvider({
 }: {
   children: React.ReactNode
 }) {
-  const [supabase] = React.useState(() => createClient())
+  const [supabase] = React.useState(() => 
+    createBrowserClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+  )
 
   return (
     <Context.Provider value={{ supabase }}>

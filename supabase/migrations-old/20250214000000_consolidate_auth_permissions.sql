@@ -1,0 +1,100 @@
+-- Ensure schemas exist
+CREATE SCHEMA IF NOT EXISTS auth;
+CREATE SCHEMA IF NOT EXISTS extensions;
+
+-- Revoke all existing permissions first
+REVOKE ALL ON ALL TABLES IN SCHEMA auth FROM public;
+REVOKE ALL ON ALL SEQUENCES IN SCHEMA auth FROM public;
+REVOKE ALL ON ALL FUNCTIONS IN SCHEMA auth FROM public;
+REVOKE ALL ON SCHEMA auth FROM public;
+
+REVOKE ALL ON ALL TABLES IN SCHEMA auth FROM anon;
+REVOKE ALL ON ALL SEQUENCES IN SCHEMA auth FROM anon;
+REVOKE ALL ON ALL FUNCTIONS IN SCHEMA auth FROM anon;
+REVOKE ALL ON SCHEMA auth FROM anon;
+
+REVOKE ALL ON ALL TABLES IN SCHEMA auth FROM authenticated;
+REVOKE ALL ON ALL SEQUENCES IN SCHEMA auth FROM authenticated;
+REVOKE ALL ON ALL FUNCTIONS IN SCHEMA auth FROM authenticated;
+REVOKE ALL ON SCHEMA auth FROM authenticated;
+
+REVOKE ALL ON ALL TABLES IN SCHEMA auth FROM service_role;
+REVOKE ALL ON ALL SEQUENCES IN SCHEMA auth FROM service_role;
+REVOKE ALL ON ALL FUNCTIONS IN SCHEMA auth FROM service_role;
+REVOKE ALL ON SCHEMA auth FROM service_role;
+
+-- Create extensions if they don't exist
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA extensions;
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
+CREATE EXTENSION IF NOT EXISTS pgjwt WITH SCHEMA extensions;
+
+-- Grant schema usage
+GRANT USAGE ON SCHEMA auth TO postgres;
+GRANT USAGE ON SCHEMA auth TO service_role;
+GRANT USAGE ON SCHEMA auth TO anon;
+GRANT USAGE ON SCHEMA auth TO authenticated;
+
+-- Grant permissions on all existing tables
+GRANT ALL ON ALL TABLES IN SCHEMA auth TO postgres;
+GRANT ALL ON ALL TABLES IN SCHEMA auth TO service_role;
+GRANT SELECT ON ALL TABLES IN SCHEMA auth TO anon;
+GRANT ALL ON ALL TABLES IN SCHEMA auth TO authenticated;
+
+-- Grant permissions on all existing sequences
+GRANT ALL ON ALL SEQUENCES IN SCHEMA auth TO postgres;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA auth TO service_role;
+GRANT SELECT ON ALL SEQUENCES IN SCHEMA auth TO anon;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA auth TO authenticated;
+
+-- Grant permissions on all existing functions
+GRANT ALL ON ALL FUNCTIONS IN SCHEMA auth TO postgres;
+GRANT ALL ON ALL FUNCTIONS IN SCHEMA auth TO service_role;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA auth TO anon;
+GRANT ALL ON ALL FUNCTIONS IN SCHEMA auth TO authenticated;
+
+-- Set default privileges for future objects
+ALTER DEFAULT PRIVILEGES IN SCHEMA auth
+GRANT ALL ON TABLES TO postgres, service_role;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA auth
+GRANT SELECT ON TABLES TO anon;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA auth
+GRANT ALL ON TABLES TO authenticated;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA auth
+GRANT ALL ON SEQUENCES TO postgres, service_role;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA auth
+GRANT SELECT ON SEQUENCES TO anon;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA auth
+GRANT ALL ON SEQUENCES TO authenticated;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA auth
+GRANT ALL ON FUNCTIONS TO postgres, service_role;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA auth
+GRANT EXECUTE ON FUNCTIONS TO anon;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA auth
+GRANT ALL ON FUNCTIONS TO authenticated;
+
+-- Set proper timeout for roles
+ALTER ROLE anon SET statement_timeout = '3s';
+ALTER ROLE authenticated SET statement_timeout = '8s';
+
+-- Grant additional permissions for service role
+GRANT USAGE ON SCHEMA public TO service_role;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO service_role;
+GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO service_role;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+GRANT ALL ON TABLES TO service_role;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+GRANT ALL ON SEQUENCES TO service_role;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+GRANT ALL ON FUNCTIONS TO service_role; 

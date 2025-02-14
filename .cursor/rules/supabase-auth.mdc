@@ -1,0 +1,19 @@
+---
+description: Supabase Authentication Integration & Client Creation Rules
+globs: lib/supabase/client.ts, lib/supabase/server.ts, middleware.ts
+---
+# Supabase Authentication Guidelines
+
+- **Use @supabase/ssr Exclusively**  
+  • Always import from `@supabase/ssr` for server-side clients.  
+  • Do not use deprecated packages such as `@supabase/auth-helpers-nextjs`.
+
+- **Client Creation Patterns**  
+  • **Server-Side Client:**  
+  - Create using Next.js `cookies()` together with the `@supabase/ssr` client for secure session handling.  
+  • **Client-Side Client:**  
+  - Create using `createBrowserClient` strictly for UI interactions.
+
+- **Middleware & Auth Hooks**  
+  • Protect routes by checking for a session in middleware and redirect unauthenticated users.  
+  • Use custom hooks (e.g. `useAuth`) to monitor authentication state and subscribe to auth changes.

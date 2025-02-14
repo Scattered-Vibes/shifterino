@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Redis } from '@upstash/redis'
 import { Ratelimit } from '@upstash/ratelimit'
+import {
+  type RateLimitConfig,
+  DEFAULT_CONFIG,
+  generateRateLimitKey,
+  createRateLimitHeaders,
+  createRateLimitResponse,
+  debug,
+  errorLog
+} from './rate-limit-core'
 
 // Initialize Redis client
 const redis = new Redis({
@@ -8,62 +17,59 @@ const redis = new Redis({
   token: process.env.UPSTASH_REDIS_REST_TOKEN!,
 })
 
-// Default rate limit configuration
-const DEFAULT_RATE_LIMIT = {
-  maxRequests: 50, // Maximum requests per window
-  windowMs: 60 * 1000 // 1 minute window
-}
-
-interface RateLimitConfig {
-  maxRequests: number
-  windowMs: number
-}
-
-interface RateLimitResult {
-  status: number
-  headers: Record<string, string>
-}
-
 export async function rateLimit(
   request: NextRequest,
   response: NextResponse,
-  config: RateLimitConfig = DEFAULT_RATE_LIMIT
-): Promise<RateLimitResult | null> {
+  config: RateLimitConfig = DEFAULT_CONFIG
+) {
   try {
-    // Create rate limiter instance
+    debug('Creating rate limiter instance')
     const ratelimit = new Ratelimit({
       redis,
       limiter: Ratelimit.slidingWindow(config.maxRequests, `${config.windowMs}ms`),
       analytics: true,
     })
 
-    // Get client IP
-    const ip = request.ip ?? '127.0.0.1'
+    const key = generateRateLimitKey(request, config.keyPrefix)
+    debug('Generated rate limit key:', key)
 
     // Check rate limit
-    const { success, limit, reset, remaining } = await ratelimit.limit(ip)
+    const { success, limit, reset, remaining } = await ratelimit.limit(key)
+    debug('Rate limit check result:', { success, limit, reset, remaining })
 
-    // Set rate limit headers
-    response.headers.set('X-RateLimit-Limit', limit.toString())
-    response.headers.set('X-RateLimit-Remaining', remaining.toString())
-    response.headers.set('X-RateLimit-Reset', reset.toString())
+    // Create headers
+    const headers = createRateLimitHeaders(
+      limit,
+      remaining,
+      reset,
+      Math.ceil((reset - Date.now()) / 1000)
+    )
+
+    // Add headers to response
+    Object.entries(headers).forEach(([key, value]) => {
+      response.headers.set(key, value)
+    })
 
     // Return 429 if rate limit exceeded
     if (!success) {
-      return {
-        status: 429,
-        headers: {
-          'Retry-After': Math.ceil((reset - Date.now()) / 1000).toString(),
-          'X-RateLimit-Limit': limit.toString(),
-          'X-RateLimit-Remaining': remaining.toString(),
-          'X-RateLimit-Reset': reset.toString()
-        }
-      }
+      debug('Rate limit exceeded')
+      return createRateLimitResponse(
+        Math.ceil((reset - Date.now()) / 1000),
+        headers
+      )
     }
 
+    debug('Rate limit check passed')
     return null
   } catch (error) {
-    console.error('Rate limit error:', error)
+    errorLog('Rate limit error:', error)
+    if (config.failOnError) {
+      return createRateLimitResponse(
+        60,
+        createRateLimitHeaders(0, 0, Date.now() + 60000, 60),
+        'Rate limiting error'
+      )
+    }
     return null
   }
 } 

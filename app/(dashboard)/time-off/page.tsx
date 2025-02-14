@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { handleError } from '@/lib/utils/index'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { TimeOffDataTable } from './data-table'
-import { TimeOffTableSkeleton } from './loading'
+import Loading from './loading'
 import { CreateTimeOffButton } from './create-button'
 import { TimeOffFilters } from './filters'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
@@ -86,7 +86,7 @@ export default async function TimeOffPage() {
           </CardHeader>
           <CardContent>
             <ErrorBoundary>
-              <Suspense fallback={<TimeOffTableSkeleton />}>
+              <Suspense fallback={<Loading />}>
                 <TimeOffDataTable 
                   promise={getTimeOffRequests(employee.id, isManager)} 
                   isManager={isManager}

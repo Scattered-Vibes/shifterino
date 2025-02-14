@@ -31,24 +31,34 @@ export function SidebarNav({ className, items, ...props }: SidebarNavProps) {
       icon: <LayoutDashboardIcon className="mr-2 h-4 w-4" />
     },
     {
-      href: '/schedule',
-      title: 'Schedule',
+      href: '/schedules',
+      title: 'Schedules',
       icon: <CalendarIcon className="mr-2 h-4 w-4" />
     },
     {
-      href: '/shifts',
-      title: 'Shifts',
+      href: '/time-off',
+      title: 'Time Off',
       icon: <ClockIcon className="mr-2 h-4 w-4" />
     },
     {
-      href: '/swap-requests',
-      title: 'Swap Requests',
-      icon: <ArrowLeftRightIcon className="mr-2 h-4 w-4" />
+      href: '/manage',
+      title: 'Manage',
+      icon: <Settings2Icon className="mr-2 h-4 w-4" />
     },
     {
       href: '/employees',
       title: 'Employees',
       icon: <UsersIcon className="mr-2 h-4 w-4" />
+    },
+    {
+      href: '/shift-options',
+      title: 'Shift Options',
+      icon: <ClockIcon className="mr-2 h-4 w-4" />
+    },
+    {
+      href: '/requirements',
+      title: 'Requirements',
+      icon: <ArrowLeftRightIcon className="mr-2 h-4 w-4" />
     },
     {
       href: '/settings',
