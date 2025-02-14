@@ -3,18 +3,15 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 const PUBLIC_ROUTES = [
   '/login',
-  '/signup', 
+  '/signup',
   '/reset-password',
   '/auth/callback',
-  '/complete-profile',
   '/_next',
   '/api/auth/login',
   '/api/auth/signup',
   '/api/auth/reset-password',
   '/api/auth/callback',
   '/api/public',
-  '/api/test-auth',
-  '/api/auth-debug',
   '/favicon.ico',
   '/assets',
 ]
@@ -29,6 +26,7 @@ export async function middleware(request: NextRequest) {
   })
 
   try {
+    // Create supabase client
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -38,97 +36,105 @@ export async function middleware(request: NextRequest) {
             return request.cookies.get(name)?.value
           },
           set(name: string, value: string, options: CookieOptions) {
-            try {
-              request.cookies.set({
-                name,
-                value,
-                ...options,
-              })
-              response = NextResponse.next({
-                request: {
-                  headers: request.headers,
-                },
-              })
-              response.cookies.set({
-                name,
-                value,
-                ...options,
-              })
-            } catch (error) {
-              console.error('Error setting cookie:', error)
-            }
+            request.cookies.set({
+              name,
+              value,
+              ...options,
+            })
+            response = NextResponse.next({
+              request: {
+                headers: request.headers,
+              },
+            })
+            response.cookies.set({
+              name,
+              value,
+              ...options,
+            })
           },
-          remove(name: string, _options: CookieOptions) {
-            try {
-              request.cookies.delete(name)
-              response = NextResponse.next({
-                request: {
-                  headers: request.headers,
-                },
-              })
-              response.cookies.delete(name)
-            } catch (error) {
-              console.error('Error removing cookie:', error)
-            }
+          remove(name: string, options: CookieOptions) {
+            request.cookies.set({
+              name,
+              value: '',
+              ...options,
+            })
+            response = NextResponse.next({
+              request: {
+                headers: request.headers,
+              },
+            })
+            response.cookies.set({
+              name,
+              value: '',
+              ...options,
+            })
           },
         },
       }
     )
 
-    const { pathname } = request.nextUrl
-    const isPublicRoute = PUBLIC_ROUTES.some(route => 
-      pathname.startsWith(route) || pathname === route
+    // Check if route requires auth
+    const path = request.nextUrl.pathname
+    const isPublicRoute = PUBLIC_ROUTES.some(route =>
+      path === route || path.startsWith(route + '/')
     )
 
-    // Early return for public routes
     if (isPublicRoute) {
       return response
     }
 
+    // Verify auth using both getSession and getUser
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
-    if (sessionError) {
-      console.error('Session error:', sessionError)
-      await supabase.auth.signOut()
-      
-      const redirectUrl = new URL('/login', request.url)
-      redirectUrl.searchParams.set('redirectTo', pathname)
-      return NextResponse.redirect(redirectUrl)
+    if (sessionError || !session) {
+      return handleAuthError(response, request)
     }
 
-    // Handle authentication based routes
-    if (!session) {
-      const redirectUrl = new URL('/login', request.url)
-      redirectUrl.searchParams.set('redirectTo', pathname)
-      return NextResponse.redirect(redirectUrl)
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+    if (userError || !user) {
+      return handleAuthError(response, request)
     }
 
     // Check manager routes
-    if (MANAGER_ROUTES.some(route => pathname.startsWith(route))) {
-      const { data: profile } = await supabase
+    const isManagerRoute = MANAGER_ROUTES.some(route =>
+      path === route || path.startsWith(route + '/')
+    )
+
+    if (isManagerRoute) {
+      const { data: employee } = await supabase
         .from('employees')
         .select('role')
-        .eq('auth_id', session.user.id)
+        .eq('auth_id', user.id)
         .single()
 
-      if (!profile || profile.role !== 'manager') {
+      if (!employee || employee.role !== 'manager') {
         return NextResponse.redirect(new URL('/unauthorized', request.url))
       }
     }
 
-    // Add auth context headers
-    const requestHeaders = new Headers(request.headers)
-    requestHeaders.set('x-user-id', session.user.id)
-
-    return NextResponse.next({
-      request: {
-        headers: requestHeaders,
-      },
-    })
+    return response
   } catch (error) {
     console.error('Middleware error:', error)
-    return response
+    return handleAuthError(response, request)
   }
+}
+
+function handleAuthError(response: NextResponse, request: NextRequest) {
+  // Clear any existing auth cookies
+  const cookiesToClear = ['sb-access-token', 'sb-refresh-token']
+  cookiesToClear.forEach(name => {
+    response.cookies.set({
+      name,
+      value: '',
+      expires: new Date(0),
+      path: '/',
+    })
+  })
+
+  const redirectUrl = new URL('/login', request.url)
+  redirectUrl.searchParams.set('redirectedFrom', request.nextUrl.pathname)
+  return NextResponse.redirect(redirectUrl)
 }
 
 export const config = {

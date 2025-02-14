@@ -1,26 +1,19 @@
 'use client'
 
 import { MainNav } from './main-nav'
-import { UserNav } from '@/components/ui/user-nav'
+import { UserNav } from './user-nav'
 import { ThemeToggle } from './theme-toggle'
 
-interface HeaderProps {
-  user: {
-    email: string
-    role: string
-  }
-}
-
-export function Header({ user }: HeaderProps) {
+export function Header() {
   return (
-    <div className="border-b">
-      <div className="flex h-16 items-center px-4">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container flex h-14 items-center">
         <MainNav />
-        <div className="ml-auto flex items-center space-x-4">
+        <div className="flex items-center gap-4 ml-auto">
           <ThemeToggle />
-          <UserNav user={user} />
+          <UserNav />
         </div>
       </div>
-    </div>
+    </header>
   )
 }

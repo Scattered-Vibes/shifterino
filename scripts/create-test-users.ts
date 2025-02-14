@@ -21,85 +21,113 @@ const supabase = createClient<Database>(supabaseUrl, supabaseServiceKey, {
   },
 })
 
-type TestUser = {
-  email: string
-  password: string
-  first_name: string
-  last_name: string
-  role: Database['public']['Enums']['employee_role']
-  shift_pattern: Database['public']['Enums']['shift_pattern']
-  preferred_shift_category: Database['public']['Enums']['shift_category']
-}
-
-const testUsers: TestUser[] = [
+const testUsers = [
   {
     email: 'manager@dispatch911.com',
     password: 'Manager@123',
-    first_name: 'Mike',
-    last_name: 'Manager',
-    role: 'manager',
-    shift_pattern: '4_10',
-    preferred_shift_category: 'DAY'
+    userData: {
+      first_name: 'Mike',
+      last_name: 'Manager',
+      role: 'manager',
+      shift_pattern: '4x10',
+    },
   },
   {
-    email: 'supervisor1@dispatch911.com',
-    password: 'Super@123',
-    first_name: 'Sarah',
-    last_name: 'Supervisor',
-    role: 'supervisor',
-    shift_pattern: '3_12_4',
-    preferred_shift_category: 'SWING'
+    email: 'supervisor@dispatch911.com',
+    password: 'Supervisor@123',
+    userData: {
+      first_name: 'Sarah',
+      last_name: 'Supervisor',
+      role: 'supervisor',
+      shift_pattern: '3x12_plus_4',
+    },
   },
   {
     email: 'dispatcher1@dispatch911.com',
-    password: 'Dispatch@123',
-    first_name: 'David',
-    last_name: 'Dispatcher',
-    role: 'dispatcher',
-    shift_pattern: '4_10',
-    preferred_shift_category: 'NIGHT'
+    password: 'Dispatcher@123',
+    userData: {
+      first_name: 'David',
+      last_name: 'Dispatcher',
+      role: 'dispatcher',
+      shift_pattern: '4x10',
+    },
+  },
+  {
+    email: 'dispatcher2@dispatch911.com',
+    password: 'Dispatcher@123',
+    userData: {
+      first_name: 'Diana',
+      last_name: 'Day',
+      role: 'dispatcher',
+      shift_pattern: '4x10',
+    },
+  },
+  {
+    email: 'dispatcher3@dispatch911.com',
+    password: 'Dispatcher@123',
+    userData: {
+      first_name: 'Sam',
+      last_name: 'Swing',
+      role: 'dispatcher',
+      shift_pattern: '3x12_plus_4',
+    },
+  },
+  {
+    email: 'dispatcher4@dispatch911.com',
+    password: 'Dispatcher@123',
+    userData: {
+      first_name: 'Nina',
+      last_name: 'Night',
+      role: 'dispatcher',
+      shift_pattern: '3x12_plus_4',
+    },
   },
 ]
 
 async function createTestUsers() {
   try {
     for (const user of testUsers) {
-      // Create auth user
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: user.email,
-        password: user.password,
-        email_confirm: true,
-        user_metadata: {
-          first_name: user.first_name,
-          last_name: user.last_name,
-          role: user.role,
-          shift_pattern: user.shift_pattern,
-          preferred_shift_category: user.preferred_shift_category,
-          profile_incomplete: true
-        }
-      })
+      const { data: existingUser, error: checkError } = await supabase
+        .from('employees')
+        .select('email')
+        .eq('email', user.email)
+        .single()
 
-      if (authError) {
-        console.error(`Error creating user ${user.email}:`, authError)
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error(`Error checking user ${user.email}:`, checkError)
         continue
       }
 
-      console.log(`Created user ${user.email} with ID ${authData.user.id}`)
-    }
+      if (existingUser) {
+        console.log(`User ${user.email} already exists, skipping...`)
+        continue
+      }
 
-    console.log('Test users created successfully')
+      const { data: _data, error } = await supabase.auth.admin.createUser({
+        email: user.email,
+        password: user.password,
+        email_confirm: true,
+        user_metadata: user.userData,
+      })
+
+      if (error) {
+        console.error(`Error creating user ${user.email}:`, error)
+      } else {
+        console.log(`Created user ${user.email} successfully`)
+      }
+    }
   } catch (error) {
-    console.error('Error creating test users:', error)
+    console.error('Error in createTestUsers:', error)
   }
 }
 
 // Run the script
 createTestUsers()
-  .catch(error => {
-    console.error('\x1b[31mFatal error:', error, '\x1b[0m')
-    process.exit(1)
+  .then(() => {
+    console.log('Finished creating test users')
+    process.exit(0)
   })
-  .finally(() => {
-    console.log('\x1b[34m=== Finished creating test users ===\x1b[0m')
-    process.exit()
+  .catch((error) => {
+    console.error('Fatal error:', error)
+    process.exit(1)
   }) 

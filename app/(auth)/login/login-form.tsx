@@ -1,12 +1,15 @@
 'use client'
 
 import { login } from '@/app/(auth)/actions'
-import { type LoginState } from '@/app/(auth)/auth'
-import { useFormState, useFormStatus } from 'react-dom'
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { loginSchema, type LoginInput } from '@/lib/validations/auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
 interface LoginFormProps {
@@ -14,19 +17,53 @@ interface LoginFormProps {
 }
 
 export function LoginForm({ redirectTo }: LoginFormProps) {
-  const [state, formAction] = useFormState<LoginState | null, FormData>(
-    (prevState: LoginState | null, formData: FormData) => login(prevState, formData, redirectTo),
-    null
-  )
-  const { pending } = useFormStatus()
+  const [error, setError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter()
+
+  const form = useForm<LoginInput>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  })
+
+  async function onSubmit(data: LoginInput) {
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      // Convert data to FormData
+      const formData = new FormData()
+      formData.append('email', data.email)
+      formData.append('password', data.password)
+
+      const result = await login(null, formData, redirectTo)
+
+      if (result?.error) {
+        setError(result.error.message)
+      } else {
+        router.replace(redirectTo || '/overview')
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        setError(error.message)
+      } else {
+        setError('An unexpected error occurred')
+      }
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   return (
     <div className="space-y-4">
-      <form action={formAction} className="space-y-4">
-        {state?.error && (
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        {error && (
           <Alert variant="destructive">
             <AlertDescription>
-              {state.error.message}
+              {error}
             </AlertDescription>
           </Alert>
         )}
@@ -36,10 +73,9 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
             <Input
               id="email"
               type="email"
-              name="email"
               placeholder="name@example.com"
               autoComplete="email"
-              required
+              {...form.register('email')}
             />
           </div>
           <div className="space-y-2">
@@ -47,18 +83,17 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
             <Input
               id="password"
               type="password"
-              name="password"
               autoComplete="current-password"
-              required
+              {...form.register('password')}
             />
           </div>
         </div>
         <Button 
           type="submit" 
           className="w-full"
-          disabled={pending}
+          disabled={isLoading}
         >
-          {pending ? 'Signing in...' : 'Sign in'}
+          {isLoading ? 'Signing in...' : 'Sign in'}
         </Button>
       </form>
       <div className="flex flex-col gap-2 text-center text-sm">

@@ -311,17 +311,40 @@ async function Metrics() {
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString()
 
   try {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return null
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    
+    if (userError || !user) {
+      redirect('/login')
+    }
+
+    const { data: employee, error: employeeError } = await supabase
+      .from('employees')
+      .select('role')
+      .eq('auth_id', user.id)
+      .maybeSingle()
+
+    if (employeeError) {
+      console.error('Error fetching employee:', employeeError)
+      redirect('/error')
+    }
+
+    if (!employee) {
+      console.warn('No employee record found for user:', user.id)
+      redirect('/complete-profile')
+    }
+
+    if (!['admin', 'manager', 'supervisor'].includes(employee.role)) {
+      redirect('/unauthorized')
+    }
 
     const [totalHoursResult, overtimeHoursResult] = await Promise.all([
       supabase.rpc('get_total_scheduled_hours', {
-        employee_id: session.user.id,
+        employee_id: user.id,
         start_date: startOfMonth,
         end_date: endOfMonth,
       }),
       supabase.rpc('get_total_overtime_hours', {
-        employee_id: session.user.id,
+        employee_id: user.id,
         start_date: startOfMonth,
         end_date: endOfMonth,
       }),
@@ -382,12 +405,7 @@ export default async function ManagePage() {
   try {
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     
-    if (userError) {
-      console.error('Error fetching user:', userError)
-      redirect('/login')
-    }
-
-    if (!user) {
+    if (userError || !user) {
       redirect('/login')
     }
 

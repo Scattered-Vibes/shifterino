@@ -13,16 +13,17 @@ export interface AuthenticatedUser {
 }
 
 export async function getSessionUser() {
-  const supabase = createClient()
+  const supabase = await createClient()
+
   try {
-    const { data: { session }, error } = await supabase.auth.getSession()
+    const { data: { user }, error } = await supabase.auth.getUser()
     
     if (error) throw error
-    if (!session) return null
+    if (!user) return null
     
-    return session.user
+    return user
   } catch (error) {
-    console.error('Error getting session:', error)
+    console.error('Error getting user:', error)
     return null
   }
 }
@@ -34,7 +35,7 @@ export async function requireAuth(allowIncomplete = false): Promise<Authenticate
     redirect('/login')
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: employee, error } = await supabase
     .from('employees')
     .select('id, role, first_name, last_name')
@@ -72,7 +73,7 @@ export async function verifyAccess(
   resourceId: string,
   resourceType: 'employee' | 'team'
 ) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Managers can access everything
   if (user.role === 'manager') return true

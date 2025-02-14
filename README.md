@@ -1,102 +1,184 @@
-# Shifterino - 911 Dispatch Center Scheduling System
+# 911 Dispatch Center Scheduling System
 
-A modern web application built with Next.js 14, TypeScript, and Supabase for managing 24/7 staffing schedules at 911 dispatch centers.
+A comprehensive scheduling system for 24/7 911 dispatch center operations, built with Next.js 14, TypeScript, and Supabase.
 
 ## Features
 
-- 24/7 schedule management with minimum staffing requirements
-- Employee shift pattern management (4x10 or 3x12+4)
-- Time-off request handling
-- Shift swap management
+- 24/7 schedule coverage with minimum staffing requirements
+- Shift pattern management (4x10 hours or 3x12 hours + 1x4 hours)
+- Time-off request management
 - Role-based access control (Manager, Supervisor, Dispatcher)
-- Real-time updates using Supabase
+- Real-time schedule updates
+- Automated schedule validation
 
-## Prerequisites
+## Tech Stack
 
-- Node.js 18.17 or later
-- Docker Desktop
-- Supabase CLI
+- **Frontend**: Next.js 14 (App Router), TypeScript, Tailwind CSS, Shadcn UI
+- **Backend**: Supabase (PostgreSQL, Auth, Real-time subscriptions)
+- **State Management**: Server Components + Client Hooks
+- **Styling**: Tailwind CSS + Shadcn UI Components
 
-## Setup
+## Project Structure
+
+```
+.
+├── app/                                # Next.js 14 app directory
+│   ├── (auth)/                        # Authentication routes and components
+│   │   ├── actions/                   # Auth server actions
+│   │   ├── login/                     # Login page and form
+│   │   ├── signup/                    # Signup flow
+│   │   └── components/                # Shared auth components
+│   ├── (dashboard)/                   # Dashboard routes
+│   │   ├── manage/                    # Schedule management
+│   │   ├── overview/                  # Schedule overview
+│   │   ├── profile/                   # User profile
+│   │   └── requirements/              # Staffing requirements
+│   ├── api/                           # API route handlers
+│   ├── hooks/                         # Custom React hooks
+│   │   ├── client/                    # Client-side hooks
+│   │   └── server/                    # Server-side hooks
+│   └── layout.tsx                     # Root layout
+├── components/                        # Shared components
+│   └── ui/                           # Shadcn UI components
+├── lib/                              # Core utilities
+│   ├── schedule/                     # Schedule logic
+│   ├── supabase/                     # Supabase client/server
+│   └── validations/                  # Schema validation
+├── providers/                        # React context providers
+├── types/                           # TypeScript types
+│   ├── models/                      # Data models
+│   ├── scheduling/                  # Schedule types
+│   └── supabase/                    # Generated DB types
+├── supabase/                        # Supabase config
+│   ├── migrations/                  # Database migrations
+│   ├── functions/                   # Edge functions
+│   └── tests/                       # Database tests
+└── __tests__/                       # Test suites
+    ├── e2e/                         # End-to-end tests
+    ├── integration/                 # Integration tests
+    └── unit/                        # Unit tests
+```
+
+## Application Summary
+
+This is a well-structured Next.js 14 application with modern Supabase integration, built to handle complex 911 dispatch center scheduling. Key highlights:
+
+- Modern Stack:
+  - Next.js 14 App Router
+  - Supabase with SSR (@supabase/ssr)
+  - TypeScript
+  - Shadcn UI + Tailwind
+
+- Architecture:
+  - Clean route grouping ((auth), (dashboard))
+  - Proper server/client component separation
+  - Comprehensive testing (unit, integration, E2E)
+  - Strong typing with generated Supabase types
+
+Key Features:
+- Complex scheduling logic
+- Real-time updates
+- Role-based access control
+- Time-off management
+- Shift swap handling
+
+Best Practices:
+- Server-side auth with Supabase SSR
+- Type-safe database access
+- Comprehensive error handling
+- Performance optimization
+- Rate limiting
+
+The codebase follows modern Next.js and Supabase best practices, with a strong focus on type safety, testing, and maintainability. The scheduling logic is well-organized to handle complex requirements while maintaining real-time capabilities.
+
+
+## Getting Started
 
 1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/shifterino.git
-cd shifterino
-```
+   ```bash
+   git clone https://github.com/yourusername/911-dispatch-scheduler.git
+   ```
 
 2. Install dependencies:
-```bash
-npm install
-```
+   ```bash
+   npm install
+   ```
 
 3. Set up environment variables:
-```bash
-cp .env.example .env.local
-```
-Edit `.env.local` with your Supabase credentials.
+   ```bash
+   cp .env.example .env.local
+   ```
+   Fill in your Supabase project details.
 
-4. Start Supabase locally:
-```bash
-supabase start
-```
+4. Run database migrations:
+   ```bash
+   npm run supabase:migrate
+   ```
 
-5. Reset the database and apply migrations:
-```bash
-npm run db:reset
-```
+5. Create test users:
+   ```bash
+   npm run create-test-users
+   ```
 
-6. Create test users:
-```bash
-npm run create:users
-```
-
-7. Start the development server:
-```bash
-npm run dev
-```
-
-## Test Users
-
-The following test users are created by default:
-
-- Manager:
-  - Email: manager@dispatch911.com
-  - Password: Manager@123
-
-- Supervisor:
-  - Email: supervisor1@dispatch911.com
-  - Password: Super@123
-
-- Dispatcher:
-  - Email: dispatcher1@dispatch911.com
-  - Password: Dispatch@123
-
-## Database Schema
-
-The application uses the following main tables:
-
-- employees: Employee profiles and preferences
-- assigned_shifts: Scheduled shifts for employees
-- time_off_requests: Employee time-off requests
-- shift_swap_requests: Shift swap requests between employees
-- staffing_requirements: Minimum staffing requirements per time block
-- shift_options: Available shift types and times
+6. Start the development server:
+   ```bash
+   npm run dev
+   ```
 
 ## Development
 
-- Run tests: `npm test`
-- Generate database types: `npm run db:types`
-- Lint code: `npm run lint`
-- Build for production: `npm run build`
+### Database Migrations
+
+- Create a new migration:
+  ```bash
+  npm run supabase:new name_of_migration
+  ```
+
+- Apply migrations:
+  ```bash
+  npm run supabase:migrate
+  ```
+
+### Testing
+
+- Run tests:
+  ```bash
+  npm test
+  ```
+
+### Code Style
+
+- Lint code:
+  ```bash
+  npm run lint
+  ```
+
+- Format code:
+  ```bash
+  npm run format
+  ```
+
+## Deployment
+
+1. Build the application:
+   ```bash
+   npm run build
+   ```
+
+2. Deploy to your hosting platform of choice.
+
+3. Run database migrations on production:
+   ```bash
+   npm run supabase:migrate:prod
+   ```
 
 ## Contributing
 
 1. Fork the repository
-2. Create your feature branch: `git checkout -b feature/my-new-feature`
-3. Commit your changes: `git commit -am 'Add some feature'`
-4. Push to the branch: `git push origin feature/my-new-feature`
-5. Submit a pull request
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
 ## License
 

@@ -237,7 +237,7 @@ Fails build if architecture violates any of these rules
 **Supabase + Next.js Mandatory Integration Rules**
 
 **Supabase Module Modernization**
-Never use @supabase/auth-helpers-nextjs! It is now deprecated in favor of @supabase/ssr. This is a crucial update we must make.
+Never use @supabase/auth-helpers-nextjs! It is now deprecated in favor of @supabase/ssr. This is a crucial update we must make. always use getUser() instead of getSession() for better security.
 
 **Rules**
 All auth logic must be server-side.  

@@ -1,5 +1,3 @@
-'use server'
-
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import type { Database } from '@/types/supabase/database'
@@ -14,7 +12,7 @@ function assertEnvVars() {
   }
 }
 
-export function createServerSupabaseClient() {
+export async function createServerSupabaseClient() {
   assertEnvVars()
   const cookieStore = cookies()
 
@@ -38,7 +36,7 @@ export function createServerSupabaseClient() {
 }
 
 // For admin operations that require service role
-export function createServiceSupabaseClient() {
+export async function createServiceSupabaseClient() {
   assertEnvVars()
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
     throw new Error('Missing required environment variable SUPABASE_SERVICE_ROLE_KEY')
@@ -68,8 +66,8 @@ export type { Database }
 
 // Helper to get authenticated user server-side
 export async function getUser() {
-  const supabase = createServerSupabaseClient()
   try {
+    const supabase = await createServerSupabaseClient()
     const { data: { user }, error } = await supabase.auth.getUser()
     if (error) throw error
     return user
@@ -77,4 +75,14 @@ export async function getUser() {
     console.error('Error getting user:', error)
     return null
   }
+}
+
+export async function createClient() {
+  const supabase = await createServerSupabaseClient()
+  // Validate the session immediately using getUser
+  const { data: { user }, error } = await supabase.auth.getUser()
+  if (error) {
+    console.error('Auth error:', error)
+  }
+  return supabase
 }

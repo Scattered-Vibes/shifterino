@@ -58,14 +58,26 @@ export function TimeOffRequestForm() {
 
   async function onSubmit(data: z.infer<typeof formSchema>) {
     try {
-      const { data: { session } } = await supabase.auth.getSession()
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
       
-      if (!session) throw new Error('No active session')
+      if (userError || !user) {
+        throw new Error('Authentication required')
+      }
+
+      const { data: employee, error: employeeError } = await supabase
+        .from('employees')
+        .select('id, role')
+        .eq('auth_id', user.id)
+        .single()
+
+      if (employeeError) {
+        throw new Error('Error fetching employee data')
+      }
 
       const { error } = await supabase
         .from('time_off_requests')
         .insert({
-          employee_id: session.user.id,
+          employee_id: employee.id,
           start_date: data.startDate.toISOString(),
           end_date: data.endDate.toISOString(),
           type: data.type,

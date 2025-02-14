@@ -15,37 +15,25 @@ type ScheduleRequest = {
 
 export async function POST(request: Request) {
   try {
-    const supabase = createClient()
-    
-    // Check authentication
-    const { data: { session }, error: authError } = await supabase.auth.getSession()
-    if (authError || !session) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+    const supabase = await createClient()
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+    if (userError || !user) {
+      return new Response('Unauthorized', { status: 401 })
     }
 
-    // Get user role
     const { data: employee, error: employeeError } = await supabase
       .from('employees')
-      .select('role')
-      .eq('auth_id', session.user.id)
+      .select('id, role')
+      .eq('auth_id', user.id)
       .single()
 
-    if (employeeError || !employee) {
-      return NextResponse.json(
-        { error: 'Employee not found' },
-        { status: 404 }
-      )
+    if (employeeError) {
+      return new Response('Error fetching employee data', { status: 500 })
     }
 
-    // Only managers and supervisors can create schedules
     if (!['manager', 'supervisor'].includes(employee.role)) {
-      return NextResponse.json(
-        { error: 'Insufficient permissions' },
-        { status: 403 }
-      )
+      return new Response('Unauthorized', { status: 403 })
     }
 
     const body = await request.json() as ScheduleRequest
@@ -57,10 +45,7 @@ export async function POST(request: Request) {
       .select('*')
 
     if (requirementsError) {
-      return NextResponse.json(
-        { error: 'Failed to fetch staffing requirements' },
-        { status: 500 }
-      )
+      return new Response('Failed to fetch staffing requirements', { status: 500 })
     }
 
     // Get employee shift pattern
@@ -71,10 +56,7 @@ export async function POST(request: Request) {
       .single()
 
     if (targetError || !targetEmployee) {
-      return NextResponse.json(
-        { error: 'Target employee not found' },
-        { status: 404 }
-      )
+      return new Response('Target employee not found', { status: 404 })
     }
 
     // Get time off requests
@@ -87,10 +69,7 @@ export async function POST(request: Request) {
       .eq('status', 'approved')
 
     if (timeOffError) {
-      return NextResponse.json(
-        { error: 'Failed to fetch time off requests' },
-        { status: 500 }
-      )
+      return new Response('Failed to fetch time off requests', { status: 500 })
     }
 
     // Validate schedule against requirements
@@ -100,11 +79,11 @@ export async function POST(request: Request) {
     )
 
     if (!scheduleValidation.isValid) {
-      return NextResponse.json(
-        { 
+      return new Response(
+        JSON.stringify({ 
           error: 'Invalid schedule',
           details: scheduleValidation.errors
-        },
+        }),
         { status: 400 }
       )
     }
@@ -116,11 +95,11 @@ export async function POST(request: Request) {
     )
 
     if (!patternValidation.isValid) {
-      return NextResponse.json(
-        {
+      return new Response(
+        JSON.stringify({
           error: 'Invalid shift pattern',
           details: patternValidation.errors
-        },
+        }),
         { status: 400 }
       )
     }
@@ -140,11 +119,11 @@ export async function POST(request: Request) {
     )
 
     if (!hoursValidation.isValid) {
-      return NextResponse.json(
-        {
+      return new Response(
+        JSON.stringify({
           error: 'Weekly hours validation failed',
           details: hoursValidation.errors
-        },
+        }),
         { status: 400 }
       )
     }
@@ -156,11 +135,11 @@ export async function POST(request: Request) {
       )
 
       if (conflicts.length > 0) {
-        return NextResponse.json(
-          {
+        return new Response(
+          JSON.stringify({
             error: 'Schedule conflicts with approved time off',
             details: conflicts.map(c => `Conflict on ${c.date}`)
-          },
+          }),
           { status: 400 }
         )
       }
@@ -174,18 +153,15 @@ export async function POST(request: Request) {
         start_date: startDate,
         end_date: endDate,
         shift_pattern: targetEmployee.shift_pattern,
-        created_by: session.user.id,
-        updated_by: session.user.id,
+        created_by: user.id,
+        updated_by: user.id,
         status: 'draft'
       })
       .select()
       .single()
 
     if (createError) {
-      return NextResponse.json(
-        { error: 'Failed to create schedule' },
-        { status: 500 }
-      )
+      return new Response('Failed to create schedule', { status: 500 })
     }
 
     // Create shift assignments
@@ -205,33 +181,33 @@ export async function POST(request: Request) {
         .delete()
         .eq('id', schedule.id)
 
-      return NextResponse.json(
-        { error: 'Failed to create shift assignments' },
-        { status: 500 }
-      )
+      return new Response('Failed to create shift assignments', { status: 500 })
     }
 
-    return NextResponse.json(schedule)
+    return new Response(JSON.stringify(schedule))
   } catch (error) {
-    console.error('Schedule creation error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    console.error('Error:', error)
+    return new Response('Internal Server Error', { status: 500 })
   }
 }
 
 export async function GET(request: Request) {
   try {
-    const supabase = createClient()
-    
-    // Check authentication
-    const { data: { session }, error: authError } = await supabase.auth.getSession()
-    if (authError || !session) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+    const supabase = await createClient()
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+    if (userError || !user) {
+      return new Response('Unauthorized', { status: 401 })
+    }
+
+    const { data: employee, error: employeeError } = await supabase
+      .from('employees')
+      .select('id, role')
+      .eq('auth_id', user.id)
+      .single()
+
+    if (employeeError) {
+      return new Response('Error fetching employee data', { status: 500 })
     }
 
     // Get query parameters
@@ -266,18 +242,12 @@ export async function GET(request: Request) {
     const { data: schedules, error } = await query
 
     if (error) {
-      return NextResponse.json(
-        { error: 'Failed to fetch schedules' },
-        { status: 500 }
-      )
+      return new Response('Failed to fetch schedules', { status: 500 })
     }
 
-    return NextResponse.json(schedules)
+    return new Response(JSON.stringify(schedules))
   } catch (error) {
-    console.error('Schedule fetch error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    console.error('Error:', error)
+    return new Response('Internal Server Error', { status: 500 })
   }
 } 

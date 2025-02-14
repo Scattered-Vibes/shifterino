@@ -59,7 +59,7 @@ export function createMiddlewareClient(request: NextRequest) {
 }
 
 export async function updateSession(request: NextRequest) {
-  let response = NextResponse.next({
+  const response = NextResponse.next({
     request: {
       headers: request.headers,
     },
@@ -83,8 +83,8 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  // Refresh session if expired - required for Server Components
-  const { data: { session } } = await supabase.auth.getSession()
+  // Verify auth state is valid - required for Server Components
+  const { data: { user: _user } } = await supabase.auth.getUser()
 
   return response
 } 

@@ -1,39 +1,21 @@
-import { redirect } from 'next/navigation'
 import { MainNav } from '@/components/ui/main-nav'
 import { UserNav } from '@/components/ui/user-nav'
 import { SidebarNav } from '@/components/ui/sidebar-nav'
 import { Toaster } from '@/components/ui/toaster'
-import { ErrorBoundary } from '@/components/ui/error-boundary'
-import { DashboardError } from '@/components/ui/errors'
-import { createClient } from '@/lib/supabase/server'
 
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const supabase = createClient()
-  const { data: { session } } = await supabase.auth.getSession()
-
-  if (!session) {
-    redirect('/login')
-  }
-
   return (
-    <ErrorBoundary 
-      fallback={
-        <DashboardError 
-          title="Dashboard Error" 
-          message="Something went wrong loading the dashboard" 
-        />
-      }
-    >
+    <>
       <div className="flex min-h-screen flex-col">
         <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="container flex h-14 items-center">
             <MainNav />
             <div className="ml-auto flex items-center space-x-4">
-              <UserNav user={session.user} />
+              <UserNav />
             </div>
           </div>
         </header>
@@ -47,6 +29,6 @@ export default async function DashboardLayout({
         </div>
       </div>
       <Toaster />
-    </ErrorBoundary>
+    </>
   )
 }
