@@ -1,26 +1,31 @@
-import { createServiceInstance } from '@/lib/supabase/clientInstance';
-import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 
-// Skip middleware for this route
-export const config = {
-  skipMiddleware: true
-};
+export const dynamic = 'force-dynamic'
+export const runtime = 'edge'
 
 export async function GET() {
   try {
-    const supabase = createServiceInstance();
-    
-    // Call our new function
-    const { data, error } = await supabase.rpc('get_auth_users');
+    const supabase = createClient()
+    const { data: { session }, error } = await supabase.auth.getSession()
     
     if (error) {
-      console.error('Error fetching auth users:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      throw error
     }
-    
-    return NextResponse.json({ users: data });
-  } catch (err) {
-    console.error('Unexpected error:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+
+    if (!session) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    }
+
+    return NextResponse.json({ 
+      message: 'Authenticated',
+      user: session.user 
+    })
+  } catch (error) {
+    console.error('Auth test error:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' }, 
+      { status: 500 }
+    )
   }
 } 

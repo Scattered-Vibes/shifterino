@@ -1,74 +1,53 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useEffect } from 'react'
+'use client'
+
+import { useEffect, useState } from 'react'
 import { useSupabase } from '@/app/providers/SupabaseContext'
-import { toast } from '@/components/ui/use-toast'
-import { ErrorCode, handleError, getUserFriendlyMessage } from '@/lib/utils/error-handler'
 import type { Database } from '@/types/supabase/database'
-import * as employeeServer from '../server/use-employees'
+import { PostgrestError } from '@supabase/supabase-js'
 
 type Employee = Database['public']['Tables']['employees']['Row']
 
-interface UseEmployeesOptions {
-  page?: number
-  limit?: number
-  search?: {
-    column: string
-    query: string
-  }
-}
-
-export function useEmployees(options: UseEmployeesOptions = {}) {
-  const queryClient = useQueryClient()
+export function useEmployees() {
   const { supabase } = useSupabase()
+  const [employees, setEmployees] = useState<Employee[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
 
-  const {
-    data: employees,
-    isLoading,
-    error,
-    refetch
-  } = useQuery({
-    queryKey: ['employees', options],
-    queryFn: () => employeeServer.getEmployees(options)
-  })
+  const fetchEmployees = async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+
+      const { data, error: fetchError } = await supabase
+        .from('employees')
+        .select('*')
+        .order('name')
+
+      if (fetchError) {
+        throw fetchError
+      }
+
+      setEmployees(data || [])
+      return data
+    } catch (err) {
+      console.error('Error fetching employees:', err)
+      const error = err instanceof PostgrestError ? err : new Error('Failed to fetch employees')
+      setError(error)
+      throw error
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const channel = supabase
-      .channel('employees')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'employees'
-        },
-        (_payload) => {
-          try {
-            queryClient.invalidateQueries({ queryKey: ['employees'] })
-          } catch (error) {
-            const appError = handleError(error)
-            toast({
-              title: 'Real-time Update Error',
-              description: getUserFriendlyMessage(ErrorCode.DB_QUERY_ERROR),
-              variant: 'destructive'
-            })
-            console.error('Real-time subscription error:', appError)
-          }
-        }
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel).catch(error => {
-        console.error('Error removing channel:', error)
-      })
-    }
-  }, [queryClient, supabase])
+    fetchEmployees()
+  }, [supabase])
 
   return {
     employees,
     isLoading,
     error,
-    refetch
+    refetch: fetchEmployees
   }
 }
 

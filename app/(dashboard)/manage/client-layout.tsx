@@ -56,8 +56,10 @@ const hasRequiredRole = (userRole: Role, requiredRole?: Role): boolean => {
 
 export function ClientManageLayout({
   children,
+  userRole,
 }: {
   children: React.ReactNode
+  userRole: string
 }) {
   const router = useRouter()
   const pathname = usePathname()
@@ -74,9 +76,9 @@ export function ClientManageLayout({
     return <div>Not authorized.</div>
   }
 
-  const userRole = employee.role.toLowerCase() as Role
+  const role = userRole.toLowerCase() as Role
 
-  const accessibleTabs = tabs.filter(tab => hasRequiredRole(userRole, tab.requiredRole))
+  const accessibleTabs = tabs.filter(tab => hasRequiredRole(role, tab.requiredRole))
 
   const handleTabChange = (value: string) => {
     router.push(`/manage/${value}`)

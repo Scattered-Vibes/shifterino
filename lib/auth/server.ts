@@ -2,22 +2,91 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import type { Database } from '@/types/supabase/database'
-import type { EmployeeWithAuth } from '@/types/supabase/index'
 import { AppError, ErrorCode } from '@/lib/utils/error-handler'
+import type { AuthenticatedUser, UserRole } from '@/types/auth'
 
-export type UserRole = Database['public']['Tables']['employees']['Row']['role']
+// Gets the currently authenticated user *and* their employee data.
+// Redirects if not authenticated or if employee data is missing.
+export async function requireAuth(allowIncomplete = false): Promise<AuthenticatedUser> {
+  const supabase = await createServerSupabaseClient()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
 
-export interface AuthenticatedUser {
-  userId: string
-  employeeId: string
-  role: UserRole
-  email: string
-  isNewUser: boolean
-  firstName?: string | null
-  lastName?: string | null
+  if (authError) {
+    console.error('[requireAuth] Error:', authError)
+    redirect('/login') // Redirect to login on auth error
+  }
+
+  if (!user) {
+    console.log('[requireAuth] No user found')
+    redirect('/login') // Redirect if no user
+  }
+
+  const { data: employee, error: employeeError } = await supabase
+    .from('employees')
+    .select('id, role, first_name, last_name, shift_pattern')
+    .eq('auth_id', user.id)
+    .single()
+
+  if (employeeError) {
+    console.error('[requireAuth] Error fetching employee:', employeeError)
+    redirect('/error') // Or a more specific error page
+  }
+
+  if (!employee) {
+    console.warn('[requireAuth] No employee record found for user:', user.id)
+    redirect('/complete-profile') // Redirect to complete profile
+  }
+  
+  const isNewUser = !employee.first_name || !employee.last_name
+  if (isNewUser && !allowIncomplete) {
+    redirect('/complete-profile')
+  }
+
+  return {
+    userId: user.id,
+    employeeId: employee.id,
+    role: employee.role,
+    email: user.email!, // We know email exists at this point
+    isNewUser,
+    firstName: employee.first_name,
+    lastName: employee.last_name,
+    shiftPattern: employee.shift_pattern
+  }
 }
 
-async function createServerSupabaseClient() {
+// Checks if the user has one of the allowed roles. Does *not* redirect.
+export async function hasRole(roles: UserRole[]): Promise<boolean> {
+  try {
+    const user = await requireAuth(true) // Allow incomplete profiles for role check
+    return roles.includes(user.role)
+  } catch (error) {
+    // If any error occurs (e.g., not authenticated), default to not authorized
+    return false
+  }
+}
+
+// Example helper functions for common role checks
+export async function requireManager() {
+  const user = await requireAuth()
+  if (user.role !== 'manager') {
+    redirect('/unauthorized')
+  }
+  return user
+}
+
+export async function requireSupervisorOrAbove() {
+  const user = await requireAuth()
+  if (user.role !== 'manager' && user.role !== 'supervisor') {
+    redirect('/unauthorized')
+  }
+  return user
+}
+
+// Supabase client creation
+export async function createServerSupabaseClient() {
   const cookieStore = cookies()
 
   return createServerClient<Database>(
@@ -37,90 +106,6 @@ async function createServerSupabaseClient() {
       },
     }
   )
-}
-
-export async function getSessionUser() {
-  try {
-    const supabase = await createServerSupabaseClient()
-    const { data: { user }, error } = await supabase.auth.getUser()
-    
-    if (error) {
-      console.error('[getSessionUser] Error:', error)
-      return null
-    }
-    
-    return user
-  } catch (error) {
-    console.error('[getSessionUser] Error:', error)
-    return null
-  }
-}
-
-export async function requireAuth(allowIncomplete = false): Promise<AuthenticatedUser> {
-  const supabase = await createServerSupabaseClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  
-  if (!user || authError) {
-    console.log('User not authenticated, redirecting to login', authError)
-    redirect('/login')
-  }
-
-  const { data: employee, error: employeeError } = await supabase
-    .from('employees')
-    .select('id, role, first_name, last_name')
-    .eq('auth_id', user.id)
-    .single()
-
-  if (employeeError) {
-    console.error('Error fetching employee data:', employeeError)
-    redirect('/error')
-  }
-
-  if (!employee) {
-    console.warn('No employee record found for user:', user.id)
-    redirect('/complete-profile')
-  }
-
-  const isNewUser = !employee.first_name || !employee.last_name
-
-  if (isNewUser && !allowIncomplete) {
-    redirect('/complete-profile')
-  }
-
-  return {
-    userId: user.id,
-    employeeId: employee.id,
-    role: employee.role as UserRole,
-    email: user.email!,
-    isNewUser,
-    firstName: employee.first_name,
-    lastName: employee.last_name
-  }
-}
-
-export async function requireRole(
-  user: AuthenticatedUser,
-  roles: UserRole[]
-): Promise<void> {
-  if (!roles.includes(user.role)) {
-    redirect('/unauthorized')
-  }
-}
-
-export async function requireManager(): Promise<AuthenticatedUser> {
-  const user = await requireAuth()
-  if (user.role !== 'manager') {
-    redirect('/unauthorized')
-  }
-  return user
-}
-
-export async function requireSupervisorOrAbove(): Promise<AuthenticatedUser> {
-  const user = await requireAuth()
-  if (user.role !== 'manager' && user.role !== 'supervisor') {
-    redirect('/unauthorized')
-  }
-  return user
 }
 
 export async function verifyTeamAccess(auth: AuthenticatedUser, employeeId: string): Promise<void> {

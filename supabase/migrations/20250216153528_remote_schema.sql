@@ -4,17 +4,33 @@ drop trigger if exists "set_individual_shifts_updated_by" on "public"."individua
 
 drop trigger if exists "update_individual_shifts_updated_at" on "public"."individual_shifts";
 
-drop policy "employees_select_own" on "public"."employees";
+-- Safely drop policies if they exist
+DO $$ BEGIN
+    -- Drop policies if they exist
+    IF EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'employees_select_own' AND tablename = 'employees') THEN
+        DROP POLICY "employees_select_own" ON "public"."employees";
+    END IF;
 
-drop policy "employees_update_own" on "public"."employees";
+    IF EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'employees_update_own' AND tablename = 'employees') THEN
+        DROP POLICY "employees_update_own" ON "public"."employees";
+    END IF;
 
-drop policy "shift_options_modify_managers" on "public"."shift_options";
+    IF EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'shift_options_modify_managers' AND tablename = 'shift_options') THEN
+        DROP POLICY "shift_options_modify_managers" ON "public"."shift_options";
+    END IF;
 
-drop policy "shift_options_read_all" on "public"."shift_options";
+    IF EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'shift_options_read_all' AND tablename = 'shift_options') THEN
+        DROP POLICY "shift_options_read_all" ON "public"."shift_options";
+    END IF;
 
-drop policy "teams_modify_managers" on "public"."teams";
+    IF EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'teams_modify_managers' AND tablename = 'teams') THEN
+        DROP POLICY "teams_modify_managers" ON "public"."teams";
+    END IF;
 
-drop policy "teams_read_all" on "public"."teams";
+    IF EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'teams_read_all' AND tablename = 'teams') THEN
+        DROP POLICY "teams_read_all" ON "public"."teams";
+    END IF;
+END $$;
 
 revoke delete on table "public"."individual_shifts" from "anon";
 
@@ -250,6 +266,116 @@ drop table "public"."shift_options";
 
 drop table "public"."teams";
 
+-- Handle unused enums first
+DO $$ 
+DECLARE
+    enum_type text;
+BEGIN
+    -- List of enums to drop (only unused ones)
+    FOR enum_type IN 
+        SELECT unnest(ARRAY[
+            'holiday_type',
+            'on_call_status',
+            'shift_category',
+            'swap_request_status'
+        ])
+    LOOP
+        -- Drop any columns using the enum
+        IF EXISTS (
+            SELECT 1 
+            FROM information_schema.columns 
+            WHERE udt_name = enum_type
+        ) THEN
+            -- Drop the columns that use the enum
+            EXECUTE (
+                SELECT string_agg(
+                    format('ALTER TABLE %I.%I DROP COLUMN %I;',
+                        table_schema,
+                        table_name,
+                        column_name
+                    ),
+                    E'\n'
+                )
+                FROM information_schema.columns
+                WHERE udt_name = enum_type
+            );
+        END IF;
+
+        -- Now safe to drop the type
+        EXECUTE format('DROP TYPE IF EXISTS "public".%I', enum_type);
+    END LOOP;
+EXCEPTION
+    WHEN undefined_object THEN NULL;
+END $$;
+
+-- Ensure required enums exist
+DO $$ BEGIN
+    CREATE TYPE public.schedule_status AS ENUM ('draft', 'published', 'archived');
+    CREATE TYPE public.shift_status AS ENUM ('scheduled', 'completed', 'cancelled');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+-- Recreate tables with updated schema
+CREATE TABLE IF NOT EXISTS public.teams (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name text NOT NULL UNIQUE,
+    description text,
+    created_at timestamptz DEFAULT now() NOT NULL,
+    updated_at timestamptz DEFAULT now() NOT NULL,
+    created_by uuid REFERENCES auth.users(id),
+    updated_by uuid REFERENCES auth.users(id)
+);
+
+CREATE TABLE IF NOT EXISTS public.shift_options (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name text NOT NULL,
+    start_time time NOT NULL,
+    end_time time NOT NULL,
+    duration_hours numeric(4,2) NOT NULL,
+    is_overnight boolean NOT NULL DEFAULT false,
+    created_at timestamptz DEFAULT now() NOT NULL,
+    updated_at timestamptz DEFAULT now() NOT NULL,
+    created_by uuid REFERENCES auth.users(id),
+    updated_by uuid REFERENCES auth.users(id),
+    CONSTRAINT valid_duration CHECK (duration_hours > 0 AND duration_hours <= 12)
+);
+
+CREATE TABLE IF NOT EXISTS public.schedule_periods (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    start_date date NOT NULL,
+    end_date date NOT NULL,
+    status public.schedule_status NOT NULL DEFAULT 'draft',
+    description text,
+    created_at timestamptz DEFAULT now() NOT NULL,
+    updated_at timestamptz DEFAULT now() NOT NULL,
+    created_by uuid REFERENCES auth.users(id),
+    updated_by uuid REFERENCES auth.users(id),
+    CONSTRAINT valid_date_range CHECK (end_date >= start_date)
+);
+
+CREATE TABLE IF NOT EXISTS public.individual_shifts (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    employee_id uuid NOT NULL REFERENCES public.employees(id) ON DELETE CASCADE,
+    assigned_shift_id uuid NOT NULL REFERENCES public.assigned_shifts(id) ON DELETE CASCADE,
+    date date NOT NULL,
+    actual_hours_worked numeric(4,2),
+    status public.shift_status NOT NULL DEFAULT 'scheduled',
+    notes text,
+    created_at timestamptz DEFAULT now() NOT NULL,
+    updated_at timestamptz DEFAULT now() NOT NULL,
+    created_by uuid REFERENCES auth.users(id),
+    updated_by uuid REFERENCES auth.users(id),
+    CONSTRAINT valid_hours CHECK (actual_hours_worked IS NULL OR actual_hours_worked >= 0)
+);
+
+-- Recreate indexes
+CREATE INDEX IF NOT EXISTS idx_individual_shifts_date ON public.individual_shifts(date);
+CREATE INDEX IF NOT EXISTS idx_individual_shifts_employee ON public.individual_shifts(employee_id);
+CREATE INDEX IF NOT EXISTS idx_individual_shifts_status ON public.individual_shifts(status);
+CREATE INDEX IF NOT EXISTS idx_shift_options_category ON public.shift_options(name);
+CREATE UNIQUE INDEX IF NOT EXISTS teams_name_key ON public.teams(name);
+
 alter table "public"."employees" alter column "shift_pattern" drop default;
 
 alter type "public"."shift_pattern" rename to "shift_pattern__old_version_to_be_dropped";
@@ -258,27 +384,15 @@ create type "public"."shift_pattern" as enum ('4x10', '3x12_plus_4');
 
 alter table "public"."employees" alter column shift_pattern type "public"."shift_pattern" using shift_pattern::text::"public"."shift_pattern";
 
-alter table "public"."employees" alter column "shift_pattern" set default '4_10'::shift_pattern;
+alter table "public"."employees" alter column "shift_pattern" set default '4x10'::shift_pattern;
 
 drop type "public"."shift_pattern__old_version_to_be_dropped";
 
-alter table "public"."employees" drop column "preferred_shift_category";
-
-alter table "public"."employees" drop column "team_id";
+-- Remove column drops since they don't exist
+-- alter table "public"."employees" drop column "preferred_shift_category";
+-- alter table "public"."employees" drop column "team_id";
 
 alter table "public"."employees" alter column "shift_pattern" set default '4x10'::shift_pattern;
-
-drop type "public"."holiday_type";
-
-drop type "public"."on_call_status";
-
-drop type "public"."schedule_status";
-
-drop type "public"."shift_category";
-
-drop type "public"."shift_status";
-
-drop type "public"."swap_request_status";
 
 set check_function_bodies = off;
 

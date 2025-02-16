@@ -13,6 +13,7 @@ type SupabaseContextType = {
   session: Session | null
   employee: DbEmployee | null
   isLoading: boolean
+  error: Error | null
 }
 
 export const SupabaseContext = createContext<SupabaseContextType | undefined>(undefined)
@@ -27,34 +28,68 @@ export function SupabaseProvider({ children }: SupabaseProviderProps) {
   const [user, setUser] = useState<User | null>(null)
   const [employee, setEmployee] = useState<DbEmployee | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
+
+  // Function to fetch employee data
+  const fetchEmployeeData = async (userId: string) => {
+    try {
+      const { data: employeeData, error: employeeError } = await supabase
+        .from('employees')
+        .select('*')
+        .eq('auth_id', userId)
+        .single()
+
+      if (employeeError) {
+        throw employeeError
+      }
+
+      if (employeeData) {
+        setEmployee(employeeData)
+      } else {
+        setError(new Error('No employee record found'))
+      }
+    } catch (err) {
+      console.error('Error fetching employee data:', err)
+      setError(err instanceof Error ? err : new Error('Failed to fetch employee data'))
+      setEmployee(null)
+    }
+  }
 
   useEffect(() => {
+    // Check initial session
+    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+      setSession(initialSession)
+      setUser(initialSession?.user ?? null)
+      
+      if (initialSession?.user) {
+        fetchEmployeeData(initialSession.user.id)
+      }
+      
+      setIsLoading(false)
+    })
+
+    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log(`Supabase auth event: ${event}`, session)
+      
+      // Reset error state on auth change
+      setError(null)
+      
+      // Update session and user state
       setSession(session)
       setUser(session?.user ?? null)
-      
+
+      // Handle employee data
       if (session?.user) {
-        const { data: employeeData, error } = await supabase
-          .from('employees')
-          .select('*')
-          .eq('auth_id', session.user.id)
-          .single()
-          
-        if (error) {
-          console.error('Error fetching employee data:', error)
-        }
-        
-        if (employeeData) {
-          setEmployee(employeeData)
-        }
+        setIsLoading(true)
+        await fetchEmployeeData(session.user.id)
+        setIsLoading(false)
       } else {
         setEmployee(null)
+        setIsLoading(false)
       }
-
-      setIsLoading(false)
     })
 
     return () => {
@@ -63,7 +98,16 @@ export function SupabaseProvider({ children }: SupabaseProviderProps) {
   }, [supabase])
 
   return (
-    <SupabaseContext.Provider value={{ supabase, user, session, employee, isLoading }}>
+    <SupabaseContext.Provider 
+      value={{ 
+        supabase, 
+        user, 
+        session, 
+        employee, 
+        isLoading,
+        error
+      }}
+    >
       {children}
     </SupabaseContext.Provider>
   )

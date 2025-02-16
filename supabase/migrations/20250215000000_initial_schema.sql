@@ -456,6 +456,201 @@ CREATE POLICY "managers_manage_time_off"
     FOR ALL
     USING (public.check_user_role(ARRAY['manager']));
 
+-- Add holidays table
+CREATE TABLE IF NOT EXISTS public.holidays (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name text NOT NULL,
+    date date NOT NULL,
+    type public.holiday_type NOT NULL,
+    is_observed boolean DEFAULT true,
+    description text,
+    created_at timestamptz DEFAULT now() NOT NULL,
+    updated_at timestamptz DEFAULT now() NOT NULL,
+    created_by uuid REFERENCES auth.users(id),
+    updated_by uuid REFERENCES auth.users(id),
+    CONSTRAINT unique_holiday_date UNIQUE (date)
+);
+
+-- Add on-call assignments table
+CREATE TABLE IF NOT EXISTS public.on_call_assignments (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    employee_id uuid NOT NULL REFERENCES public.employees(id) ON DELETE CASCADE,
+    start_date date NOT NULL,
+    end_date date NOT NULL,
+    status public.on_call_status NOT NULL DEFAULT 'scheduled',
+    notes text,
+    created_at timestamptz DEFAULT now() NOT NULL,
+    updated_at timestamptz DEFAULT now() NOT NULL,
+    created_by uuid REFERENCES auth.users(id),
+    updated_by uuid REFERENCES auth.users(id),
+    CONSTRAINT valid_date_range CHECK (end_date >= start_date)
+);
+
+-- Add scheduling logs table
+CREATE TABLE IF NOT EXISTS public.scheduling_logs (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    table_name text NOT NULL,
+    record_id uuid NOT NULL,
+    action text NOT NULL CHECK (action IN ('INSERT', 'UPDATE', 'DELETE')),
+    old_data jsonb,
+    new_data jsonb,
+    changed_by uuid REFERENCES auth.users(id) NOT NULL,
+    changed_at timestamptz DEFAULT now() NOT NULL,
+    metadata jsonb
+);
+
+-- Add shift swap requests table with approval tracking
+CREATE TABLE IF NOT EXISTS public.shift_swap_requests (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    requesting_employee_id uuid NOT NULL REFERENCES public.employees(id) ON DELETE CASCADE,
+    receiving_employee_id uuid NOT NULL REFERENCES public.employees(id) ON DELETE CASCADE,
+    shift_id uuid NOT NULL REFERENCES public.assigned_shifts(id) ON DELETE CASCADE,
+    status public.swap_request_status NOT NULL DEFAULT 'pending',
+    notes text,
+    approved_rejected_by uuid REFERENCES auth.users(id),
+    approved_rejected_at timestamptz,
+    created_at timestamptz DEFAULT now() NOT NULL,
+    updated_at timestamptz DEFAULT now() NOT NULL,
+    created_by uuid REFERENCES auth.users(id),
+    updated_by uuid REFERENCES auth.users(id),
+    CONSTRAINT different_employees CHECK (requesting_employee_id != receiving_employee_id)
+);
+
+-- Create indexes for new tables
+CREATE INDEX IF NOT EXISTS idx_holidays_date ON public.holidays(date);
+CREATE INDEX IF NOT EXISTS idx_on_call_assignments_employee ON public.on_call_assignments(employee_id);
+CREATE INDEX IF NOT EXISTS idx_on_call_assignments_dates ON public.on_call_assignments USING gist (
+    employee_id,
+    daterange(start_date, end_date, '[]')
+);
+CREATE INDEX IF NOT EXISTS idx_scheduling_logs_table_record ON public.scheduling_logs(table_name, record_id);
+CREATE INDEX IF NOT EXISTS idx_scheduling_logs_changed_by ON public.scheduling_logs(changed_by);
+CREATE INDEX IF NOT EXISTS idx_shift_swap_requests_employees ON public.shift_swap_requests(requesting_employee_id, receiving_employee_id);
+CREATE INDEX IF NOT EXISTS idx_shift_swap_requests_status ON public.shift_swap_requests(status);
+
+-- Add triggers for new tables
+CREATE TRIGGER update_holidays_updated_at
+    BEFORE UPDATE ON public.holidays
+    FOR EACH ROW
+    EXECUTE FUNCTION public.update_updated_at_column();
+
+CREATE TRIGGER update_on_call_assignments_updated_at
+    BEFORE UPDATE ON public.on_call_assignments
+    FOR EACH ROW
+    EXECUTE FUNCTION public.update_updated_at_column();
+
+CREATE TRIGGER update_shift_swap_requests_updated_at
+    BEFORE UPDATE ON public.shift_swap_requests
+    FOR EACH ROW
+    EXECUTE FUNCTION public.update_updated_at_column();
+
+-- Add created_by/updated_by triggers
+CREATE TRIGGER set_holidays_created_by
+    BEFORE INSERT ON public.holidays
+    FOR EACH ROW
+    EXECUTE FUNCTION public.set_created_by();
+
+CREATE TRIGGER set_holidays_updated_by
+    BEFORE UPDATE ON public.holidays
+    FOR EACH ROW
+    EXECUTE FUNCTION public.set_updated_by();
+
+CREATE TRIGGER set_on_call_assignments_created_by
+    BEFORE INSERT ON public.on_call_assignments
+    FOR EACH ROW
+    EXECUTE FUNCTION public.set_created_by();
+
+CREATE TRIGGER set_on_call_assignments_updated_by
+    BEFORE UPDATE ON public.on_call_assignments
+    FOR EACH ROW
+    EXECUTE FUNCTION public.set_updated_by();
+
+CREATE TRIGGER set_shift_swap_requests_created_by
+    BEFORE INSERT ON public.shift_swap_requests
+    FOR EACH ROW
+    EXECUTE FUNCTION public.set_created_by();
+
+CREATE TRIGGER set_shift_swap_requests_updated_by
+    BEFORE UPDATE ON public.shift_swap_requests
+    FOR EACH ROW
+    EXECUTE FUNCTION public.set_updated_by();
+
+-- Enable RLS on new tables
+ALTER TABLE public.holidays ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.on_call_assignments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.scheduling_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.shift_swap_requests ENABLE ROW LEVEL SECURITY;
+
+-- Add RLS policies for new tables
+CREATE POLICY "all_view_holidays"
+    ON public.holidays
+    FOR SELECT
+    USING (true);
+
+CREATE POLICY "managers_manage_holidays"
+    ON public.holidays
+    FOR ALL
+    USING (public.check_user_role(ARRAY['manager']));
+
+CREATE POLICY "view_own_on_call"
+    ON public.on_call_assignments
+    FOR SELECT
+    USING (
+        employee_id IN (
+            SELECT id
+            FROM public.employees
+            WHERE auth_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "supervisors_view_all_on_call"
+    ON public.on_call_assignments
+    FOR SELECT
+    USING (public.check_user_role(ARRAY['supervisor', 'manager']));
+
+CREATE POLICY "managers_manage_on_call"
+    ON public.on_call_assignments
+    FOR ALL
+    USING (public.check_user_role(ARRAY['manager']));
+
+CREATE POLICY "view_own_swap_requests"
+    ON public.shift_swap_requests
+    FOR SELECT
+    USING (
+        requesting_employee_id IN (
+            SELECT id
+            FROM public.employees
+            WHERE auth_id = auth.uid()
+        )
+        OR
+        receiving_employee_id IN (
+            SELECT id
+            FROM public.employees
+            WHERE auth_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "create_own_swap_requests"
+    ON public.shift_swap_requests
+    FOR INSERT
+    WITH CHECK (
+        requesting_employee_id IN (
+            SELECT id
+            FROM public.employees
+            WHERE auth_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "supervisors_manage_swap_requests"
+    ON public.shift_swap_requests
+    FOR ALL
+    USING (public.check_user_role(ARRAY['supervisor', 'manager']));
+
+CREATE POLICY "managers_view_logs"
+    ON public.scheduling_logs
+    FOR SELECT
+    USING (public.check_user_role(ARRAY['manager']));
+
 -- Grants
 GRANT USAGE ON SCHEMA public TO anon, authenticated;
 GRANT ALL ON ALL TABLES IN SCHEMA public TO authenticated;

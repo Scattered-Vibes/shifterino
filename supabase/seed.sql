@@ -1,3 +1,43 @@
+-- Clean up any existing test data
+SELECT tests.cleanup_test_data();
+
+-- Create test users (trigger will create corresponding employee records)
+SELECT tests.create_supabase_user(
+    'test.manager@example.com',
+    'Test',
+    'Manager',
+    'manager',
+    '4x10',
+    'Manager@123'
+);
+
+SELECT tests.create_supabase_user(
+    'test.supervisor@example.com',
+    'Test',
+    'Supervisor',
+    'supervisor',
+    '4x10',
+    'Supervisor@123'
+);
+
+SELECT tests.create_supabase_user(
+    'test.dispatcher1@example.com',
+    'Test',
+    'Dispatcher1',
+    'dispatcher',
+    '3x12_plus_4',
+    'Dispatcher@123'
+);
+
+SELECT tests.create_supabase_user(
+    'test.dispatcher2@example.com',
+    'Test',
+    'Dispatcher2',
+    'dispatcher',
+    '4x10',
+    'Dispatcher@123'
+);
+
 -- Populate initial shift templates
 INSERT INTO public.shifts (name, start_time, end_time, duration_hours, is_overnight)
 VALUES
@@ -24,14 +64,12 @@ VALUES
 
 -- Create an example schedule period
 INSERT INTO public.schedule_periods (
-    id,
     start_date,
     end_date,
     status,
     description
 )
 VALUES (
-    '44444444-4444-4444-4444-444444444444',
     CURRENT_DATE,
     CURRENT_DATE + INTERVAL '4 months',
     'draft',
@@ -43,39 +81,62 @@ WITH employee_shifts AS (
     SELECT 
         e.id as employee_id,
         e.shift_pattern,
+        e.role,
         s.id as shift_id,
+        s.name as shift_name,
         s.duration_hours,
         s.start_time,
         s.end_time,
         d.day_offset
     FROM public.employees e
-    CROSS JOIN public.shifts s
+    CROSS JOIN (
+        SELECT * FROM public.shifts
+        WHERE (name LIKE '%10hr' AND duration_hours = 10)
+           OR (name LIKE '%12hr' AND duration_hours = 12)
+           OR (name LIKE '%4hr' AND duration_hours = 4)
+    ) s
     CROSS JOIN (
         SELECT generate_series(0, 3) as day_offset
     ) d
-    WHERE e.role != 'manager'
-        AND (
-            (e.shift_pattern = '4_10' AND s.duration_hours = 10 AND s.name LIKE '%10hr')
-            OR (e.shift_pattern = '3_12_4' AND 
-                ((s.duration_hours = 12 AND s.name LIKE '%12hr' AND d.day_offset < 3) OR 
-                 (s.duration_hours = 4 AND s.name LIKE '%4hr' AND d.day_offset = 3)))
-        )
+    WHERE e.email LIKE 'test.%@example.com'
 )
 INSERT INTO public.assigned_shifts (
     employee_id,
     shift_id,
     date
 )
-SELECT DISTINCT ON (employee_id, date)
+SELECT 
     employee_id,
     shift_id,
     CURRENT_DATE + (day_offset || ' days')::interval as date
-FROM employee_shifts
-WHERE (shift_pattern = '4_10' AND duration_hours = 10)
-   OR (shift_pattern = '3_12_4' AND 
-       ((duration_hours = 12 AND day_offset < 3) OR 
-        (duration_hours = 4 AND day_offset = 3)))
-ORDER BY employee_id, date, duration_hours DESC;
+FROM (
+    SELECT 
+        es.*,
+        ROW_NUMBER() OVER (PARTITION BY employee_id, day_offset ORDER BY 
+            CASE 
+                WHEN es.shift_pattern = '4x10' AND es.duration_hours = 10 THEN 1
+                WHEN es.shift_pattern = '3x12_plus_4' AND day_offset < 3 AND es.duration_hours = 12 THEN 1
+                WHEN es.shift_pattern = '3x12_plus_4' AND day_offset = 3 AND es.duration_hours = 4 THEN 1
+                ELSE 2
+            END
+        ) as rn
+    FROM employee_shifts es
+) ranked
+WHERE rn = 1
+  AND (
+    (shift_pattern = '4x10' AND duration_hours = 10)
+    OR 
+    (shift_pattern = '3x12_plus_4' AND (
+        (day_offset < 3 AND duration_hours = 12)
+        OR 
+        (day_offset = 3 AND duration_hours = 4)
+    ))
+  )
+  AND (
+    (role = 'supervisor' AND shift_name LIKE 'Day%')
+    OR 
+    (role = 'dispatcher' AND shift_name LIKE 'Early%')
+  );
 
 -- Create some example time-off requests
 INSERT INTO public.time_off_requests (
@@ -92,7 +153,7 @@ SELECT
     'pending'::public.time_off_status as status,
     'Vacation request' as notes
 FROM public.employees e
-WHERE e.email = 'dispatcher1@dispatch911.com'
+WHERE e.email = 'test.dispatcher1@example.com'
 UNION ALL
 SELECT 
     e.id as employee_id,
@@ -101,4 +162,4 @@ SELECT
     'approved'::public.time_off_status as status,
     'Doctor appointment' as notes
 FROM public.employees e
-WHERE e.email = 'supervisor1@dispatch911.com'; 
+WHERE e.email = 'test.supervisor@example.com'; 
