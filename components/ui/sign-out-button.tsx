@@ -1,45 +1,31 @@
 'use client'
 
-import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/use-toast'
-import { signOut } from '@/lib/auth/actions'
+import { useRouter } from 'next/navigation'
+import { Loader2 } from 'lucide-react'
+import { signOut } from '@/app/(auth)/actions'
+import { useFormState, useFormStatus } from 'react-dom'
 
 export function SignOutButton() {
   const { toast } = useToast()
-  const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter()
+  const { pending } = useFormStatus()
 
-  const handleSignOut = async () => {
-    try {
-      setIsLoading(true)
-      const result = await signOut()
-      
-      if (result?.error) {
-        throw new Error(result.error)
-      }
-
-      // No need for router.refresh() or router.push()
-      // The server action handles the redirect
-
-    } catch (error) {
-      console.error('Sign out error:', error)
-      toast({
-        title: 'Error signing out',
-        description: error instanceof Error ? error.message : 'Please try again',
-        variant: 'destructive',
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  // Use a form with useFormState and useFormStatus
+  const [state, formAction] = useFormState(signOut, null)
 
   return (
-    <Button
-      variant="ghost"
-      onClick={handleSignOut}
-      disabled={isLoading}
-    >
-      {isLoading ? 'Signing out...' : 'Sign Out'}
-    </Button>
+    <form action={formAction}>
+      <Button
+        variant="ghost"
+        type="submit"
+        className="w-full justify-start text-sm font-medium text-muted-foreground hover:text-primary"
+        disabled={pending}
+      >
+        {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+        Sign Out
+      </Button>
+    </form>
   )
 }

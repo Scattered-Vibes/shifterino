@@ -2,145 +2,114 @@
 BEGIN;
 SELECT plan(20);
 
+-- Clean up any existing test data
+SELECT tests.cleanup_test_data();
+
 -- Create test data
-INSERT INTO public.shift_options (id, name, category, start_time, end_time, duration_hours)
-VALUES 
-    ('test-shift-1', 'Early Day', 'early', '05:00', '15:00', 10),
-    ('test-shift-2', 'Late Day', 'day', '09:00', '19:00', 10),
-    ('test-shift-3', 'Night', 'graveyard', '22:00', '08:00', 10),
-    ('test-shift-4', 'Short', 'day', '09:00', '13:00', 4),
-    ('test-shift-5', 'Long', 'day', '07:00', '19:00', 12);
+DO $$
+DECLARE
+    test_user_id uuid;
+BEGIN
+    -- Create test user
+    test_user_id := tests.create_supabase_user('test.employee@example.com');
 
--- Test shift option constraints
+    -- Create test team
+    INSERT INTO public.teams (id, name, description)
+    VALUES ('99999999-9999-9999-9999-999999999999', 'Team A', 'Test Team A');
+
+    -- Create test employee
+    INSERT INTO public.employees (id, auth_id, first_name, last_name, email, role, shift_pattern)
+    VALUES ('11111111-1111-1111-1111-111111111111', test_user_id, 'Test', 'Employee', 'test@example.com', 'dispatcher', '4x10');
+
+    -- Create test shifts
+    INSERT INTO public.shifts (id, name, start_time, end_time, duration_hours)
+    VALUES 
+        ('22222222-2222-2222-2222-222222222222', 'Day Shift', '09:00', '17:00', 8),
+        ('66666666-6666-6666-6666-666666666666', 'Early Day', 'DAY', '05:00', '15:00', 10);
+
+    -- Create test assigned shift
+    INSERT INTO public.assigned_shifts (employee_id, shift_id, date)
+    VALUES ('11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', CURRENT_DATE);
+END $$;
+
+-- Test shift duration constraint
 SELECT throws_ok(
     $$
-    INSERT INTO public.shift_options (name, category, start_time, end_time, duration_hours)
-    VALUES ('Early Day', 'early', '06:00', '16:00', 10)
+    INSERT INTO public.shifts (name, start_time, end_time, duration_hours)
+    VALUES ('Invalid Shift', '09:00', '22:00', 13)
     $$,
-    'unique_shift_option_name_per_category',
-    'Cannot create shift option with duplicate name in same category'
+    'valid_duration',
+    'Shift duration must be between 0 and 12 hours'
 );
 
+-- Test staffing requirements constraint
 SELECT throws_ok(
     $$
-    INSERT INTO public.shift_options (name, category, start_time, end_time, duration_hours)
-    VALUES ('Invalid Duration', 'day', '09:00', '16:00', 10)
+    INSERT INTO public.staffing_requirements (start_time, end_time, min_total_staff, min_supervisors)
+    VALUES ('09:00', '17:00', 5, 6)
     $$,
-    'valid_shift_duration',
-    'Duration must match start and end times'
+    'valid_staff_count',
+    'Total staff must be greater than or equal to minimum supervisors'
 );
 
--- Test overlapping shifts
-INSERT INTO public.schedules (employee_id, shift_option_id, schedule_period_id, date, status)
-VALUES ('test-employee-1', 'test-shift-1', 'test-period-1', CURRENT_DATE, 'scheduled');
-
+-- Test time off request date range constraint
 SELECT throws_ok(
     $$
-    INSERT INTO public.schedules (employee_id, shift_option_id, schedule_period_id, date, status)
-    VALUES ('test-employee-1', 'test-shift-2', 'test-period-1', CURRENT_DATE, 'scheduled')
+    INSERT INTO public.time_off_requests (employee_id, start_date, end_date, status)
+    VALUES ('11111111-1111-1111-1111-111111111111', CURRENT_DATE + 1, CURRENT_DATE, 'pending')
     $$,
-    'no_overlapping_shifts_range',
-    'Cannot create overlapping shifts for same employee'
+    'valid_date_range',
+    'End date must be after or equal to start date'
 );
 
--- Test overlapping time off requests
-INSERT INTO public.time_off_requests (employee_id, start_date, end_date, status, reason)
-VALUES ('test-employee-1', CURRENT_DATE, CURRENT_DATE + 2, 'pending', 'Test request');
-
+-- Test unique employee shift date constraint
 SELECT throws_ok(
     $$
-    INSERT INTO public.time_off_requests (employee_id, start_date, end_date, status, reason)
-    VALUES ('test-employee-1', CURRENT_DATE + 1, CURRENT_DATE + 3, 'pending', 'Test request 2')
+    INSERT INTO public.assigned_shifts (employee_id, shift_id, date)
+    VALUES ('11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', CURRENT_DATE)
     $$,
-    'no_overlapping_time_off',
-    'Cannot create overlapping time off requests'
+    'unique_employee_shift_date',
+    'Employee cannot be assigned multiple shifts on the same date'
 );
 
--- Test weekly hours cap
-UPDATE public.employees 
-SET weekly_hours_cap = 40 
-WHERE id = 'test-employee-1';
-
--- Add shifts up to 35 hours
-INSERT INTO public.schedules (employee_id, shift_option_id, schedule_period_id, date, status)
-VALUES 
-    ('test-employee-1', 'test-shift-5', 'test-period-1', CURRENT_DATE + 1, 'scheduled'),
-    ('test-employee-1', 'test-shift-5', 'test-period-1', CURRENT_DATE + 2, 'scheduled'),
-    ('test-employee-1', 'test-shift-5', 'test-period-1', CURRENT_DATE + 3, 'scheduled');
-
--- Try to add another shift that would exceed cap
+-- Test shift overlap constraint
 SELECT throws_ok(
     $$
-    INSERT INTO public.schedules (employee_id, shift_option_id, schedule_period_id, date, status)
-    VALUES ('test-employee-1', 'test-shift-2', 'test-period-1', CURRENT_DATE + 4, 'scheduled')
+    INSERT INTO public.assigned_shifts (employee_id, shift_id, date)
+    VALUES ('11111111-1111-1111-1111-111111111111', '66666666-6666-6666-6666-666666666666', CURRENT_DATE)
     $$,
-    'Weekly hours (46) would exceed cap (40) for employee'
+    'Shift overlaps with existing assignment'
 );
 
--- Test pattern A constraints
-UPDATE public.employees 
-SET shift_pattern = 'pattern_a' 
-WHERE id = 'test-employee-1';
-
--- Add 4 consecutive 10-hour shifts
-INSERT INTO public.schedules (employee_id, shift_option_id, schedule_period_id, date, status)
-VALUES 
-    ('test-employee-1', 'test-shift-1', 'test-period-1', CURRENT_DATE + 7, 'scheduled'),
-    ('test-employee-1', 'test-shift-1', 'test-period-1', CURRENT_DATE + 8, 'scheduled'),
-    ('test-employee-1', 'test-shift-1', 'test-period-1', CURRENT_DATE + 9, 'scheduled'),
-    ('test-employee-1', 'test-shift-1', 'test-period-1', CURRENT_DATE + 10, 'scheduled');
-
--- Try to add a fifth consecutive shift
+-- Test employee role enum constraint
 SELECT throws_ok(
     $$
-    INSERT INTO public.schedules (employee_id, shift_option_id, schedule_period_id, date, status)
-    VALUES ('test-employee-1', 'test-shift-1', 'test-period-1', CURRENT_DATE + 11, 'scheduled')
+    INSERT INTO public.employees (auth_id, first_name, last_name, email, role, shift_pattern)
+    VALUES (tests.create_supabase_user('invalid.role@example.com'), 'Invalid', 'Role', 'invalid@example.com', 'invalid_role', '4x10')
     $$,
-    'Pattern A allows maximum 4 consecutive shifts'
+    'invalid input value for enum employee_role'
 );
 
--- Test pattern B constraints
-UPDATE public.employees 
-SET shift_pattern = 'pattern_b' 
-WHERE id = 'test-employee-1';
-
--- Add 3 12-hour shifts
-INSERT INTO public.schedules (employee_id, shift_option_id, schedule_period_id, date, status)
-VALUES 
-    ('test-employee-1', 'test-shift-5', 'test-period-1', CURRENT_DATE + 14, 'scheduled'),
-    ('test-employee-1', 'test-shift-5', 'test-period-1', CURRENT_DATE + 15, 'scheduled'),
-    ('test-employee-1', 'test-shift-5', 'test-period-1', CURRENT_DATE + 16, 'scheduled');
-
--- Add 1 4-hour shift
-INSERT INTO public.schedules (employee_id, shift_option_id, schedule_period_id, date, status)
-VALUES ('test-employee-1', 'test-shift-4', 'test-period-1', CURRENT_DATE + 17, 'scheduled');
-
--- Try to add another 12-hour shift
+-- Test shift pattern enum constraint
 SELECT throws_ok(
     $$
-    INSERT INTO public.schedules (employee_id, shift_option_id, schedule_period_id, date, status)
-    VALUES ('test-employee-1', 'test-shift-5', 'test-period-1', CURRENT_DATE + 18, 'scheduled')
+    INSERT INTO public.employees (auth_id, first_name, last_name, email, role, shift_pattern)
+    VALUES (tests.create_supabase_user('invalid.pattern@example.com'), 'Invalid', 'Pattern', 'invalid@example.com', 'dispatcher', 'invalid_pattern')
     $$,
-    'Pattern B allows maximum 3 12-hour shifts and 1 4-hour shift'
+    'invalid input value for enum shift_pattern'
 );
 
--- Test NOT NULL constraints
-SELECT col_is_null('schedules', 'actual_start_time', 'actual_start_time can be null');
-SELECT col_not_null('schedules', 'employee_id', 'employee_id cannot be null');
-SELECT col_not_null('schedules', 'shift_option_id', 'shift_option_id cannot be null');
-SELECT col_not_null('schedules', 'date', 'date cannot be null');
-SELECT col_not_null('schedules', 'status', 'status cannot be null');
+-- Test time off status enum constraint
+SELECT throws_ok(
+    $$
+    INSERT INTO public.time_off_requests (employee_id, start_date, end_date, status)
+    VALUES ('11111111-1111-1111-1111-111111111111', CURRENT_DATE, CURRENT_DATE + 1, 'invalid_status')
+    $$,
+    'invalid input value for enum time_off_status'
+);
 
-SELECT col_not_null('time_off_requests', 'employee_id', 'employee_id cannot be null');
-SELECT col_not_null('time_off_requests', 'start_date', 'start_date cannot be null');
-SELECT col_not_null('time_off_requests', 'end_date', 'end_date cannot be null');
-SELECT col_not_null('time_off_requests', 'status', 'status cannot be null');
-
-SELECT col_not_null('shift_options', 'name', 'name cannot be null');
-SELECT col_not_null('shift_options', 'category', 'category cannot be null');
-SELECT col_not_null('shift_options', 'start_time', 'start_time cannot be null');
-SELECT col_not_null('shift_options', 'end_time', 'end_time cannot be null');
-SELECT col_not_null('shift_options', 'duration_hours', 'duration_hours cannot be null');
+-- Clean up test data
+SELECT tests.cleanup_test_data();
 
 -- Finish the tests
 SELECT * FROM finish();

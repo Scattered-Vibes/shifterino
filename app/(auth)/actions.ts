@@ -4,397 +4,317 @@
 
 'use server'
 
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
-import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { handleError } from '@/lib/utils/error-handler'
-import { type Database } from '@/types/supabase/database'
-import { type LoginState, type SignUpState, type ResetPasswordState, type UpdatePasswordState } from '@/app/(auth)/auth'
-import { loginSchema, signupSchema, resetPasswordSchema, updatePasswordSchema } from '@/lib/validations/auth'
-import { createClient } from '@/lib/supabase/server'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { AppError, ErrorCode } from '@/lib/utils/error-handler'
+import type { Database } from '@/types/supabase/database'
+import type { 
+  LoginState, 
+  SignUpState, 
+  ResetPasswordState, 
+  UpdatePasswordState, 
+  UpdateProfileState 
+} from '@/types/auth'
+import {
+  loginSchema,
+  signupSchema,
+  resetPasswordSchema,
+  updatePasswordSchema,
+  type LoginInput,
+  type SignupInput,
+  type ResetPasswordInput,
+  type UpdatePasswordInput,
+} from '@/lib/validations/auth'
 import type { User } from '@supabase/supabase-js'
+import { z } from 'zod'
 
 // 1. Define and export the type
-export type SignOut = () => Promise<void>
+export type SignOutState = { error: { message: string; code?: string } } | null
 
 // 2. Export the server action explicitly
-export async function signOut() {
-  console.log('[Server] signOut: Starting server-side sign out')
+export async function signOut(): Promise<SignOutState> {
   try {
-    console.log('[Server] signOut: Getting cookie store')
-    const cookieStore = cookies()
-    
-    console.log('[Server] signOut: Creating Supabase client')
-    const supabase = createServerClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            console.log(`[Server] signOut: Getting cookie ${name}`)
-            return cookieStore.get(name)?.value
-          },
-          set(name: string, value: string, options: CookieOptions) {
-            console.log(`[Server] signOut: Setting cookie ${name}`)
-            cookieStore.set({ name, value, ...options })
-          },
-          remove(name: string, _options: CookieOptions) {
-            console.log(`[Server] signOut: Removing cookie ${name}`)
-            cookieStore.delete(name)
-          },
+    const supabase = await createServerSupabaseClient()
+    const { error } = await supabase.auth.signOut()
+
+    if (error) {
+      console.error('[signOut] Error:', error)
+      return {
+        error: {
+          message: 'Failed to sign out.',
+          code: ErrorCode.OPERATION_FAILED,
         },
       }
-    )
-
-    console.log('[Server] signOut: Verifying current session')
-    const { data: { session } } = await supabase.auth.getSession()
-    
-    if (session) {
-      console.log('[Server] signOut: Active session found, signing out')
-      const { error } = await supabase.auth.signOut()
-      if (error) {
-        console.error('[Server] signOut: Error during Supabase signOut:', error)
-        throw error
-      }
-      console.log('[Server] signOut: Successfully signed out from Supabase')
-    } else {
-      console.log('[Server] signOut: No active session found')
     }
 
-    console.log('[Server] signOut: Checking for auth cookie')
-    const authCookie = cookieStore.get('sb-auth-token')
-    if (authCookie) {
-      console.log('[Server] signOut: Clearing auth cookie')
-      cookieStore.delete('sb-auth-token')
-    }
-
-    console.log('[Server] signOut: Revalidating paths')
-    revalidatePath('/', 'layout')
-    
-    console.log('[Server] signOut: Redirecting to login')
+    // Only redirect after successful signout
     redirect('/login')
   } catch (error) {
-    console.error('[Server] signOut: Error during sign out:', error)
-    const result = handleError(error)
-    throw new Error(result.message)
+    console.error('[signOut] Error:', error)
+    // Return consistent error format
+    if (error instanceof AppError) {
+      return {
+        error: {
+          message: 'Failed to sign out.',
+          code: ErrorCode.UNKNOWN,
+        }
+      }
+    }
+    return {
+      error: {
+        message: 'Failed to sign out.',
+        code: ErrorCode.UNKNOWN,
+      }
+    }
   }
 }
 
 export async function login(
-  _prevState: LoginState | null,
-  formData: FormData,
-  redirectTo?: string
-): Promise<LoginState | null> {
+  prevState: LoginState | null,
+  formData: FormData
+): Promise<LoginState> {
+  console.log('[login] Starting login action')
   try {
-    const email = formData.get('email') as string
-    const password = formData.get('password') as string
-
-    const result = loginSchema.safeParse({ email, password })
-
-    if (!result.success) {
-      return {
-        error: {
-          message: result.error.errors[0].message,
-          code: 'VALIDATION_ERROR'
-        }
-      }
-    }
-
-    const supabase = await createClient()
-
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+    const validationResult = loginSchema.safeParse({
+      email: formData.get('email'),
+      password: formData.get('password'),
     })
 
-    if (signInError) {
+    if (!validationResult.success) {
+      console.log('[login] Validation failed:', validationResult.error.errors)
       return {
         error: {
-          message: signInError.message,
-          code: 'AUTH_ERROR'
+          message: validationResult.error.errors[0].message,
+          code: ErrorCode.VALIDATION
         }
       }
     }
 
-    // Verify the user was created and logged in
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    console.log("[login] Data valid")
+    const supabase = await createServerSupabaseClient()
     
-    if (userError || !user) {
+    // Attempt login
+    console.log('[login] Attempting sign in')
+    const { data, error } = await supabase.auth.signInWithPassword(validationResult.data)
+    console.log('[login] Sign in result:', { 
+      success: !!data?.session,
+      error: error?.message 
+    })
+
+    if (error) {
+      console.log('[login] Sign in error:', error)
       return {
         error: {
-          message: 'Failed to verify login',
-          code: 'AUTH_ERROR'
+          message: error.message,
+          code: error.status?.toString()
         }
       }
     }
 
-    // Get employee profile to verify it exists
-    const { error: employeeError } = await supabase
-      .from('employees')
-      .select('id')
-      .eq('auth_id', user.id)
-      .single()
-
-    if (employeeError) {
+    if (!data?.session) {
+      console.log('[login] No session in sign in response')
       return {
         error: {
-          message: 'Failed to fetch employee profile',
-          code: 'DATABASE_ERROR'
+          message: 'Authentication failed',
+          code: ErrorCode.UNAUTHORIZED
         }
       }
     }
 
-    // Revalidate all pages that might depend on auth state
-    revalidatePath('/', 'layout')
+    // Get the redirect path and redirect immediately
+    const redirectTo = formData.get('redirectTo')?.toString() || '/overview'
+    console.log('[login] Login successful, redirecting to:', redirectTo)
+    redirect(redirectTo)
+    // No return statement after redirect
 
-    // Only redirect if there are no errors
-    if (redirectTo && !redirectTo.startsWith('/login')) {
-      redirect(redirectTo)
-    }
-    
-    redirect('/overview')
   } catch (error) {
-    // Only handle non-redirect errors
-    if (error && typeof error === 'object' && 'digest' in error) {
-      // This is a redirect error, let it propagate
-      throw error
-    }
-
-    console.error('Login error:', error)
-    return {
-      error: {
-        message: 'An unexpected error occurred',
-        code: 'UNKNOWN_ERROR'
+    // Only catch non-redirect errors
+    if (error instanceof Error && error.message !== 'NEXT_REDIRECT') {
+      console.error('[login] Unexpected error:', error)
+      return {
+        error: {
+          message: error instanceof Error ? error.message : 'An unexpected error occurred',
+          code: ErrorCode.UNKNOWN
+        }
       }
     }
+    throw error // Re-throw redirect error
   }
 }
 
-export async function signup(
-  _prevState: SignUpState | null,
+export async function signUp(
+  prevState: SignUpState | null,
   formData: FormData
-): Promise<SignUpState | null> {
+): Promise<SignUpState> {
   try {
-    // Extract form data
-    const data = {
-      email: formData.get('email')?.toString() || '',
-      password: formData.get('password')?.toString() || '',
-      confirmPassword: formData.get('confirmPassword')?.toString() || '',
-      first_name: formData.get('first_name')?.toString() || '',
-      last_name: formData.get('last_name')?.toString() || '',
-      role: formData.get('role')?.toString() as 'manager' | 'supervisor' | 'dispatcher'
-    }
+    const validationResult = signupSchema.safeParse({
+      email: formData.get('email'),
+      password: formData.get('password'),
+      confirmPassword: formData.get('confirmPassword'),
+      first_name: formData.get('first_name'),
+      last_name: formData.get('last_name'),
+      role: formData.get('role'),
+    })
 
-    // Validate the data
-    const result = signupSchema.safeParse(data)
-
-    if (!result.success) {
-      const firstError = result.error.errors[0]
+    if (!validationResult.success) {
       return {
         error: {
-          message: firstError.message,
-          code: 'VALIDATION_ERROR'
+          message: validationResult.error.errors[0].message,
+          code: ErrorCode.VALIDATION
         }
       }
     }
 
-    const cookieStore = cookies()
-    const supabase = createServerClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-          set(name: string, value: string, options: CookieOptions) {
-            cookieStore.set({ name, value, ...options })
-          },
-          remove(name: string, _options: CookieOptions) {
-            cookieStore.delete(name)
-          },
-        },
-      }
-    )
-
-    const { error: signUpError } = await supabase.auth.signUp({
-      email: data.email,
-      password: data.password,
+    const supabase = await createServerSupabaseClient()
+    const { error } = await supabase.auth.signUp({
+      email: validationResult.data.email,
+      password: validationResult.data.password,
       options: {
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
         data: {
-          first_name: data.first_name,
-          last_name: data.last_name,
-          role: data.role,
+          first_name: validationResult.data.first_name,
+          last_name: validationResult.data.last_name,
+          role: validationResult.data.role,
           profile_incomplete: true
         }
-      },
-    })
-
-    if (signUpError) {
-      console.error('Signup error:', signUpError)
-      const result = handleError(signUpError)
-      return {
-        error: {
-          message: result.message,
-          code: result.code
-        }
       }
-    }
-
-    revalidatePath('/', 'layout')
-    return {
-      message: 'Check your email to confirm your account'
-    }
-  } catch (error) {
-    console.error('Unexpected error during signup:', error)
-    const result = handleError(error)
-    return {
-      error: {
-        message: result.message,
-        code: result.code
-      }
-    }
-  }
-}
-
-export async function resetPassword(_prevState: ResetPasswordState | null, formData: FormData): Promise<ResetPasswordState | null> {
-  try {
-    const email = formData.get('email') as string
-
-    const result = resetPasswordSchema.safeParse({ email })
-
-    if (!result.success) {
-      return {
-        error: {
-          message: result.error.errors[0].message,
-          code: 'VALIDATION_ERROR'
-        }
-      }
-    }
-
-    const cookieStore = cookies()
-    const supabase = createServerClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-          set(name: string, value: string, options: CookieOptions) {
-            cookieStore.set({ name, value, ...options })
-          },
-          remove(name: string, _options: CookieOptions) {
-            cookieStore.delete(name)
-          },
-        },
-      }
-    )
-
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
     })
 
     if (error) {
-      const result = handleError(error)
+      console.error('[signUp] Error:', error)
       return {
         error: {
-          message: result.message,
-          code: result.code
+          message: error.message,
+          code: ErrorCode.INVALID_CREDENTIALS
         }
       }
     }
 
-    return {
-      message: 'Check your email to reset your password'
-    }
+    // Redirect immediately on success
+    console.log('[signUp] Signup successful, redirecting to check email page')
+    redirect('/auth/check-email')
+
   } catch (error) {
-    const result = handleError(error)
+    console.error('[signUp] Error:', error)
     return {
       error: {
-        message: result.message,
-        code: result.code
+        message: error instanceof Error ? error.message : 'An unexpected error occurred',
+        code: ErrorCode.UNKNOWN
       }
     }
   }
 }
 
-export async function updatePassword(_prevState: UpdatePasswordState | null, formData: FormData): Promise<UpdatePasswordState | null> {
+export async function resetPassword(
+  prevState: ResetPasswordState | null,
+  formData: FormData
+): Promise<ResetPasswordState> {
   try {
-    const password = formData.get('password') as string
-    const confirmPassword = formData.get('confirmPassword') as string
+    const validationResult = resetPasswordSchema.safeParse({
+      email: formData.get('email')
+    })
 
-    const result = updatePasswordSchema.safeParse({ password, confirmPassword })
-
-    if (!result.success) {
+    if (!validationResult.success) {
       return {
         error: {
-          message: result.error.errors[0].message,
-          code: 'VALIDATION_ERROR'
+          message: validationResult.error.errors[0].message,
+          code: ErrorCode.VALIDATION
         }
       }
     }
 
-    const cookieStore = cookies()
-    const supabase = createServerClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    const supabase = await createServerSupabaseClient()
+    const { error } = await supabase.auth.resetPasswordForEmail(
+      validationResult.data.email,
       {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-          set(name: string, value: string, options: CookieOptions) {
-            cookieStore.set({ name, value, ...options })
-          },
-          remove(name: string, _options: CookieOptions) {
-            cookieStore.delete(name)
-          },
-        },
+        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/update-password`
       }
     )
 
+    if (error) {
+      console.error('[resetPassword] Error:', error)
+      return {
+        error: {
+          message: error.message,
+          code: ErrorCode.OPERATION_FAILED
+        }
+      }
+    }
+
+    return { success: true }
+  } catch (error) {
+    console.error('[resetPassword] Error:', error)
+    return {
+      error: {
+        message: error instanceof Error ? error.message : 'An unexpected error occurred',
+        code: ErrorCode.UNKNOWN
+      }
+    }
+  }
+}
+
+export async function updatePassword(
+  prevState: UpdatePasswordState | null,
+  formData: FormData
+): Promise<UpdatePasswordState> {
+  try {
+    const validationResult = updatePasswordSchema.safeParse({
+      password: formData.get('password'),
+      confirmPassword: formData.get('confirmPassword')
+    })
+
+    if (!validationResult.success) {
+      return {
+        error: {
+          message: validationResult.error.errors[0].message,
+          code: ErrorCode.VALIDATION
+        }
+      }
+    }
+
+    const supabase = await createServerSupabaseClient()
     const { error } = await supabase.auth.updateUser({
-      password,
+      password: validationResult.data.password
     })
 
     if (error) {
-      const result = handleError(error)
+      console.error('[updatePassword] Error:', error)
       return {
         error: {
-          message: result.message,
-          code: result.code
+          message: error.message,
+          code: ErrorCode.OPERATION_FAILED
         }
       }
     }
 
-    return {
-      message: 'Password updated successfully'
-    }
+    return { success: true }
   } catch (error) {
-    const result = handleError(error)
+    console.error('[updatePassword] Error:', error)
     return {
       error: {
-        message: result.message,
-        code: result.code
+        message: error instanceof Error ? error.message : 'An unexpected error occurred',
+        code: ErrorCode.UNKNOWN
       }
     }
   }
 }
 
 export async function getCurrentUser(): Promise<User | null> {
-  const supabase = await createClient()
-  
-  const { data: { user }, error } = await supabase.auth.getUser()
-  
-  if (error) {
-    console.error('Error getting user:', error)
+  try {
+    const supabase = await createServerSupabaseClient()
+    const { data: { user }, error } = await supabase.auth.getUser()
+    
+    if (error) {
+      console.error('[getCurrentUser] Error:', error)
+      return null
+    }
+    
+    return user
+  } catch (error) {
+    console.error('[getCurrentUser] Error:', error)
     return null
   }
-  
-  return user
 }
 
 export async function requireUser(): Promise<User> {
@@ -408,7 +328,7 @@ export async function requireUser(): Promise<User> {
 }
 
 export async function handleSignIn(formData: FormData) {
-  const supabase = await createClient()
+  const supabase = await createServerSupabaseClient()
   
   const email = formData.get('email') as string
   const password = formData.get('password') as string
@@ -424,3 +344,82 @@ export async function handleSignIn(formData: FormData) {
   
   redirect('/dashboard')
 }
+
+export async function updateProfile(
+  prevState: UpdateProfileState | null,
+  formData: FormData
+): Promise<UpdateProfileState> {
+  try {
+    const schema = z.object({
+      auth_id: z.string().uuid(),
+      first_name: z.string().min(2, { message: "First name must be at least 2 characters." }),
+      last_name: z.string().min(2, { message: "Last name must be at least 2 characters." }),
+    })
+
+    const validationResult = schema.safeParse({
+      auth_id: formData.get('auth_id'),
+      first_name: formData.get('first_name'),
+      last_name: formData.get('last_name'),
+    })
+
+    if (!validationResult.success) {
+      return {
+        error: {
+          message: validationResult.error.errors[0].message,
+          code: ErrorCode.VALIDATION
+        }
+      }
+    }
+
+    const supabase = await createServerSupabaseClient()
+
+    // Update employee record
+    const { error: employeeError } = await supabase
+      .from('employees')
+      .update({
+        first_name: validationResult.data.first_name,
+        last_name: validationResult.data.last_name,
+        updated_at: new Date().toISOString()
+      })
+      .eq('auth_id', validationResult.data.auth_id)
+
+    if (employeeError) {
+      console.error('[updateProfile] Error updating employee:', employeeError)
+      return {
+        error: {
+          message: 'Error updating employee record',
+          code: ErrorCode.DATABASE
+        }
+      }
+    }
+
+    // Update user metadata
+    const { error: updateError } = await supabase.auth.updateUser({
+      data: {
+        profile_incomplete: false
+      }
+    })
+
+    if (updateError) {
+      console.error('[updateProfile] Error updating user metadata:', updateError)
+      return {
+        error: {
+          message: updateError.message,
+          code: ErrorCode.OPERATION_FAILED
+        }
+      }
+    }
+
+    revalidatePath('/', 'layout')
+    redirect('/overview')
+  } catch (error) {
+    console.error('[updateProfile] Error:', error)
+    return {
+      error: {
+        message: error instanceof Error ? error.message : 'An unexpected error occurred',
+        code: ErrorCode.UNKNOWN
+      }
+    }
+  }
+}
+

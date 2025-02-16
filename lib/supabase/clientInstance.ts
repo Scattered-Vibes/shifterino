@@ -29,19 +29,30 @@ export function createServerInstance() {
           return cookieStore.get(name)?.value
         },
         set(name: string, value: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value, ...options })
-          } catch (error) {
-            // Expected in middleware or edge functions
-            console.warn('Cookie set failed:', error)
+          // Only set cookies in server actions or API routes
+          if (typeof document === 'undefined') {
+            try {
+              cookieStore.set({ name, value, ...options })
+            } catch (error) {
+              // Expected in middleware or edge functions
+              console.warn('[Cookie] Set failed:', error)
+            }
           }
         },
         remove(name: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value: '', ...options })
-          } catch (error) {
-            // Expected in middleware or edge functions
-            console.warn('Cookie remove failed:', error)
+          // Only remove cookies in server actions or API routes
+          if (typeof document === 'undefined') {
+            try {
+              cookieStore.set({ 
+                name, 
+                value: '', 
+                ...options,
+                maxAge: 0 
+              })
+            } catch (error) {
+              // Expected in middleware or edge functions
+              console.warn('[Cookie] Remove failed:', error)
+            }
           }
         },
       },

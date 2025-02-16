@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
-    "db:reset": "supabase db reset",
+    "db:setup": "tsx scripts/setup-db.ts",
+    "db:reset": "tsx scripts/setup-db.ts",
     "db:push": "supabase db push",
     "db:test": "supabase test db",
     "supabase:start": "supabase start",
@@ -18,9 +19,8 @@
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest watch",
-    "create-test-users": "tsx scripts/create-test-users.ts",
     "db:types": "supabase gen types typescript --project-id \"$(grep NEXT_PUBLIC_SUPABASE_PROJECT_ID .env.local | cut -d '=' -f2)\" > types/supabase/database.ts",
-    "create:users": "tsx scripts/create-test-users.ts"
+    "setup-db": "tsx scripts/setup-db.ts"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.15",

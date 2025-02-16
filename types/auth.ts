@@ -1,11 +1,29 @@
 import { ErrorCode } from '@/lib/utils/error-handler'
 import type { User } from '@supabase/supabase-js'
-import type { Database } from './supabase/database'
+import type { Database } from '@/types/supabase/database'
 import type { Employee, EmployeeRole } from './models/employee'
 
 type Tables = Database['public']['Tables']
 
 export type UserRole = 'dispatcher' | 'supervisor' | 'manager'
+export type ShiftPattern = Database['public']['Enums']['shift_pattern']
+
+// Auth State Types
+export type AuthState = {
+  error?: {
+    message: string
+    code?: string
+  }
+  success?: boolean
+}
+
+export type LoginState = AuthState
+export type SignUpState = AuthState
+export type ResetPasswordState = AuthState
+export type UpdatePasswordState = AuthState
+export type UpdateProfileState = AuthState
+
+export type SignOutState = { error: { message: string; code?: string } } | null
 
 export interface AuthSession {
   user: {
@@ -24,22 +42,18 @@ export interface AuthUser extends User {
   employee?: Employee
 }
 
-export interface AuthSuccess {
-  success: true
+export type AuthResult = {
+  success: boolean
+  error?: {
+    message: string
+    code: string
+  }
 }
-
-export interface AuthError {
-  message: string
-  status: number
-  name?: string
-}
-
-export type AuthResult = AuthSuccess | AuthError
 
 export interface SignOutResult {
   success?: boolean
   error?: string
-  code?: ErrorCode
+  code?: typeof ErrorCode
 }
 
 // Session Types
@@ -48,14 +62,6 @@ export interface Session {
   expires_at: number
   refresh_token?: string
   access_token: string
-}
-
-// Auth State Types
-export interface AuthState {
-  user: AuthUser | null
-  session: Session | null
-  isLoading: boolean
-  error: Error | null
 }
 
 // Auth Action Types
@@ -94,6 +100,12 @@ export interface AuthResponse {
   error: AuthError | null
 }
 
+export interface AuthError {
+  message: string
+  status: number
+  name?: string
+}
+
 // Auth Provider Types
 export interface AuthContextType {
   user: AuthUser | null
@@ -108,7 +120,7 @@ export interface AuthContextType {
 }
 
 // Auth Middleware Types
-export interface AuthResult {
+export interface AuthMiddlewareResult {
   isAuthenticated: boolean
   isAuthorized: boolean
   user: AuthUser | null
@@ -119,10 +131,6 @@ export interface AuthOptions {
   requireAuth?: boolean
   requiredRole?: EmployeeRole
 }
-
-// Auth Log Types
-export type AuthLog = Tables['auth_logs']['Row']
-export type AuthLogInsert = Tables['auth_logs']['Insert']
 
 // Auth Operation Types
 export type AuthOperation = 
@@ -164,4 +172,15 @@ export interface AuthEvent {
   session?: Session
   user?: AuthUser
   error?: AuthError
+}
+
+export type AuthenticatedUser = {
+  userId: string
+  employeeId: string
+  role: UserRole
+  email: string
+  isNewUser: boolean
+  firstName?: string | null
+  lastName?: string | null
+  shiftPattern: ShiftPattern
 } 

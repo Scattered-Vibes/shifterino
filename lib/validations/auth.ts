@@ -11,19 +11,16 @@ const passwordSchema = z
 
 export const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
-  password: z.string().min(1, 'Password is required'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
 })
 
 export const signupSchema = z.object({
   email: z.string().email('Invalid email address'),
-  password: passwordSchema,
+  password: z.string().min(8, 'Password must be at least 8 characters'),
   confirmPassword: z.string(),
-  first_name: z.string().min(1, 'First name is required').max(50, 'First name must be less than 50 characters'),
-  last_name: z.string().min(1, 'Last name is required').max(50, 'Last name must be less than 50 characters'),
-  role: z.enum(['manager', 'supervisor', 'dispatcher'], {
-    required_error: 'Please select a role',
-    invalid_type_error: 'Invalid role selected'
-  })
+  first_name: z.string().min(1, 'First name is required'),
+  last_name: z.string().min(1, 'Last name is required'),
+  role: z.enum(['manager', 'supervisor', 'dispatcher']).default('dispatcher'),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],

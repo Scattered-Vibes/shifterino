@@ -1,29 +1,24 @@
-import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import type { Database } from '@/types/supabase/database'
-
-export type UserRole = Database['public']['Tables']['employees']['Row']['role']
-
-export interface AuthenticatedUser {
-  userId: string
-  employeeId: string
-  role: UserRole
-  email: string
-  isNewUser: boolean
-}
+import { createServerSupabaseClient } from '@/lib/supabase/server'
+import type { AuthenticatedUser, UserRole } from '@/types/auth'
+import { AppError, ErrorCode } from '@/lib/utils/error-handler'
 
 export async function getSessionUser() {
-  const supabase = await createClient()
+  const supabase = await createServerSupabaseClient()
 
   try {
     const { data: { user }, error } = await supabase.auth.getUser()
     
-    if (error) throw error
+    if (error) {
+      console.error('[getSessionUser] Error:', error)
+      return null
+    }
+    
     if (!user) return null
     
     return user
   } catch (error) {
-    console.error('Error getting user:', error)
+    console.error('[getSessionUser] Error:', error)
     return null
   }
 }
@@ -35,34 +30,58 @@ export async function requireAuth(allowIncomplete = false): Promise<Authenticate
     redirect('/login')
   }
 
-  const supabase = await createClient()
-  const { data: employee, error } = await supabase
-    .from('employees')
-    .select('id, role, first_name, last_name')
-    .eq('auth_id', user.id)
-    .single()
+  try {
+    const supabase = await createServerSupabaseClient()
+    const { data: employee, error } = await supabase
+      .from('employees')
+      .select('id, role, first_name, last_name, shift_pattern')
+      .eq('auth_id', user.id)
+      .single()
 
-  if (error) throw error
+    if (error) {
+      console.error('[requireAuth] Error fetching employee:', error)
+      throw new AppError(
+        'Failed to fetch employee data.',
+        ErrorCode.DATABASE,
+        { message: error.message }
+      )
+    }
 
-  const isNewUser = !employee || !employee.first_name || !employee.last_name
-  
-  if (isNewUser && !allowIncomplete) {
-    redirect('/complete-profile')
-  }
+    if (!employee) {
+      redirect('/complete-profile')
+    }
 
-  return {
-    userId: user.id,
-    employeeId: employee?.id || '',
-    role: employee?.role || 'dispatcher',
-    email: user.email || '',
-    isNewUser
+    const isNewUser = !employee.first_name || !employee.last_name
+    
+    if (isNewUser && !allowIncomplete) {
+      redirect('/complete-profile')
+    }
+
+    return {
+      userId: user.id,
+      employeeId: employee.id,
+      role: employee.role,
+      email: user.email!,
+      isNewUser,
+      firstName: employee.first_name,
+      lastName: employee.last_name,
+      shiftPattern: employee.shift_pattern
+    }
+  } catch (error) {
+    console.error('[requireAuth] Error:', error)
+    if (error instanceof AppError) throw error
+    throw new AppError(
+      'Authentication failed.',
+      ErrorCode.UNAUTHORIZED,
+      { message: error instanceof Error ? error.message : 'Unknown error' }
+    )
   }
 }
 
 export async function requireRole(
-  user: AuthenticatedUser, 
+  user: AuthenticatedUser,
   roles: UserRole[]
-) {
+): Promise<void> {
   if (!roles.includes(user.role)) {
     redirect('/unauthorized')
   }
@@ -71,54 +90,54 @@ export async function requireRole(
 export async function verifyAccess(
   user: AuthenticatedUser,
   resourceId: string,
-  resourceType: 'employee' | 'team'
-) {
-  const supabase = await createClient()
-
+  resourceType: 'employee' | 'shift'
+): Promise<boolean> {
   // Managers can access everything
   if (user.role === 'manager') return true
 
+  // Supervisors can access all employee data and shifts
+  if (user.role === 'supervisor') return true
+
+  // Regular employees can only access their own data
   if (resourceType === 'employee') {
-    // Supervisors can access their team members
-    if (user.role === 'supervisor') {
-      const { data: employee, error } = await supabase
-        .from('employees')
-        .select('supervisor_id')
-        .eq('id', resourceId)
-        .single()
-
-      if (error) throw error
-      if (employee.supervisor_id !== user.userId) {
-        throw new Error('Access denied: Employee not in your team')
-      }
-      return true
-    }
-
-    // Regular employees can only access their own data
     if (user.employeeId !== resourceId) {
-      throw new Error('Access denied')
+      throw new AppError(
+        'Access denied: You can only access your own data',
+        ErrorCode.FORBIDDEN
+      )
     }
     return true
   }
 
-  if (resourceType === 'team') {
-    // Only supervisors can access team data
-    if (user.role !== 'supervisor') {
-      throw new Error('Access denied')
-    }
-
-    const { data: team, error } = await supabase
-      .from('teams')
-      .select('supervisor_id')
-      .eq('id', resourceId)
+  if (resourceType === 'shift') {
+    const supabase = await createServerSupabaseClient()
+    const { data: assignedShift, error } = await supabase
+      .from('assigned_shifts')
+      .select('id')
+      .eq('shift_id', resourceId)
+      .eq('employee_id', user.employeeId)
       .single()
 
-    if (error) throw error
-    if (team.supervisor_id !== user.userId) {
-      throw new Error('Access denied: Not your team')
+    if (error) {
+      console.error('[verifyAccess] Error checking shift access:', error)
+      throw new AppError(
+        'Failed to verify shift access',
+        ErrorCode.DATABASE,
+        { message: error.message }
+      )
+    }
+
+    if (!assignedShift) {
+      throw new AppError(
+        'Access denied: You can only access your assigned shifts',
+        ErrorCode.FORBIDDEN
+      )
     }
     return true
   }
 
-  throw new Error('Invalid resource type')
+  throw new AppError(
+    'Invalid resource type',
+    ErrorCode.INVALID_INPUT
+  )
 } 

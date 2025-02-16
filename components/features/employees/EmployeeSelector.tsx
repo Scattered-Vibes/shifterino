@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils/index'
 import { Search } from 'lucide-react'
 
@@ -79,6 +80,9 @@ export function EmployeeSelector({
       <div className={cn("space-y-2", className)}>
         <Skeleton className="h-10 w-full" />
         <Skeleton className="h-32 w-full" />
+        <div data-testid="loading-spinner" className="flex justify-center">
+          <Loader2 className="h-6 w-6 animate-spin" />
+        </div>
       </div>
     )
   }
@@ -114,10 +118,12 @@ export function EmployeeSelector({
                   key={employee.id}
                   data-testid={`employee-${employee.id}`}
                   className={cn(
-                    "p-4 cursor-pointer transition-colors",
+                    "rounded-lg border text-card-foreground shadow-sm p-4 cursor-pointer transition-colors",
                     isSelected && "bg-accent",
                     !isAvailable && "opacity-50 cursor-not-allowed",
-                    "hover:bg-accent/50"
+                    "hover:bg-accent/50",
+                    isSelected && "selected",
+                    !isAvailable && "unavailable"
                   )}
                   onClick={() => isAvailable && onSelect(employee.id)}
                   aria-disabled={!isAvailable}
@@ -129,6 +135,7 @@ export function EmployeeSelector({
                         <Badge
                           variant="secondary"
                           data-testid="role-badge"
+                          className="role-badge"
                         >
                           {employee.role}
                         </Badge>

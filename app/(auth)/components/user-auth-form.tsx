@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useAuth } from '@/app/hooks/use-auth'
+import { useSignIn, useSignUp } from '@/app/lib/hooks/use-auth-mutations'
 import { loginSchema, signupSchema } from '@/lib/validations/auth'
 
 interface UserAuthFormProps {
@@ -22,7 +22,8 @@ type SignupInput = z.infer<typeof signupSchema>
 export function UserAuthForm({ className }: UserAuthFormProps) {
   const router = useRouter()
   const { toast } = useToast()
-  const { signIn, signUp } = useAuth()
+  const signInMutation = useSignIn()
+  const signUpMutation = useSignUp()
   const [isLoading, setIsLoading] = React.useState(false)
 
   const loginForm = useForm({
@@ -39,14 +40,16 @@ export function UserAuthForm({ className }: UserAuthFormProps) {
       email: '',
       password: '',
       confirmPassword: '',
-      role: 'EMPLOYEE',
+      role: 'dispatcher',
     },
   })
 
   async function onSignIn(data: z.infer<typeof loginSchema>) {
     try {
       setIsLoading(true)
-      await signIn(data)
+      const result = await signInMutation.mutateAsync(data)
+      if (result.error) throw result.error
+      
       router.refresh()
       router.push('/overview')
       toast({
@@ -67,7 +70,13 @@ export function UserAuthForm({ className }: UserAuthFormProps) {
   async function onSignUp(data: SignupInput) {
     try {
       setIsLoading(true)
-      await signUp(data)
+      const result = await signUpMutation.mutateAsync({
+        email: data.email,
+        password: data.password,
+        role: data.role
+      })
+      if (result.error) throw result.error
+      
       toast({
         title: 'Success!',
         description: 'Please check your email to confirm your account.',
@@ -84,13 +93,12 @@ export function UserAuthForm({ className }: UserAuthFormProps) {
   }
 
   return (
-    <Tabs defaultValue="signin" className={className}>
+    <Tabs defaultValue="login" className={className}>
       <TabsList className="grid w-full grid-cols-2">
-        <TabsTrigger value="signin">Sign In</TabsTrigger>
-        <TabsTrigger value="signup">Sign Up</TabsTrigger>
+        <TabsTrigger value="login">Login</TabsTrigger>
+        <TabsTrigger value="register">Register</TabsTrigger>
       </TabsList>
-      
-      <TabsContent value="signin">
+      <TabsContent value="login">
         <Form {...loginForm}>
           <form onSubmit={loginForm.handleSubmit(onSignIn)} className="space-y-4">
             <FormField
@@ -103,6 +111,7 @@ export function UserAuthForm({ className }: UserAuthFormProps) {
                     <Input
                       type="email"
                       placeholder="name@example.com"
+                      disabled={isLoading}
                       {...field}
                     />
                   </FormControl>
@@ -110,7 +119,6 @@ export function UserAuthForm({ className }: UserAuthFormProps) {
                 </FormItem>
               )}
             />
-            
             <FormField
               control={loginForm.control}
               name="password"
@@ -121,6 +129,7 @@ export function UserAuthForm({ className }: UserAuthFormProps) {
                     <Input
                       type="password"
                       placeholder="Enter your password"
+                      disabled={isLoading}
                       {...field}
                     />
                   </FormControl>
@@ -128,15 +137,13 @@ export function UserAuthForm({ className }: UserAuthFormProps) {
                 </FormItem>
               )}
             />
-
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Signing in...' : 'Sign In'}
+              {isLoading ? 'Signing in...' : 'Sign in'}
             </Button>
           </form>
         </Form>
       </TabsContent>
-      
-      <TabsContent value="signup">
+      <TabsContent value="register">
         <Form {...signupForm}>
           <form onSubmit={signupForm.handleSubmit(onSignUp)} className="space-y-4">
             <FormField
@@ -149,6 +156,7 @@ export function UserAuthForm({ className }: UserAuthFormProps) {
                     <Input
                       type="email"
                       placeholder="name@example.com"
+                      disabled={isLoading}
                       {...field}
                     />
                   </FormControl>
@@ -156,7 +164,6 @@ export function UserAuthForm({ className }: UserAuthFormProps) {
                 </FormItem>
               )}
             />
-            
             <FormField
               control={signupForm.control}
               name="password"
@@ -167,6 +174,7 @@ export function UserAuthForm({ className }: UserAuthFormProps) {
                     <Input
                       type="password"
                       placeholder="Create a password"
+                      disabled={isLoading}
                       {...field}
                     />
                   </FormControl>
@@ -174,7 +182,6 @@ export function UserAuthForm({ className }: UserAuthFormProps) {
                 </FormItem>
               )}
             />
-            
             <FormField
               control={signupForm.control}
               name="confirmPassword"
@@ -185,6 +192,7 @@ export function UserAuthForm({ className }: UserAuthFormProps) {
                     <Input
                       type="password"
                       placeholder="Confirm your password"
+                      disabled={isLoading}
                       {...field}
                     />
                   </FormControl>
@@ -192,30 +200,8 @@ export function UserAuthForm({ className }: UserAuthFormProps) {
                 </FormItem>
               )}
             />
-            
-            <FormField
-              control={signupForm.control}
-              name="role"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Role</FormLabel>
-                  <FormControl>
-                    <select
-                      {...field}
-                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <option value="EMPLOYEE">Employee</option>
-                      <option value="MANAGER">Manager</option>
-                      <option value="SUPERVISOR">Supervisor</option>
-                    </select>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Signing up...' : 'Sign Up'}
+              {isLoading ? 'Creating account...' : 'Create account'}
             </Button>
           </form>
         </Form>

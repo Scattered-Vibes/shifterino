@@ -9,24 +9,39 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { useSupabase } from '@/app/providers/providers'
 import { Button } from '@/components/ui/button'
+import { useSupabase } from '@/app/providers/SupabaseContext'
+import { signOut } from '@/app/(auth)/actions'
+import { useFormStatus } from 'react-dom'
 import { Loader2 } from 'lucide-react'
 
 export function UserNav() {
-  const { user, employee, isSigningOut, signOut } = useSupabase()
+  const { user, employee, isLoading } = useSupabase()
+  const { pending } = useFormStatus()
 
-  // Return null if we don't have both user and employee data
+  if (isLoading) {
+    return (
+      <div className="h-8 w-8 flex items-center justify-center">
+        <Loader2 className="h-4 w-4 animate-spin" />
+      </div>
+    )
+  }
+
   if (!user || !employee) {
     return null
   }
 
-  const initials = `${employee.first_name?.[0] || ''}${employee.last_name?.[0] || ''}`.toUpperCase() || user.email?.[0].toUpperCase() || 'U'
+  const initials = `${employee.first_name?.[0] || ''}${employee.last_name?.[0] || ''}`.toUpperCase() || 'U'
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative h-8 w-8 rounded-full"
+          disabled={pending}
+        >
           <Avatar className="h-8 w-8">
             <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
@@ -44,10 +59,20 @@ export function UserNav() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => signOut()} disabled={isSigningOut}>
-          {isSigningOut ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          Sign out
-        </DropdownMenuItem>
+        <form action={signOut}>
+          <DropdownMenuItem asChild>
+            <button type="submit" disabled={pending} className="w-full text-left">
+              {pending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Signing out...
+                </>
+              ) : (
+                'Sign out'
+              )}
+            </button>
+          </DropdownMenuItem>
+        </form>
       </DropdownMenuContent>
     </DropdownMenu>
   )

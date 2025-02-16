@@ -3,22 +3,24 @@
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ui/use-toast'
-import { useAuth } from '@/app/hooks/use-auth'
+import { useSignOut } from '@/app/lib/hooks/use-auth-mutations'
 
 export function SignOutButton() {
   const router = useRouter()
   const { toast } = useToast()
-  const { signOut } = useAuth()
+  const signOutMutation = useSignOut()
 
   const handleSignOut = async () => {
     try {
-      await signOut()
+      const result = await signOutMutation.mutateAsync()
+      if (result.error) throw result.error
+      
       router.push('/login')
       router.refresh()
-    } catch {
+    } catch (error) {
       toast({
         title: 'Error signing out',
-        description: 'An unexpected error occurred',
+        description: error instanceof Error ? error.message : 'An unexpected error occurred',
         variant: 'destructive',
       })
     }

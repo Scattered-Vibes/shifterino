@@ -76,24 +76,34 @@ RETURNS void
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    -- Clean up test users
-    DELETE FROM auth.users 
-    WHERE email LIKE 'test.%@example.com';
+    -- Clean up test time off requests
+    DELETE FROM public.time_off_requests 
+    WHERE employee_id IN (
+        SELECT id FROM public.employees 
+        WHERE email LIKE 'test.%@example.com'
+    );
+
+    -- Clean up test assigned shifts
+    DELETE FROM public.assigned_shifts 
+    WHERE employee_id IN (
+        SELECT id FROM public.employees 
+        WHERE email LIKE 'test.%@example.com'
+    );
 
     -- Clean up test employees
     DELETE FROM public.employees 
     WHERE email LIKE 'test.%@example.com';
 
-    -- Clean up test schedules
-    DELETE FROM public.schedules 
-    WHERE id IN ('55555555-5555-5555-5555-555555555555', '88888888-8888-8888-8888-888888888888');
+    -- Clean up test users
+    DELETE FROM auth.users 
+    WHERE email LIKE 'test.%@example.com';
 
-    -- Clean up test time off requests
-    DELETE FROM public.time_off_requests 
-    WHERE id IN ('99999999-9999-9999-9999-999999999999', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa');
+    -- Clean up test teams
+    DELETE FROM public.teams 
+    WHERE name LIKE 'Team %';
 
-    -- Clean up audit logs for test data
-    DELETE FROM public.audit_logs 
-    WHERE changed_by IN (SELECT id FROM auth.users WHERE email LIKE 'test.%@example.com');
+    -- Clean up test shifts
+    DELETE FROM public.shifts 
+    WHERE name LIKE 'Test %';
 END;
 $$; 

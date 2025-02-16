@@ -1,8 +1,9 @@
 import { vi } from 'vitest'
-import { createClient } from '@/lib/supabase/server'
-import type { AuthResult } from '@/lib/auth/middleware'
-import type { SupabaseClient } from '@supabase/supabase-js'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
 import type { Database } from '@/types/supabase/database'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { AuthenticatedUser } from '@/lib/auth/server'
+import type { UserRole } from '@/types/auth'
 
 /**
  * Auth Test Helpers
@@ -17,7 +18,7 @@ import type { Database } from '@/types/supabase/database'
  */
 
 vi.mock('@/lib/supabase/server', () => ({
-  createClient: vi.fn()
+  createServerSupabaseClient: vi.fn()
 }))
 
 export const mockUser = {
@@ -25,26 +26,59 @@ export const mockUser = {
   email: 'test@example.com',
   app_metadata: {
     provider: 'email'
-  }
+  },
+  user_metadata: {},
+  aud: 'authenticated',
+  created_at: new Date().toISOString(),
+  role: undefined,
+  updated_at: new Date().toISOString()
 }
 
-export const mockEmployees = {
+export const mockEmployees: Record<string, Database['public']['Tables']['employees']['Row']> = {
   dispatcher: {
     id: 'dispatcher-id',
     auth_id: mockUser.id,
-    role: 'dispatcher' as const,
-    team_id: 'team-1'
+    role: 'dispatcher',
+    first_name: 'Test',
+    last_name: 'User',
+    email: 'test@example.com',
+    shift_pattern: '4x10',
+    weekly_hours_cap: 40,
+    max_overtime_hours: 0,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    created_by: null,
+    updated_by: null
   },
   supervisor: {
     id: 'supervisor-id',
     auth_id: mockUser.id,
-    role: 'supervisor' as const,
-    team_id: 'team-1'
+    role: 'supervisor',
+    first_name: 'Test',
+    last_name: 'User',
+    email: 'test@example.com',
+    shift_pattern: '4x10',
+    weekly_hours_cap: 40,
+    max_overtime_hours: 0,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    created_by: null,
+    updated_by: null
   },
   manager: {
     id: 'manager-id',
     auth_id: mockUser.id,
-    role: 'manager' as const
+    role: 'manager',
+    first_name: 'Test',
+    last_name: 'User',
+    email: 'test@example.com',
+    shift_pattern: '4x10',
+    weekly_hours_cap: 40,
+    max_overtime_hours: 0,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    created_by: null,
+    updated_by: null
   }
 }
 
@@ -74,41 +108,43 @@ type MockSupabaseClient = Pick<SupabaseClient<Database>, 'auth' | 'from'> & {
  * Creates a mock authenticated user with the specified role.
  * @param role - The role to assign to the mock user
  */
-export function mockAuthUser(role: keyof typeof mockEmployees) {
-  const employee = mockEmployees[role]
-  
-  // We use type assertions here as we're only implementing the methods we need
+export function mockAuthUser(role: UserRole) {
+  const user = {
+    id: 'test-user-id',
+    email: 'test@example.com',
+    app_metadata: {},
+    user_metadata: {},
+    aud: 'authenticated',
+    created_at: new Date().toISOString()
+  }
+
+  const employee = {
+    id: 'test-employee-id',
+    auth_id: user.id,
+    role,
+    first_name: 'Test',
+    last_name: 'User',
+    email: user.email
+  }
+
   const mockSupabase = {
     auth: {
       getUser: vi.fn().mockResolvedValue({
-        data: { user: mockUser },
-        error: null
-      }),
-      signInWithPassword: vi.fn().mockResolvedValue({
-        data: { user: mockUser },
-        error: null
-      }),
-      signOut: vi.fn().mockResolvedValue({
+        data: { user },
         error: null
       })
     },
     from: vi.fn().mockReturnValue({
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValue({
-        data: employee,
-        error: null
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({ data: employee, error: null })
+        })
       })
     })
-  } satisfies MockSupabaseClient
+  } as unknown as SupabaseClient<Database>
 
-  vi.mocked(createClient).mockReturnValue(mockSupabase as unknown as SupabaseClient<Database>)
-
-  return {
-    user: mockUser,
-    employee,
-    mockSupabase
-  }
+  vi.mocked(createServerSupabaseClient).mockResolvedValue(mockSupabase)
+  return { user, employee, supabase: mockSupabase }
 }
 
 /**
@@ -119,45 +155,82 @@ export function mockUnauthenticated() {
     auth: {
       getUser: vi.fn().mockResolvedValue({
         data: { user: null },
-        error: null
+        error: { message: 'Not authenticated', status: 401 }
       })
-    }
-  } satisfies Pick<MockSupabaseClient, 'auth'>
+    },
+    from: vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({ data: null, error: null })
+        })
+      })
+    })
+  } as unknown as SupabaseClient<Database>
 
-  vi.mocked(createClient).mockReturnValue(mockSupabase as unknown as SupabaseClient<Database>)
+  vi.mocked(createServerSupabaseClient).mockResolvedValue(mockSupabase)
+  return { supabase: mockSupabase }
 }
 
 /**
  * Creates a mock authentication error state
  */
-export function mockAuthError(message: string, status = 400) {
-  const error = {
-    name: 'AuthError',
-    message,
-    status,
-  }
-  
+export function mockAuthError(message: string) {
   const mockSupabase = {
     auth: {
       getUser: vi.fn().mockResolvedValue({
         data: { user: null },
-        error
+        error: { message, status: 400 }
       })
-    }
-  } satisfies Pick<MockSupabaseClient, 'auth'>
+    },
+    from: vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({ data: null, error: { message, code: 'AUTH_ERROR' } })
+        })
+      })
+    })
+  } as unknown as SupabaseClient<Database>
 
-  vi.mocked(createClient).mockReturnValue(mockSupabase as unknown as SupabaseClient<Database>)
+  vi.mocked(createServerSupabaseClient).mockResolvedValue(mockSupabase)
+  return { supabase: mockSupabase }
+}
+
+export function mockMissingEmployee() {
+  const mockSupabase = {
+    auth: {
+      getUser: vi.fn().mockResolvedValue({
+        data: { user: mockUser },
+        error: null
+      })
+    },
+    from: vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({ data: null, error: null })
+        })
+      })
+    })
+  } as unknown as SupabaseClient<Database>
+
+  vi.mocked(createServerSupabaseClient).mockResolvedValue(mockSupabase)
+  return {
+    user: mockUser,
+    supabase: mockSupabase
+  }
 }
 
 /**
  * Creates a mock AuthResult object for the specified role
  */
-export function getMockAuthResult(role: keyof typeof mockEmployees): AuthResult {
+export function getMockAuthResult(role: keyof typeof mockEmployees): AuthenticatedUser {
   const employee = mockEmployees[role]
   return {
     userId: mockUser.id,
     employeeId: employee.id,
     role: employee.role,
-    teamId: 'team_id' in employee ? employee.team_id : undefined
+    email: employee.email,
+    isNewUser: false,
+    firstName: employee.first_name,
+    lastName: employee.last_name
   }
 } 

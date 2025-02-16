@@ -1,12 +1,12 @@
 import { Suspense } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { requireAuth } from '@/lib/auth/server'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
 import { DashboardError } from '@/components/ui/errors'
+import { requireAuth } from '@/lib/auth/server'
 import DashboardLoading from '../loading'
 
 export default async function OverviewPage() {
-  const user = await requireAuth()
+  const user = await requireAuth(true) // Allow incomplete profiles
 
   return (
     <div className="flex-1 space-y-4 p-8 pt-6">
@@ -19,7 +19,7 @@ export default async function OverviewPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
-                  Welcome back, {user.email}
+                  Welcome {user.firstName} {user.lastName}
                 </CardTitle>
               </CardHeader>
               <CardContent>

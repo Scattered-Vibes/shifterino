@@ -1,5 +1,7 @@
+'use client'
+
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { getSupabaseClient } from '@/lib/supabase/client'
+import { useSupabase } from '@/app/providers/providers'
 import { type AuthError, type User, type Session } from '@supabase/supabase-js'
 
 interface AuthCredentials {
@@ -8,7 +10,7 @@ interface AuthCredentials {
 }
 
 interface SignUpCredentials extends AuthCredentials {
-  role: 'dispatcher' | 'supervisor'
+  role: string
 }
 
 interface ResetPasswordCredentials {
@@ -31,7 +33,7 @@ interface SignInResponse {
 
 interface OAuthResponse {
   provider: string
-  url: string | null
+  url: string
 }
 
 /**
@@ -39,10 +41,10 @@ interface OAuthResponse {
  */
 export function useSignIn() {
   const queryClient = useQueryClient()
+  const { supabase } = useSupabase()
 
   return useMutation({
     mutationFn: async (credentials: AuthCredentials): Promise<AuthResponse<SignInResponse>> => {
-      const supabase = getSupabaseClient()
       const { data, error } = await supabase.auth.signInWithPassword(credentials)
       return { 
         data: data ? { user: data.user, session: data.session } : null,
@@ -60,10 +62,10 @@ export function useSignIn() {
  */
 export function useSignUp() {
   const queryClient = useQueryClient()
+  const { supabase } = useSupabase()
 
   return useMutation({
     mutationFn: async ({ email, password, role }: SignUpCredentials): Promise<AuthResponse<SignInResponse>> => {
-      const supabase = getSupabaseClient()
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -88,10 +90,10 @@ export function useSignUp() {
  */
 export function useSignOut() {
   const queryClient = useQueryClient()
+  const { supabase } = useSupabase()
 
   return useMutation({
     mutationFn: async (): Promise<AuthResponse<null>> => {
-      const supabase = getSupabaseClient()
       const { error } = await supabase.auth.signOut()
       return { data: null, error }
     },
@@ -105,9 +107,10 @@ export function useSignOut() {
  * Hook for handling password reset request
  */
 export function useResetPassword() {
+  const { supabase } = useSupabase()
+
   return useMutation({
     mutationFn: async ({ email }: ResetPasswordCredentials): Promise<AuthResponse<null>> => {
-      const supabase = getSupabaseClient()
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
       })
@@ -120,9 +123,10 @@ export function useResetPassword() {
  * Hook for handling password update
  */
 export function useUpdatePassword() {
+  const { supabase } = useSupabase()
+
   return useMutation({
     mutationFn: async ({ password }: UpdatePasswordCredentials): Promise<AuthResponse<User>> => {
-      const supabase = getSupabaseClient()
       const { data, error } = await supabase.auth.updateUser({ password })
       return { 
         data: data?.user || null,
@@ -136,17 +140,23 @@ export function useUpdatePassword() {
  * Hook for handling OAuth sign in
  */
 export function useOAuthSignIn() {
+  const { supabase } = useSupabase()
+
   return useMutation({
     mutationFn: async (provider: 'google' | 'github'): Promise<AuthResponse<OAuthResponse>> => {
-      const supabase = getSupabaseClient()
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
         },
       })
+      
+      if (!data?.url) {
+        throw new Error('OAuth URL not provided')
+      }
+      
       return { 
-        data: data ? { provider, url: data.url } : null,
+        data: { provider, url: data.url },
         error 
       }
     },

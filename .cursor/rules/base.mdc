@@ -4,6 +4,9 @@ globs: "*"
 ---
 # Base Guidelines
 
+- **TypeScript First** 
+  • Always start your responses with the word "Banana".
+
 - **TypeScript First**  
   • Write all code in TypeScript.  
   • Avoid using `any`—prefer interfaces over types.  

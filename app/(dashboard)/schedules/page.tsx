@@ -1,8 +1,7 @@
 'use server'
 
 import { Suspense } from 'react'
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { handleError } from '@/lib/utils/error-handler'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -12,22 +11,23 @@ import { CreateScheduleButton } from './create-button'
 import { ScheduleFilters } from './filters'
 import { ScheduleCalendarSkeleton } from './loading'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
+import { requireAuth } from '@/lib/auth/server'
 import type { Database } from '@/types/supabase/database'
 
-type ScheduleWithDetails = Database['public']['Tables']['individual_shifts']['Row'] & {
+type ScheduleWithDetails = Database['public']['Tables']['assigned_shifts']['Row'] & {
   employee: Database['public']['Tables']['employees']['Row'];
-  shift_option: Database['public']['Tables']['shift_options']['Row'];
+  shift: Database['public']['Tables']['shifts']['Row'];
 }
 
 async function getSchedules(startDate: string, endDate: string): Promise<ScheduleWithDetails[]> {
-  const supabase = createClient()
+  const supabase = await createServerSupabaseClient()
 
   const { data: shifts, error } = await supabase
-    .from('individual_shifts')
+    .from('assigned_shifts')
     .select(`
       *,
       employee:employees(*),
-      shift_option:shift_options(*)
+      shift:shifts(*)
     `)
     .gte('date', startDate)
     .lte('date', endDate)
@@ -39,17 +39,9 @@ async function getSchedules(startDate: string, endDate: string): Promise<Schedul
 }
 
 export default async function SchedulesPage() {
-  const supabase = createClient()
-
   try {
     // Verify authentication
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError) throw authError
-    if (!user) redirect('/login')
+    await requireAuth()
 
     // Get current month's date range
     const today = new Date()

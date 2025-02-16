@@ -6,8 +6,14 @@ CREATE EXTENSION IF NOT EXISTS "btree_gist" WITH SCHEMA extensions;
 -- Create custom types
 DO $$ BEGIN
     CREATE TYPE public.employee_role AS ENUM ('dispatcher', 'supervisor', 'manager');
-    CREATE TYPE public.shift_pattern AS ENUM ('4x10', '3x12_plus_4');
+    CREATE TYPE public.shift_pattern AS ENUM ('4_10', '3_12_4');
+    CREATE TYPE public.shift_category AS ENUM ('DAY', 'SWING', 'NIGHT');
     CREATE TYPE public.time_off_status AS ENUM ('pending', 'approved', 'rejected');
+    CREATE TYPE public.shift_status AS ENUM ('scheduled', 'completed', 'cancelled');
+    CREATE TYPE public.schedule_status AS ENUM ('draft', 'published', 'archived');
+    CREATE TYPE public.swap_request_status AS ENUM ('pending', 'approved', 'rejected', 'cancelled');
+    CREATE TYPE public.on_call_status AS ENUM ('scheduled', 'active', 'completed', 'cancelled');
+    CREATE TYPE public.holiday_type AS ENUM ('FEDERAL', 'COMPANY', 'OTHER');
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
@@ -20,7 +26,7 @@ CREATE TABLE IF NOT EXISTS public.employees (
     first_name text NOT NULL,
     last_name text NOT NULL,
     role public.employee_role NOT NULL DEFAULT 'dispatcher',
-    shift_pattern public.shift_pattern NOT NULL DEFAULT '4x10',
+    shift_pattern public.shift_pattern NOT NULL DEFAULT '4_10',
     weekly_hours_cap integer NOT NULL DEFAULT 40,
     max_overtime_hours integer NOT NULL DEFAULT 0,
     created_at timestamptz DEFAULT now() NOT NULL,
@@ -76,6 +82,20 @@ CREATE TABLE IF NOT EXISTS public.time_off_requests (
     end_date date NOT NULL,
     status public.time_off_status NOT NULL DEFAULT 'pending',
     notes text,
+    created_at timestamptz DEFAULT now() NOT NULL,
+    updated_at timestamptz DEFAULT now() NOT NULL,
+    created_by uuid REFERENCES auth.users(id),
+    updated_by uuid REFERENCES auth.users(id),
+    CONSTRAINT valid_date_range CHECK (end_date >= start_date)
+);
+
+-- Add schedule_periods table
+CREATE TABLE IF NOT EXISTS public.schedule_periods (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    start_date date NOT NULL,
+    end_date date NOT NULL,
+    status public.schedule_status NOT NULL DEFAULT 'draft',
+    description text,
     created_at timestamptz DEFAULT now() NOT NULL,
     updated_at timestamptz DEFAULT now() NOT NULL,
     created_by uuid REFERENCES auth.users(id),
@@ -169,35 +189,50 @@ DECLARE
   v_last_name text;
   v_role public.employee_role;
   v_shift_pattern public.shift_pattern;
+  v_metadata jsonb;
 BEGIN
-  -- Extract user metadata with proper error handling
+  -- First try app_metadata, then fall back to user_metadata if needed
+  v_metadata := COALESCE(NEW.raw_app_meta_data, NEW.raw_user_meta_data, '{}'::jsonb);
+  
+  -- Extract user metadata with proper error handling and logging
   BEGIN
-    v_first_name := COALESCE(
-      NEW.raw_user_meta_data->>'first_name',
-      split_part(NEW.email, '@', 1)
-    );
+    -- Get first name with detailed logging
+    v_first_name := v_metadata->>'first_name';
+    IF v_first_name IS NULL OR v_first_name = '' THEN
+      v_first_name := split_part(NEW.email, '@', 1);
+      RAISE WARNING 'Using email prefix for first_name: %', v_first_name;
+    END IF;
     
-    v_last_name := COALESCE(
-      NEW.raw_user_meta_data->>'last_name',
-      ''
-    );
+    -- Get last name with detailed logging
+    v_last_name := v_metadata->>'last_name';
+    IF v_last_name IS NULL OR v_last_name = '' THEN
+      v_last_name := '';
+      RAISE WARNING 'No last_name provided for user: %', NEW.email;
+    END IF;
     
-    v_role := COALESCE(
-      (NEW.raw_user_meta_data->>'role')::public.employee_role,
-      'dispatcher'
-    );
+    -- Get role with validation
+    BEGIN
+      v_role := (v_metadata->>'role')::public.employee_role;
+    EXCEPTION WHEN OTHERS THEN
+      v_role := 'dispatcher';
+      RAISE WARNING 'Invalid role for user %, defaulting to dispatcher', NEW.email;
+    END;
     
-    v_shift_pattern := COALESCE(
-      (NEW.raw_user_meta_data->>'shift_pattern')::public.shift_pattern,
-      '4x10'
-    );
+    -- Get shift pattern with validation
+    BEGIN
+      v_shift_pattern := (v_metadata->>'shift_pattern')::public.shift_pattern;
+    EXCEPTION WHEN OTHERS THEN
+      v_shift_pattern := '4_10';
+      RAISE WARNING 'Invalid shift_pattern for user %, defaulting to 4_10', NEW.email;
+    END;
+    
   EXCEPTION WHEN OTHERS THEN
     -- Log error and use defaults
-    RAISE WARNING 'Error processing user metadata: %', SQLERRM;
+    RAISE WARNING 'Error processing user metadata for %: %', NEW.email, SQLERRM;
     v_first_name := split_part(NEW.email, '@', 1);
     v_last_name := '';
     v_role := 'dispatcher';
-    v_shift_pattern := '4x10';
+    v_shift_pattern := '4_10';
   END;
 
   -- Create employee record with atomic operation
@@ -229,11 +264,17 @@ BEGIN
     shift_pattern = EXCLUDED.shift_pattern,
     updated_at = now();
 
-  -- Set profile_incomplete flag only if necessary fields are missing
+  -- Set profile_incomplete flag if necessary
   IF v_first_name = split_part(NEW.email, '@', 1) OR v_last_name = '' THEN
+    -- Log the reason for incomplete profile
+    RAISE WARNING 'Profile marked as incomplete for %: first_name_is_email=%, last_name_empty=%',
+      NEW.email,
+      v_first_name = split_part(NEW.email, '@', 1),
+      v_last_name = '';
+      
     UPDATE auth.users
-    SET raw_user_meta_data = jsonb_set(
-      COALESCE(raw_user_meta_data, '{}'::jsonb),
+    SET raw_app_meta_data = jsonb_set(
+      COALESCE(raw_app_meta_data, '{}'::jsonb),
       '{profile_incomplete}',
       'true'::jsonb
     )
@@ -243,7 +284,7 @@ BEGIN
   RETURN NEW;
 EXCEPTION WHEN OTHERS THEN
   -- Log any errors but don't prevent user creation
-  RAISE WARNING 'Error in handle_auth_user_created: %', SQLERRM;
+  RAISE WARNING 'Error in handle_auth_user_created for %: %', NEW.email, SQLERRM;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -252,7 +293,9 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 GRANT EXECUTE ON FUNCTION public.handle_auth_user_created TO authenticated;
 GRANT EXECUTE ON FUNCTION public.handle_auth_user_created TO service_role;
 
--- Triggers
+-- Note: The on_auth_user_created trigger is created in 20250213132902_update_user_created_trigger.sql
+
+-- Other triggers
 CREATE OR REPLACE TRIGGER update_employees_updated_at
     BEFORE UPDATE ON public.employees
     FOR EACH ROW
@@ -282,11 +325,6 @@ CREATE OR REPLACE TRIGGER check_shift_overlap_update
     BEFORE UPDATE ON public.assigned_shifts
     FOR EACH ROW
     EXECUTE FUNCTION public.check_shift_overlap();
-
-CREATE TRIGGER on_auth_user_created
-    AFTER INSERT ON auth.users
-    FOR EACH ROW
-    EXECUTE FUNCTION public.handle_auth_user_created();
 
 -- Function to securely check user role
 CREATE OR REPLACE FUNCTION public.check_user_role(required_roles text[])

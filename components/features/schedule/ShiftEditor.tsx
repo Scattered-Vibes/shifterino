@@ -1,14 +1,14 @@
 'use client'
 
 import React from 'react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { Schedule } from '@/types/scheduling/schedule'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils/index'
-import { format } from 'date-fns'
+import { format, parseISO, setHours, setMinutes } from 'date-fns'
 
 interface Employee {
   id: string
@@ -25,11 +25,17 @@ interface ShiftEditorProps {
 }
 
 export function ShiftEditor({ shift, employees, onSave, onCancel, className }: ShiftEditorProps) {
-  const [date, setDate] = useState(format(new Date(shift.date), 'yyyy-MM-dd'))
-  const [time, setTime] = useState(format(new Date(shift.date), 'HH:mm'))
+  const shiftDate = parseISO(shift.date)
+  const [date, setDate] = useState(format(shiftDate, 'yyyy-MM-dd'))
+  const [time, setTime] = useState(format(shiftDate, 'HH:mm'))
   const [employeeId, setEmployeeId] = useState(shift.employeeId)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSaving, setIsSaving] = useState(false)
+  const [isValid, setIsValid] = useState(true)
+
+  useEffect(() => {
+    validateForm()
+  }, [date, time, employeeId])
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}
@@ -49,6 +55,7 @@ export function ShiftEditor({ shift, employees, onSave, onCancel, className }: S
     }
 
     setErrors(newErrors)
+    setIsValid(Object.keys(newErrors).length === 0)
     return Object.keys(newErrors).length === 0
   }
 
@@ -57,9 +64,12 @@ export function ShiftEditor({ shift, employees, onSave, onCancel, className }: S
 
     setIsSaving(true)
     try {
+      const [hours, minutes] = time.split(':').map(Number)
+      const shiftDateTime = setMinutes(setHours(parseISO(date), hours), minutes)
+      
       await onSave({
         ...shift,
-        date: `${date}T${time}:00Z`,
+        date: shiftDateTime.toISOString(),
         employeeId
       })
     } finally {
@@ -97,7 +107,9 @@ export function ShiftEditor({ shift, employees, onSave, onCancel, className }: S
           className={cn(errors.time && "border-destructive")}
         />
         {errors.time && (
-          <p className="text-sm text-destructive">{errors.time}</p>
+          <p className="text-sm text-destructive" role="alert">
+            {errors.time}
+          </p>
         )}
       </div>
 
@@ -143,7 +155,7 @@ export function ShiftEditor({ shift, employees, onSave, onCancel, className }: S
         </Button>
         <Button
           onClick={handleSubmit}
-          disabled={isSaving || Object.keys(errors).length > 0}
+          disabled={!isValid || isSaving}
         >
           {isSaving ? 'Saving...' : 'Save'}
         </Button>
