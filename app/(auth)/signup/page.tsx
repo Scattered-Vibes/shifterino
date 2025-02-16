@@ -8,16 +8,15 @@
 
 import { useFormState } from 'react-dom'
 import { useFormStatus } from 'react-dom'
-import { useState } from 'react'
 import Link from 'next/link'
-import { signup } from '@/app/(auth)/actions'
+import { signUp } from '@/lib/auth/actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Icons } from '@/components/ui/icons'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { PasswordRequirements } from '@/components/ui/password-requirements'
-import { type SignUpState } from '@/app/(auth)/auth'
+import { useState } from 'react'
 
 function SignUpButton() {
   const { pending } = useFormStatus()
@@ -25,15 +24,19 @@ function SignUpButton() {
   return (
     <Button type="submit" className="w-full" disabled={pending}>
       {pending ? (
-        <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-      ) : null}
-      Create Account
+        <>
+          <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+          Creating account...
+        </>
+      ) : (
+        'Create account'
+      )}
     </Button>
   )
 }
 
 export default function SignUpPage() {
-  const [state, formAction] = useFormState<SignUpState | null, FormData>(signup, null)
+  const [state, formAction] = useFormState(signUp, null)
   const [password, setPassword] = useState('')
 
   return (
@@ -44,18 +47,13 @@ export default function SignUpPage() {
           Enter your details to create your account
         </CardDescription>
       </CardHeader>
-      <form action={formAction}>
+      <form action={formAction} className="space-y-4">
         <CardContent className="space-y-4">
-          {state?.error ? (
-            <div className="text-sm text-red-500">
+          {state?.error && (
+            <div className="text-sm text-destructive">
               {state.error.message}
             </div>
-          ) : null}
-          {state?.message ? (
-            <div className="text-sm text-green-500">
-              {state.message}
-            </div>
-          ) : null}
+          )}
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -85,6 +83,35 @@ export default function SignUpPage() {
               type="password"
               required
             />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="first_name">First Name</Label>
+            <Input
+              id="first_name"
+              name="first_name"
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="last_name">Last Name</Label>
+            <Input
+              id="last_name"
+              name="last_name"
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="role">Role</Label>
+            <select
+              id="role"
+              name="role"
+              className="w-full rounded-md border border-input bg-background px-3 py-2"
+              required
+            >
+              <option value="DISPATCHER">Dispatcher</option>
+              <option value="SUPERVISOR">Supervisor</option>
+              <option value="MANAGER">Manager</option>
+            </select>
           </div>
           <PasswordRequirements password={password} />
         </CardContent>

@@ -1,17 +1,17 @@
-import { ShiftEvent } from '@/types/shift'
+import type { ShiftEvent, ShiftPatternType } from '@/types/scheduling/shift'
 
 const HOURS_IN_MS = 3600000
 const DAY_IN_MS = 86400000
 
 interface ShiftPattern {
-  name: 'PATTERN_A' | 'PATTERN_B'
+  name: ShiftPatternType
   shifts: {
     duration: number // in hours
     count: number
   }[]
 }
 
-export const SHIFT_PATTERNS: Record<string, ShiftPattern> = {
+export const SHIFT_PATTERNS: Record<ShiftPatternType, ShiftPattern> = {
   PATTERN_A: {
     name: 'PATTERN_A',
     shifts: [{ duration: 10, count: 4 }] // Four 10-hour shifts
@@ -37,11 +37,24 @@ export function validateShiftPattern(
     return false
   }
 
-  // Check if shifts follow either Pattern A or Pattern B
-  return (
-    validatePatternA(employeeShifts) ||
-    validatePatternB(employeeShifts)
+  // Get the pattern for this shift
+  const pattern = SHIFT_PATTERNS[shift.pattern]
+  if (!pattern) return false
+
+  // Sort shifts by start time to ensure proper sequence
+  const sortedShifts = [...employeeShifts].sort((a, b) => 
+    new Date(a.start).getTime() - new Date(b.start).getTime()
   )
+
+  // Validate based on pattern type
+  switch (pattern.name) {
+    case 'PATTERN_A':
+      return validatePatternA(sortedShifts)
+    case 'PATTERN_B':
+      return validatePatternB(sortedShifts)
+    default:
+      return false
+  }
 }
 
 function getEmployeeWeekShifts(
@@ -53,7 +66,7 @@ function getEmployeeWeekShifts(
   const weekEnd = new Date(weekStart.getTime() + 7 * DAY_IN_MS)
 
   return allShifts.filter(s => 
-    s.employeeId === shift.employeeId &&
+    s.employee_id === shift.employee_id &&
     new Date(s.start) >= weekStart &&
     new Date(s.start) < weekEnd
   )
@@ -63,9 +76,10 @@ function validatePatternA(shifts: ShiftEvent[]): boolean {
   if (shifts.length !== 4) return false
 
   // All shifts should be 10 hours
-  const allTenHours = shifts.every(s => 
-    Math.abs(new Date(s.end).getTime() - new Date(s.start).getTime()) === 10 * HOURS_IN_MS
-  )
+  const allTenHours = shifts.every(s => {
+    const duration = new Date(s.end).getTime() - new Date(s.start).getTime()
+    return Math.abs(duration - (10 * HOURS_IN_MS)) < 1000 // Allow 1 second tolerance
+  })
   if (!allTenHours) return false
 
   // Shifts should be on consecutive days
@@ -75,34 +89,26 @@ function validatePatternA(shifts: ShiftEvent[]): boolean {
 function validatePatternB(shifts: ShiftEvent[]): boolean {
   if (shifts.length !== 4) return false
 
-  // Sort shifts by start time
-  const sortedShifts = [...shifts].sort((a, b) => 
-    new Date(a.start).getTime() - new Date(b.start).getTime()
-  )
-
   // First three shifts should be 12 hours
-  const firstThreeTwelveHours = sortedShifts.slice(0, 3).every(s =>
-    Math.abs(new Date(s.end).getTime() - new Date(s.start).getTime()) === 12 * HOURS_IN_MS
-  )
+  const firstThreeTwelveHours = shifts.slice(0, 3).every(s => {
+    const duration = new Date(s.end).getTime() - new Date(s.start).getTime()
+    return Math.abs(duration - (12 * HOURS_IN_MS)) < 1000 // Allow 1 second tolerance
+  })
   if (!firstThreeTwelveHours) return false
 
   // Last shift should be 4 hours
-  const lastShiftFourHours = 
-    Math.abs(new Date(sortedShifts[3].end).getTime() - new Date(sortedShifts[3].start).getTime()) === 4 * HOURS_IN_MS
+  const lastShiftDuration = new Date(shifts[3].end).getTime() - new Date(shifts[3].start).getTime()
+  const lastShiftFourHours = Math.abs(lastShiftDuration - (4 * HOURS_IN_MS)) < 1000
   if (!lastShiftFourHours) return false
 
   // First three shifts should be consecutive
-  return areShiftsConsecutive(sortedShifts.slice(0, 3))
+  return areShiftsConsecutive(shifts.slice(0, 3))
 }
 
 function areShiftsConsecutive(shifts: ShiftEvent[]): boolean {
-  const sortedShifts = [...shifts].sort((a, b) => 
-    new Date(a.start).getTime() - new Date(b.start).getTime()
-  )
-
-  for (let i = 1; i < sortedShifts.length; i++) {
-    const prevShiftDate = new Date(sortedShifts[i - 1].start)
-    const currShiftDate = new Date(sortedShifts[i].start)
+  for (let i = 1; i < shifts.length; i++) {
+    const prevShiftDate = new Date(shifts[i - 1].start)
+    const currShiftDate = new Date(shifts[i].start)
     
     // Check if shifts are on consecutive days
     if (

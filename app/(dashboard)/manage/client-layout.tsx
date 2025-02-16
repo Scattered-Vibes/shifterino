@@ -10,58 +10,73 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useMediaQuery } from '@/lib/hooks'
+import { useMediaQuery } from '@/lib/hooks/client/use-media-query'
+import { useSupabase } from '@/app/providers/SupabaseContext'
+
+type Role = 'dispatcher' | 'supervisor' | 'manager'
 
 interface Tab {
   value: string
   label: string
-  requiredRole?: 'DISPATCHER' | 'SUPERVISOR' | 'MANAGER'
+  requiredRole?: Role
 }
 
 const tabs: Tab[] = [
   { value: 'schedule', label: 'Schedule' },
-  { 
-    value: 'overtime', 
+  {
+    value: 'overtime',
     label: 'Overtime',
-    requiredRole: 'SUPERVISOR'
+    requiredRole: 'supervisor'
   },
   { value: 'swaps', label: 'Shift Swaps' },
-  { 
-    value: 'on-call', 
+  {
+    value: 'on-call',
     label: 'On-Call',
-    requiredRole: 'SUPERVISOR'
+    requiredRole: 'supervisor'
   },
-  { 
-    value: 'reports', 
+  {
+    value: 'reports',
     label: 'Reports',
-    requiredRole: 'MANAGER'
+    requiredRole: 'manager'
   },
 ]
 
+const hasRequiredRole = (userRole: Role, requiredRole?: Role): boolean => {
+  if (!requiredRole) return true
+  
+  switch (requiredRole) {
+    case 'supervisor':
+      return userRole === 'supervisor' || userRole === 'manager'
+    case 'manager':
+      return userRole === 'manager'
+    default:
+      return true
+  }
+}
+
 export function ClientManageLayout({
   children,
-  userRole,
 }: {
   children: React.ReactNode
-  userRole: string
 }) {
   const router = useRouter()
   const pathname = usePathname()
   const isMobile = useMediaQuery('(max-width: 768px)')
+  const { user, employee, isLoading } = useSupabase()
 
   const currentTab = pathname.split('/').pop() || 'schedule'
+
+  if (isLoading) {
+    return <div>Loading...</div>
+  }
   
-  // Filter tabs based on user role
-  const accessibleTabs = tabs.filter(tab => {
-    if (!tab.requiredRole) return true
-    if (tab.requiredRole === 'SUPERVISOR') {
-      return userRole === 'SUPERVISOR' || userRole === 'MANAGER'
-    }
-    if (tab.requiredRole === 'MANAGER') {
-      return userRole === 'MANAGER'
-    }
-    return true
-  })
+  if (!user || !employee) {
+    return <div>Not authorized.</div>
+  }
+
+  const userRole = employee.role.toLowerCase() as Role
+
+  const accessibleTabs = tabs.filter(tab => hasRequiredRole(userRole, tab.requiredRole))
 
   const handleTabChange = (value: string) => {
     router.push(`/manage/${value}`)

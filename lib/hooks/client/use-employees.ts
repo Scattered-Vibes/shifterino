@@ -1,10 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { employeeQueries } from '@/lib/supabase/data-access/employees'
+import { useSupabase } from '@/app/providers/SupabaseContext'
 import { toast } from '@/components/ui/use-toast'
 import { ErrorCode, handleError, getUserFriendlyMessage } from '@/lib/utils/error-handler'
 import type { Database } from '@/types/supabase/database'
+import * as employeeServer from '../server/use-employees'
 
 type Employee = Database['public']['Tables']['employees']['Row']
 
@@ -19,7 +19,7 @@ interface UseEmployeesOptions {
 
 export function useEmployees(options: UseEmployeesOptions = {}) {
   const queryClient = useQueryClient()
-  const supabase = createClient()
+  const { supabase } = useSupabase()
 
   const {
     data: employees,
@@ -28,11 +28,7 @@ export function useEmployees(options: UseEmployeesOptions = {}) {
     refetch
   } = useQuery({
     queryKey: ['employees', options],
-    queryFn: async () => {
-      const { data, error } = await employeeQueries.searchEmployees(options)
-      if (error) throw error
-      return data
-    }
+    queryFn: () => employeeServer.getEmployees(options)
   })
 
   useEffect(() => {
@@ -83,11 +79,7 @@ export function useEmployee(employeeId: string) {
     error
   } = useQuery({
     queryKey: ['employee', employeeId],
-    queryFn: async () => {
-      const { data, error } = await employeeQueries.getEmployee(employeeId)
-      if (error) throw error
-      return data
-    },
+    queryFn: () => employeeServer.getEmployee(employeeId),
     enabled: !!employeeId
   })
 
@@ -109,9 +101,7 @@ export function useUpdateEmployee() {
       employeeId: string
       data: Partial<Employee>
     }) => {
-      const { data: updatedEmployee, error } = await employeeQueries.updateEmployee(employeeId, data)
-      if (error) throw error
-      return updatedEmployee
+      return employeeServer.updateEmployee(employeeId, data)
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['employees'] })
@@ -142,11 +132,7 @@ export function useEmployeeSchedules(employeeId: string, startDate?: Date, endDa
     error
   } = useQuery({
     queryKey: ['employee-schedules', employeeId, startDate, endDate],
-    queryFn: async () => {
-      const { data, error } = await employeeQueries.getEmployeeSchedules(employeeId, startDate, endDate)
-      if (error) throw error
-      return data
-    },
+    queryFn: () => employeeServer.getEmployeeSchedules(employeeId, startDate, endDate),
     enabled: !!employeeId
   })
 
@@ -164,11 +150,7 @@ export function useEmployeeShifts(employeeId: string, startDate?: Date, endDate?
     error
   } = useQuery({
     queryKey: ['employee-shifts', employeeId, startDate, endDate],
-    queryFn: async () => {
-      const { data, error } = await employeeQueries.getEmployeeShifts(employeeId, startDate, endDate)
-      if (error) throw error
-      return data
-    },
+    queryFn: () => employeeServer.getEmployeeShifts(employeeId, startDate, endDate),
     enabled: !!employeeId
   })
 

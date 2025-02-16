@@ -1,15 +1,19 @@
+'use client'
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { timeOffQueries } from '@/lib/supabase/data-access/time-off'
+import { useSupabase } from '@/app/providers/SupabaseContext'
 import { toast } from '@/components/ui/use-toast'
 import { ErrorCode, handleError, getUserFriendlyMessage } from '@/lib/utils/error-handler'
+import type { Database } from '@/types/supabase/database'
+import * as timeOffServer from '../server/use-time-off'
 
-type QueryOptions = Parameters<typeof timeOffQueries.searchTimeOffRequests>[0]
+type TimeOffRequest = Database['public']['Tables']['time_off_requests']['Row']
+type QueryOptions = Parameters<typeof timeOffServer.getTimeOffRequests>[0]
 
 export function useTimeOffRequests(options: QueryOptions = {}) {
   const queryClient = useQueryClient()
-  const supabase = createClient()
+  const { supabase } = useSupabase()
 
   const {
     data: requests,
@@ -18,11 +22,7 @@ export function useTimeOffRequests(options: QueryOptions = {}) {
     refetch
   } = useQuery({
     queryKey: ['time-off-requests', options],
-    queryFn: async () => {
-      const { data, error } = await timeOffQueries.searchTimeOffRequests(options)
-      if (error) throw error
-      return data
-    }
+    queryFn: () => timeOffServer.getTimeOffRequests(options)
   })
 
   useEffect(() => {
@@ -73,11 +73,7 @@ export function useTimeOffRequest(requestId: string) {
     error
   } = useQuery({
     queryKey: ['time-off-request', requestId],
-    queryFn: async () => {
-      const { data, error } = await timeOffQueries.getTimeOffRequest(requestId)
-      if (error) throw error
-      return data
-    },
+    queryFn: () => timeOffServer.getTimeOffRequest(requestId),
     enabled: !!requestId
   })
 
@@ -92,10 +88,8 @@ export function useCreateTimeOffRequest() {
   const queryClient = useQueryClient()
 
   const mutation = useMutation({
-    mutationFn: async (data: Parameters<typeof timeOffQueries.createTimeOffRequest>[0]) => {
-      const { data: newRequest, error } = await timeOffQueries.createTimeOffRequest(data)
-      if (error) throw error
-      return newRequest
+    mutationFn: (data: Parameters<typeof timeOffServer.createTimeOffRequest>[0]) => {
+      return timeOffServer.createTimeOffRequest(data)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['time-off-requests'] })
@@ -122,16 +116,14 @@ export function useUpdateTimeOffRequest() {
   const queryClient = useQueryClient()
 
   const mutation = useMutation({
-    mutationFn: async ({
+    mutationFn: ({
       requestId,
       data
     }: {
       requestId: string
-      data: Parameters<typeof timeOffQueries.updateTimeOffRequest>[1]
+      data: Parameters<typeof timeOffServer.updateTimeOffRequest>[1]
     }) => {
-      const { data: updatedRequest, error } = await timeOffQueries.updateTimeOffRequest(requestId, data)
-      if (error) throw error
-      return updatedRequest
+      return timeOffServer.updateTimeOffRequest(requestId, data)
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['time-off-requests'] })
@@ -159,10 +151,8 @@ export function useDeleteTimeOffRequest() {
   const queryClient = useQueryClient()
 
   const mutation = useMutation({
-    mutationFn: async (requestId: string) => {
-      const { error } = await timeOffQueries.deleteTimeOffRequest(requestId)
-      if (error) throw error
-      return true
+    mutationFn: (requestId: string) => {
+      return timeOffServer.deleteTimeOffRequest(requestId)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['time-off-requests'] })
@@ -185,6 +175,64 @@ export function useDeleteTimeOffRequest() {
   return mutation
 }
 
+export function useApproveTimeOffRequest() {
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: (requestId: string) => {
+      return timeOffServer.approveTimeOffRequest(requestId)
+    },
+    onSuccess: (_, requestId) => {
+      queryClient.invalidateQueries({ queryKey: ['time-off-requests'] })
+      queryClient.invalidateQueries({ queryKey: ['time-off-request', requestId] })
+      toast({
+        title: 'Success',
+        description: 'Time-off request approved successfully',
+        variant: 'default'
+      })
+    },
+    onError: (error) => {
+      const appError = handleError(error)
+      toast({
+        title: 'Error Approving Time-off Request',
+        description: getUserFriendlyMessage(appError.code),
+        variant: 'destructive'
+      })
+    }
+  })
+
+  return mutation
+}
+
+export function useRejectTimeOffRequest() {
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: ({ requestId, reason }: { requestId: string; reason: string }) => {
+      return timeOffServer.rejectTimeOffRequest(requestId, reason)
+    },
+    onSuccess: (_, { requestId }) => {
+      queryClient.invalidateQueries({ queryKey: ['time-off-requests'] })
+      queryClient.invalidateQueries({ queryKey: ['time-off-request', requestId] })
+      toast({
+        title: 'Success',
+        description: 'Time-off request rejected successfully',
+        variant: 'default'
+      })
+    },
+    onError: (error) => {
+      const appError = handleError(error)
+      toast({
+        title: 'Error Rejecting Time-off Request',
+        description: getUserFriendlyMessage(appError.code),
+        variant: 'destructive'
+      })
+    }
+  })
+
+  return mutation
+}
+
 export function useTimeOffConflicts(employeeId: string, startDate: Date, endDate: Date) {
   const {
     data: conflicts,
@@ -192,11 +240,7 @@ export function useTimeOffConflicts(employeeId: string, startDate: Date, endDate
     error
   } = useQuery({
     queryKey: ['time-off-conflicts', employeeId, startDate, endDate],
-    queryFn: async () => {
-      const { data, error } = await timeOffQueries.getTimeOffConflicts(employeeId, startDate, endDate)
-      if (error) throw error
-      return data
-    },
+    queryFn: () => timeOffServer.getTimeOffConflicts(employeeId, startDate, endDate),
     enabled: !!employeeId && !!startDate && !!endDate
   })
 

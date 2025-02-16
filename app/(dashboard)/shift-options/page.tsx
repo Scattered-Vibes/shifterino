@@ -2,16 +2,29 @@
 
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
-import { createClient } from '@/lib/supabase/server'
-import { handleError } from '@/lib/utils/index'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
+import { handleError } from '@/lib/utils/error-handler'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ShiftOptionsDataTable } from './data-table'
 import { ShiftOptionsTableSkeleton } from './loading'
 import { CreateShiftOptionButton } from './create-button'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
+import { requireManager } from '@/lib/auth/server'
 
 async function getShiftOptions() {
-  const supabase = createClient()
+  const cookieStore = cookies()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value
+        }
+      }
+    }
+  )
 
   const { data: options, error } = await supabase
     .from('shift_options')
@@ -20,33 +33,14 @@ async function getShiftOptions() {
     .order('start_time', { ascending: true })
 
   if (error) throw error
+
   return options || []
 }
 
 export default async function ShiftOptionsPage() {
-  const supabase = createClient()
-
   try {
-    // Verify authentication and role
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError) throw authError
-    if (!user) redirect('/login')
-
-    // Get user's role
-    const { data: employee, error: employeeError } = await supabase
-      .from('employees')
-      .select('role')
-      .eq('auth_id', user.id)
-      .single()
-
-    if (employeeError) throw employeeError
-    if (!employee || employee.role !== 'manager') {
-      redirect('/unauthorized')
-    }
+    // This will redirect if not a manager
+    await requireManager()
 
     // Fetch shift options data
     const options = await getShiftOptions()
@@ -57,7 +51,7 @@ export default async function ShiftOptionsPage() {
           <div>
             <h1 className="text-2xl font-bold">Shift Options</h1>
             <p className="text-muted-foreground">
-              Manage shift types and their time blocks.
+              Manage available shift options for scheduling.
             </p>
           </div>
           <CreateShiftOptionButton />

@@ -1,59 +1,55 @@
-import type { Database } from './database'
+import { Database as GeneratedDatabase } from './database'
 
-// Re-export the Database type
-export type { Database }
+export type Database = GeneratedDatabase
 
-// Helper types for working with tables
-export type Tables = Database['public']['Tables']
-export type Enums = Database['public']['Enums']
+export type Tables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row']
+export type Enums<T extends keyof Database['public']['Enums']> = Database['public']['Enums'][T]
 
-// Generic table type helpers
-export type TableRow<T extends keyof Tables> = Tables[T]['Row']
-export type TableInsert<T extends keyof Tables> = Tables[T]['Insert']
-export type TableUpdate<T extends keyof Tables> = Tables[T]['Update']
+// Strongly typed tables
+export type Employee = Tables<'employees'>
+export type ShiftOption = Tables<'shift_options'>
+export type IndividualShift = Tables<'individual_shifts'>
+export type TimeOffRequest = Tables<'time_off_requests'>
+export type AssignedShift = Tables<'assigned_shifts'>
+export type StaffingRequirement = Tables<'staffing_requirements'>
 
-// Table names
-export type TableName = keyof Tables
+// Strongly typed enums
+export type EmployeeRole = Enums<'employee_role'>
+export type ShiftStatus = Enums<'shift_status'>
+export type TimeOffStatus = Enums<'time_off_status'>
 
-// Enum types
-export type ShiftPattern = Enums['shift_pattern']
-export type ShiftCategory = Enums['shift_category']
-export type EmployeeRole = Enums['employee_role']
+// Helper types for common operations
+export type EmployeeWithAuth = Employee & {
+  auth_user?: {
+    email: string
+    role: EmployeeRole
+  }
+}
 
-// Table row types
-export type EmployeeRow = TableRow<'employees'>
-export type ShiftOptionRow = TableRow<'shift_options'>
-export type IndividualShiftRow = TableRow<'individual_shifts'>
-export type ScheduleRow = TableRow<'schedules'>
-export type StaffingRequirementRow = TableRow<'staffing_requirements'>
-export type TimeOffRequestRow = TableRow<'time_off_requests'>
-export type ShiftSwapRequestRow = TableRow<'shift_swap_requests'>
-export type AuthLogRow = TableRow<'auth_logs'>
+export type AssignedShiftWithEmployee = AssignedShift & {
+  employee: Employee
+  shift_option: ShiftOption
+}
 
-// Table insert types
-export type EmployeeInsert = TableInsert<'employees'>
-export type ShiftOptionInsert = TableInsert<'shift_options'>
-export type IndividualShiftInsert = TableInsert<'individual_shifts'>
-export type ScheduleInsert = TableInsert<'schedules'>
-export type StaffingRequirementInsert = TableInsert<'staffing_requirements'>
-export type TimeOffRequestInsert = TableInsert<'time_off_requests'>
-export type ShiftSwapRequestInsert = TableInsert<'shift_swap_requests'>
-export type AuthLogInsert = TableInsert<'auth_logs'>
+export type TimeOffRequestWithEmployee = TimeOffRequest & {
+  employee: Employee
+  reviewer?: Employee
+}
 
-// Table update types
-export type EmployeeUpdate = TableUpdate<'employees'>
-export type ShiftOptionUpdate = TableUpdate<'shift_options'>
-export type IndividualShiftUpdate = TableUpdate<'individual_shifts'>
-export type ScheduleUpdate = TableUpdate<'schedules'>
-export type StaffingRequirementUpdate = TableUpdate<'staffing_requirements'>
-export type TimeOffRequestUpdate = TableUpdate<'time_off_requests'>
-export type ShiftSwapRequestUpdate = TableUpdate<'shift_swap_requests'>
-export type AuthLogUpdate = TableUpdate<'auth_logs'>
+// Database function return types
+export type GetEmployeeResult = EmployeeWithAuth | null
+export type GetAssignedShiftsResult = AssignedShiftWithEmployee[]
+export type GetTimeOffRequestsResult = TimeOffRequestWithEmployee[]
 
-// Common type aliases for backward compatibility
-export type Employee = EmployeeRow
-export type Shift = IndividualShiftRow
-export type ShiftOption = ShiftOptionRow
-export type StaffingRequirement = StaffingRequirementRow
-export type TimeOffRequest = TimeOffRequestRow
-export type ShiftSwapRequest = ShiftSwapRequestRow 
+// Validation types
+export interface ValidationError {
+  code: string
+  message: string
+  details?: unknown
+}
+
+export interface ValidationResult<T> {
+  success: boolean
+  data?: T
+  error?: ValidationError
+} 

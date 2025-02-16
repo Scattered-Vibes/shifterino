@@ -1,40 +1,73 @@
 import { Skeleton } from '@/components/ui/skeleton'
-
-function RequirementsFormSkeleton() {
-  return (
-    <div className="space-y-6">
-      {[...Array(4)].map((_, i) => (
-        <div key={i} className="rounded-lg border p-6">
-          <div className="space-y-4">
-            <Skeleton className="h-8 w-1/3" />
-            <Skeleton className="h-4 w-2/3" />
-            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
-              {[...Array(4)].map((_, j) => (
-                <div key={j} className="space-y-2">
-                  <Skeleton className="h-4 w-20" />
-                  <Skeleton className="h-10 w-full" />
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      ))}
-      <div className="flex justify-end">
-        <Skeleton className="h-10 w-32" />
-      </div>
-    </div>
-  )
-}
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 
 export default function RequirementsLoading() {
   return (
-    <div className="container mx-auto py-6">
-      <div className="mb-8 flex items-center justify-between">
-        <Skeleton className="h-10 w-64" />
+    <div className="space-y-6 p-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Staffing Requirements</h1>
+          <p className="text-muted-foreground">
+            Manage minimum staffing requirements for different time blocks.
+          </p>
+        </div>
+        <Skeleton className="h-10 w-[140px]" />
       </div>
-      <div className="grid gap-6">
-        <RequirementsFormSkeleton />
-      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>All Requirements</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Day</TableHead>
+                  <TableHead>Time Block</TableHead>
+                  <TableHead>Min. Staff</TableHead>
+                  <TableHead>Min. Supervisors</TableHead>
+                  <TableHead className="w-[100px]">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Array.from({ length: 5 }).map((_, index) => (
+                  <TableRow key={index}>
+                    <TableCell>
+                      <Skeleton className="h-4 w-[80px]" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-[120px]" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-[60px]" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-[60px]" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-8 w-[80px]" />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

@@ -2,6 +2,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { AppError, ErrorCode } from '@/lib/utils/error-handler'
 import type { User } from '@supabase/supabase-js'
 import { cache } from 'react'
+import type { EmployeeWithAuth } from '@/types/supabase/index'
 
 /**
  * Get the current authenticated user's session
@@ -34,13 +35,13 @@ export async function getUser(): Promise<User | null> {
 }
 
 /**
- * Get the current authenticated user
+ * Get the current authenticated user with employee data
  * Throws an error if no user is authenticated
  */
-export async function requireUser(): Promise<User> {
-  const user = await getUser()
+export async function requireAuth(): Promise<EmployeeWithAuth> {
+  const session = await getSession()
   
-  if (!user) {
+  if (!session?.user) {
     throw new AppError(
       'Authentication required',
       ErrorCode.UNAUTHORIZED,
@@ -48,17 +49,39 @@ export async function requireUser(): Promise<User> {
     )
   }
 
-  return user
+  const supabase = await createServerSupabaseClient()
+  
+  // Get the employee record
+  const { data: employee, error: employeeError } = await supabase
+    .from('employees')
+    .select()
+    .eq('auth_id', session.user.id)
+    .single()
+
+  if (employeeError || !employee) {
+    throw new AppError(
+      'Employee not found',
+      ErrorCode.NOT_FOUND,
+      { message: 'Employee record not found for authenticated user' }
+    )
+  }
+
+  // Return combined data
+  return {
+    ...employee,
+    auth_user: {
+      email: session.user.email ?? '',
+      role: session.user.user_metadata.role
+    }
+  }
 }
 
 /**
  * Check if the current user has the required role
  */
 export async function checkRole(requiredRole: string): Promise<boolean> {
-  const session = await getSession()
-  if (!session?.user) return false
-  
-  return session.user.user_metadata.role === requiredRole
+  const auth = await requireAuth()
+  return auth.auth_user?.role === requiredRole
 }
 
 /**
@@ -74,44 +97,25 @@ export async function isAuthenticated(): Promise<boolean> {
  * Returns null if no user is authenticated
  */
 export async function getUserRole(): Promise<string | null> {
-  const session = await getSession()
-  if (!session?.user) return null
-  
-  return session.user.user_metadata.role
+  const auth = await requireAuth().catch(() => null)
+  return auth?.auth_user?.role ?? null
 }
 
 /**
  * Check if the current user's profile is complete
  */
 export async function isProfileComplete(): Promise<boolean> {
-  const session = await getSession()
-  if (!session?.user) return false
+  const user = await getUser()
+  if (!user) return false
   
-  return !session.user.user_metadata.profile_incomplete
+  return !user.user_metadata.profile_incomplete
 }
 
 /**
  * Get the current user's profile data
  */
-export async function getUserProfile() {
-  const user = await requireUser()
-  const supabase = await createServerSupabaseClient()
-  
-  const { data, error } = await supabase
-    .from('employees')
-    .select('*')
-    .eq('id', user.id)
-    .single()
-    
-  if (error) {
-    throw new AppError(
-      'Failed to fetch user profile',
-      ErrorCode.NOT_FOUND,
-      { message: error.message }
-    )
-  }
-  
-  return data
+export async function getUserProfile(): Promise<EmployeeWithAuth> {
+  return requireAuth()
 }
 
 /**

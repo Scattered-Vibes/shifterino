@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { ExclamationTriangleIcon } from '@radix-ui/react-icons'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { AppError, isAppError } from '@/lib/utils/error-handler'
 
 export default function GlobalError({
   error,
@@ -14,8 +15,10 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     // Log the error to an error reporting service
-    console.error('Root error:', error)
+    console.error('Global error:', error)
   }, [error])
+
+  const appError = isAppError(error) ? error : null
 
   return (
     <html>
@@ -28,29 +31,30 @@ export default function GlobalError({
               <p className="text-sm text-muted-foreground">
                 An unexpected error occurred. Please try again later.
               </p>
-              {process.env.NODE_ENV === 'development' && (
+              {appError && (
                 <pre className="mt-2 rounded-md bg-slate-950 p-4 text-sm text-white">
-                  <code>{error.message}</code>
-                  {error.digest && (
-                    <div className="mt-2 text-xs text-slate-400">
-                      Error ID: {error.digest}
-                    </div>
-                  )}
+                  <code>
+                    Code: {appError.code}
+                    <br />
+                    Message: {appError.message}
+                    {appError.details && (
+                      <>
+                        <br />
+                        Details: {JSON.stringify(appError.details, null, 2)}
+                      </>
+                    )}
+                  </code>
                 </pre>
               )}
               <div className="mt-4 flex gap-4">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => window.location.reload()}
+                  onClick={() => (window.location.href = '/')}
                 >
-                  Refresh Page
+                  Go to Home
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => reset()}
-                >
+                <Button size="sm" onClick={() => reset()}>
                   Try Again
                 </Button>
               </div>

@@ -12,7 +12,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { updateProfile } from '@/lib/auth/actions'
 import { useSupabase } from '@/app/providers/SupabaseContext'
-import { useRouter } from 'next/navigation'
 
 const profileSchema = z.object({
   first_name: z.string().min(2, { message: "First name must be at least 2 characters." }),
@@ -21,21 +20,36 @@ const profileSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileSchema>
 
-export function CompleteProfileForm() {
-  const { user, employee, isSigningOut, signOut } = useSupabase()
-  const router = useRouter()
-  const [state, formAction] = useFormState(updateProfile, null)
+function UpdateProfileButton() {
   const { pending } = useFormStatus()
+
+  return (
+    <Button type="submit" className="w-full" disabled={pending}>
+      {pending ? (
+        <>
+          <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+          Updating...
+        </>
+      ) : (
+        'Complete Profile'
+      )}
+    </Button>
+  )
+}
+
+export function CompleteProfileForm() {
+  const { user, employee } = useSupabase()
+  const [state, formAction] = useFormState(updateProfile, null)
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      first_name: '',
-      last_name: ''
+      first_name: employee?.first_name || '',
+      last_name: employee?.last_name || ''
     }
   })
 
-  if (!user) {
+  if (!user || !employee) {
     return <p>Not authorized</p>
   }
 
@@ -58,6 +72,7 @@ export function CompleteProfileForm() {
               </Alert>
             )}
             <input type="hidden" name="auth_id" value={user.id} />
+            <input type="hidden" name="id" value={employee.id} />
             <FormField
               control={form.control}
               name="first_name"
@@ -65,7 +80,7 @@ export function CompleteProfileForm() {
                 <FormItem>
                   <FormLabel>First Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter your first name" {...field} disabled={pending} />
+                    <Input {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -78,22 +93,13 @@ export function CompleteProfileForm() {
                 <FormItem>
                   <FormLabel>Last Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter your last name" {...field} disabled={pending} />
+                    <Input {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full" disabled={pending}>
-              {pending ? (
-                <>
-                  <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-                  Updating...
-                </>
-              ) : (
-                'Complete Profile'
-              )}
-            </Button>
+            <UpdateProfileButton />
           </form>
         </Form>
       </CardContent>

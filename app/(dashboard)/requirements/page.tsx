@@ -1,54 +1,67 @@
-'use server'
-
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
-import { handleError } from '@/lib/utils/index'
+import { AppError, ErrorCode, handleError } from '@/lib/utils/error-handler'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { RequirementsDataTable } from './data-table'
-import { RequirementsTableSkeleton } from './loading'
+import RequirementsLoading from './loading'
 import { CreateRequirementButton } from './create-button'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
 import type { Database } from '@/types/supabase/database'
 
 type StaffingRequirement = Database['public']['Tables']['staffing_requirements']['Row']
 
+async function verifyManagerAccess() {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
+
+  if (authError) {
+    throw new AppError('Authentication failed', ErrorCode.UNAUTHORIZED)
+  }
+
+  if (!user) {
+    redirect('/login')
+  }
+
+  const { data: employee, error: employeeError } = await supabase
+    .from('employees')
+    .select('role')
+    .eq('auth_id', user.id)
+    .single()
+
+  if (employeeError) {
+    throw new AppError('Failed to fetch employee role', ErrorCode.DATABASE)
+  }
+
+  if (!employee || employee.role !== 'manager') {
+    redirect('/unauthorized')
+  }
+
+  return user
+}
+
 async function getStaffingRequirements() {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { data: requirements, error } = await supabase
     .from('staffing_requirements')
     .select('*')
     .order('time_block_start', { ascending: true })
 
-  if (error) throw error
+  if (error) {
+    throw new AppError('Failed to fetch staffing requirements', ErrorCode.DATABASE)
+  }
+
   return requirements || []
 }
 
 export default async function RequirementsPage() {
-  const supabase = createClient()
-
   try {
-    // Verify authentication and role
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError) throw authError
-    if (!user) redirect('/login')
-
-    // Get user's role
-    const { data: employee, error: employeeError } = await supabase
-      .from('employees')
-      .select('role')
-      .eq('auth_id', user.id)
-      .single()
-
-    if (employeeError) throw employeeError
-    if (!employee || employee.role !== 'manager') {
-      redirect('/unauthorized')
-    }
+    await verifyManagerAccess()
 
     return (
       <div className="space-y-6 p-6">
@@ -68,7 +81,7 @@ export default async function RequirementsPage() {
           </CardHeader>
           <CardContent>
             <ErrorBoundary>
-              <Suspense fallback={<RequirementsTableSkeleton />}>
+              <Suspense fallback={<RequirementsLoading />}>
                 <RequirementsDataTable promise={getStaffingRequirements()} />
               </Suspense>
             </ErrorBoundary>
@@ -77,6 +90,9 @@ export default async function RequirementsPage() {
       </div>
     )
   } catch (error) {
-    throw handleError(error)
+    if (error instanceof AppError) {
+      throw error
+    }
+    throw new AppError('An unexpected error occurred', ErrorCode.UNKNOWN)
   }
 }

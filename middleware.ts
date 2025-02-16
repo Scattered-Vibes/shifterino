@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 
 // Define paths that don't require authentication
 const PUBLIC_PATHS = [
@@ -32,62 +33,22 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  })
-
+  const cookieStore = cookies()
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         get(name: string) {
-          return request.cookies.get(name)?.value
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          // If the cookie is updated, update the cookies for the request and response
-          request.cookies.set({
-            name,
-            value,
-            ...options,
-          })
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
-          response.cookies.set({
-            name,
-            value,
-            ...options,
-          })
-        },
-        remove(name: string, options: CookieOptions) {
-          // If the cookie is removed, update the cookies for the request and response
-          request.cookies.set({
-            name,
-            value: '',
-            ...options,
-          })
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
-          response.cookies.set({
-            name,
-            value: '',
-            ...options,
-          })
-        },
-      },
+          return cookieStore.get(name)?.value
+        }
+        // Intentionally omit set() and remove() to prevent double cookie writing
+      }
     }
   )
 
   try {
-    // Refresh session. This is the critical addition.
+    // Only use getSession() for token refresh
     const { data: { session }, error } = await supabase.auth.getSession()
 
     if (error || !session) {
@@ -97,10 +58,12 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(redirectUrl)
     }
 
-    // Set cache control headers to prevent caching
+    const response = NextResponse.next()
+    
+    // Set cache control headers
     response.headers.set(
       'Cache-Control',
-      'no-store, no-cache, must-revalidate, proxy-revalidate'
+      'no-cache, no-store, max-age=0, must-revalidate'
     )
     response.headers.set('Pragma', 'no-cache')
     response.headers.set('Expires', '0')

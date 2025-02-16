@@ -1,15 +1,26 @@
 import type { Employee } from '../models/employee'
+import type { IndividualShift } from '@/types/supabase/index'
 
-export interface ShiftEvent {
-  id: string
-  title: string
-  start: string // ISO datetime
-  end: string // ISO datetime
-  employeeId: string
-  employee?: Employee
-  status: 'pending' | 'approved' | 'completed'
-  isOnCall?: boolean
-  notes?: string
+/**
+ * Represents the type of shift pattern an employee can work
+ */
+export type ShiftPatternType = 'PATTERN_A' | 'PATTERN_B'
+
+/**
+ * Represents the possible statuses for a shift
+ */
+export type ShiftStatus = IndividualShift['status']
+
+/**
+ * Represents a shift event with complete timing information
+ */
+export interface ShiftEvent extends IndividualShift {
+  /** Start time of the shift in ISO format */
+  start: string
+  /** End time of the shift in ISO format */
+  end: string
+  /** Type of shift pattern this belongs to */
+  pattern: ShiftPatternType
 }
 
 export interface ShiftUpdateData {
@@ -43,4 +54,45 @@ export interface OnCallSchedule {
 export interface Duration {
   hours: number
   minutes: number
-} 
+}
+
+/**
+ * Converts a database shift record to a ShiftEvent
+ */
+export function convertToShiftEvent(
+  shift: IndividualShift,
+  shiftOption: {
+    start_time: string
+    end_time: string
+    pattern: ShiftPatternType
+  }
+): ShiftEvent {
+  // Combine date with start/end times
+  const [year, month, day] = shift.date.split('-')
+  const startDate = new Date(
+    parseInt(year),
+    parseInt(month) - 1,
+    parseInt(day)
+  )
+  const endDate = new Date(startDate)
+
+  // Parse start time
+  const [startHour, startMinute] = shiftOption.start_time.split(':')
+  startDate.setHours(parseInt(startHour), parseInt(startMinute), 0, 0)
+
+  // Parse end time
+  const [endHour, endMinute] = shiftOption.end_time.split(':')
+  endDate.setHours(parseInt(endHour), parseInt(endMinute), 0, 0)
+
+  // If end time is before start time, it means the shift ends the next day
+  if (endDate < startDate) {
+    endDate.setDate(endDate.getDate() + 1)
+  }
+
+  return {
+    ...shift,
+    start: startDate.toISOString(),
+    end: endDate.toISOString(),
+    pattern: shiftOption.pattern
+  }
+}

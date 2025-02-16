@@ -3,13 +3,12 @@
 import { useFormState } from 'react-dom'
 import { useFormStatus } from 'react-dom'
 import Link from 'next/link'
-import { resetPassword } from '@/app/(auth)/actions'
+import { resetPassword } from '@/lib/auth/actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Icons } from '@/components/ui/icons'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { type ResetPasswordState } from '@/app/(auth)/auth'
 
 function ResetPasswordButton() {
   const { pending } = useFormStatus()
@@ -17,15 +16,19 @@ function ResetPasswordButton() {
   return (
     <Button type="submit" className="w-full" disabled={pending}>
       {pending ? (
-        <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-      ) : null}
-      Reset Password
+        <>
+          <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+          Sending reset link...
+        </>
+      ) : (
+        'Reset Password'
+      )}
     </Button>
   )
 }
 
 export default function ResetPasswordPage() {
-  const [state, formAction] = useFormState<ResetPasswordState | null, FormData>(resetPassword, null)
+  const [state, formAction] = useFormState(resetPassword, null)
 
   return (
     <Card>
@@ -35,18 +38,18 @@ export default function ResetPasswordPage() {
           Enter your email address and we&apos;ll send you a link to reset your password
         </CardDescription>
       </CardHeader>
-      <form action={formAction}>
+      <form action={formAction} className="space-y-4">
         <CardContent className="space-y-4">
-          {state?.error ? (
-            <div className="text-sm text-red-500">
+          {state?.error && (
+            <div className="text-sm text-destructive">
               {state.error.message}
             </div>
-          ) : null}
-          {state?.message ? (
+          )}
+          {state?.message && (
             <div className="text-sm text-green-500">
               {state.message}
             </div>
-          ) : null}
+          )}
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input

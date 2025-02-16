@@ -2,96 +2,58 @@
 
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { useToast } from '@/components/ui/use-toast'
+import { useFormState, useFormStatus } from 'react-dom'
+import { login, signUp } from '@/lib/auth/actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useSignIn, useSignUp } from '@/app/lib/hooks/use-auth-mutations'
-import { loginSchema, signupSchema } from '@/lib/validations/auth'
+import { Icons } from '@/components/ui/icons'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 
 interface UserAuthFormProps {
   className?: string
 }
 
-type SignupInput = z.infer<typeof signupSchema>
+function LoginButton() {
+  const { pending } = useFormStatus()
+  
+  return (
+    <Button type="submit" className="w-full" disabled={pending}>
+      {pending ? (
+        <>
+          <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+          Signing in...
+        </>
+      ) : (
+        'Sign in'
+      )}
+    </Button>
+  )
+}
+
+function SignUpButton() {
+  const { pending } = useFormStatus()
+  
+  return (
+    <Button type="submit" className="w-full" disabled={pending}>
+      {pending ? (
+        <>
+          <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+          Creating account...
+        </>
+      ) : (
+        'Create account'
+      )}
+    </Button>
+  )
+}
 
 export function UserAuthForm({ className }: UserAuthFormProps) {
   const router = useRouter()
-  const { toast } = useToast()
-  const signInMutation = useSignIn()
-  const signUpMutation = useSignUp()
-  const [isLoading, setIsLoading] = React.useState(false)
-
-  const loginForm = useForm({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: '',
-      password: '',
-    },
-  })
-
-  const signupForm = useForm<SignupInput>({
-    resolver: zodResolver(signupSchema),
-    defaultValues: {
-      email: '',
-      password: '',
-      confirmPassword: '',
-      role: 'dispatcher',
-    },
-  })
-
-  async function onSignIn(data: z.infer<typeof loginSchema>) {
-    try {
-      setIsLoading(true)
-      const result = await signInMutation.mutateAsync(data)
-      if (result.error) throw result.error
-      
-      router.refresh()
-      router.push('/overview')
-      toast({
-        title: 'Welcome back!',
-        description: 'You have successfully signed in.',
-      })
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'An unexpected error occurred',
-        variant: 'destructive',
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  async function onSignUp(data: SignupInput) {
-    try {
-      setIsLoading(true)
-      const result = await signUpMutation.mutateAsync({
-        email: data.email,
-        password: data.password,
-        role: data.role
-      })
-      if (result.error) throw result.error
-      
-      toast({
-        title: 'Success!',
-        description: 'Please check your email to confirm your account.',
-      })
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'An unexpected error occurred',
-        variant: 'destructive',
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
+  const [loginState, loginAction] = useFormState(login, null)
+  const [signUpState, signUpAction] = useFormState(signUp, null)
+  
   return (
     <Tabs defaultValue="login" className={className}>
       <TabsList className="grid w-full grid-cols-2">
@@ -99,112 +61,104 @@ export function UserAuthForm({ className }: UserAuthFormProps) {
         <TabsTrigger value="register">Register</TabsTrigger>
       </TabsList>
       <TabsContent value="login">
-        <Form {...loginForm}>
-          <form onSubmit={loginForm.handleSubmit(onSignIn)} className="space-y-4">
-            <FormField
-              control={loginForm.control}
+        <form action={loginAction} className="space-y-4">
+          {loginState?.error && (
+            <Alert variant="destructive">
+              <AlertDescription>
+                {loginState.error.message}
+              </AlertDescription>
+            </Alert>
+          )}
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
               name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="email"
-                      placeholder="name@example.com"
-                      disabled={isLoading}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              type="email"
+              placeholder="name@example.com"
+              required
             />
-            <FormField
-              control={loginForm.control}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
               name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Password</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="password"
-                      placeholder="Enter your password"
-                      disabled={isLoading}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              type="password"
+              required
             />
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Signing in...' : 'Sign in'}
-            </Button>
-          </form>
-        </Form>
+          </div>
+          <LoginButton />
+        </form>
       </TabsContent>
       <TabsContent value="register">
-        <Form {...signupForm}>
-          <form onSubmit={signupForm.handleSubmit(onSignUp)} className="space-y-4">
-            <FormField
-              control={signupForm.control}
+        <form action={signUpAction} className="space-y-4">
+          {signUpState?.error && (
+            <Alert variant="destructive">
+              <AlertDescription>
+                {signUpState.error.message}
+              </AlertDescription>
+            </Alert>
+          )}
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
               name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="email"
-                      placeholder="name@example.com"
-                      disabled={isLoading}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              type="email"
+              placeholder="name@example.com"
+              required
             />
-            <FormField
-              control={signupForm.control}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
               name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Password</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="password"
-                      placeholder="Create a password"
-                      disabled={isLoading}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              type="password"
+              required
             />
-            <FormField
-              control={signupForm.control}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword">Confirm Password</Label>
+            <Input
+              id="confirmPassword"
               name="confirmPassword"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Confirm Password</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="password"
-                      placeholder="Confirm your password"
-                      disabled={isLoading}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              type="password"
+              required
             />
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Creating account...' : 'Create account'}
-            </Button>
-          </form>
-        </Form>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="first_name">First Name</Label>
+            <Input
+              id="first_name"
+              name="first_name"
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="last_name">Last Name</Label>
+            <Input
+              id="last_name"
+              name="last_name"
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="role">Role</Label>
+            <select
+              id="role"
+              name="role"
+              className="w-full rounded-md border border-input bg-background px-3 py-2"
+              required
+            >
+              <option value="DISPATCHER">Dispatcher</option>
+              <option value="SUPERVISOR">Supervisor</option>
+              <option value="MANAGER">Manager</option>
+            </select>
+          </div>
+          <SignUpButton />
+        </form>
       </TabsContent>
     </Tabs>
   )

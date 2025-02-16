@@ -1,94 +1,131 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { type ShiftEvent, type ShiftUpdateData } from '@/types'
-import { supabase } from '@/lib/supabase/client'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
+import type { Database } from '@/types/supabase/database'
 
-const SHIFTS_KEY = 'shifts'
+type IndividualShift = Database['public']['Tables']['individual_shifts']['Row']
+type ShiftUpdateData = Partial<Pick<IndividualShift, 'status' | 'actual_hours_worked' | 'notes'>>
 
-interface UseShiftsOptions {
+interface QueryOptions {
+  scheduleId?: string
   employeeId?: string
   startDate?: string
   endDate?: string
 }
 
-export function useShifts(options: UseShiftsOptions = {}) {
-  const { employeeId, startDate, endDate } = options
-
-  return useQuery({
-    queryKey: [SHIFTS_KEY, employeeId, startDate, endDate],
-    queryFn: async () => {
-      let query = supabase
-        .from('individual_shifts')
-        .select(`
-          *,
-          employee:employees(id, first_name, last_name, role),
-          shift_option:shift_options(*)
-        `)
-
-      if (employeeId) {
-        query = query.eq('employee_id', employeeId)
-      }
-
-      if (startDate) {
-        query = query.gte('date', startDate)
-      }
-
-      if (endDate) {
-        query = query.lte('date', endDate)
-      }
-
-      const { data, error } = await query
-
-      if (error) {
-        throw new Error(error.message)
-      }
-
-      return data
-    }
-  })
-}
-
-export function useUpdateShift() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: ShiftUpdateData }) => {
-      const { data: updatedShift, error } = await supabase
-        .from('individual_shifts')
-        .update(data)
-        .eq('id', id)
-        .select()
-        .single()
-
-      if (error) {
-        throw new Error(error.message)
-      }
-
-      return updatedShift
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [SHIFTS_KEY] })
-    }
-  })
-}
-
-export function useShiftEvents() {
-  const { data: shifts, ...rest } = useShifts()
-
-  const events: ShiftEvent[] = shifts?.map(shift => ({
-    id: shift.id,
-    title: `${shift.employee?.first_name} ${shift.employee?.last_name}`,
-    start: new Date(shift.date + 'T' + shift.shift_option.start_time),
-    end: new Date(shift.date + 'T' + shift.shift_option.end_time),
-    employee_id: shift.employee_id,
-    is_supervisor: shift.employee?.role === 'supervisor',
-    status: shift.status,
-    actual_start_time: shift.actual_start_time,
-    actual_end_time: shift.actual_end_time,
-    notes: shift.notes
-  })) ?? []
-
-  return {
-    events,
-    ...rest
+export async function getShifts(options: QueryOptions = {}) {
+  const supabase = await createServerSupabaseClient()
+  const query = supabase
+    .from('individual_shifts')
+    .select('*, shift_option:shift_options(*)')
+    
+  if (options.scheduleId) {
+    query.eq('schedule_period_id', options.scheduleId)
   }
+  
+  if (options.employeeId) {
+    query.eq('employee_id', options.employeeId)
+  }
+  
+  if (options.startDate) {
+    query.gte('date', options.startDate)
+  }
+  
+  if (options.endDate) {
+    query.lte('date', options.endDate)
+  }
+  
+  const { data, error } = await query
+  
+  if (error) {
+    throw error
+  }
+  
+  return data
+}
+
+export async function getShift(shiftId: string) {
+  const supabase = await createServerSupabaseClient()
+  const { data, error } = await supabase
+    .from('individual_shifts')
+    .select('*, shift_option:shift_options(*)')
+    .eq('id', shiftId)
+    .single()
+  
+  if (error) {
+    throw error
+  }
+  
+  return data
+}
+
+export async function createShift(data: Omit<IndividualShift, 'id' | 'created_at' | 'updated_at'>) {
+  const supabase = await createServerSupabaseClient()
+  const { data: newShift, error } = await supabase
+    .from('individual_shifts')
+    .insert([data])
+    .select('*, shift_option:shift_options(*)')
+    .single()
+  
+  if (error) {
+    throw error
+  }
+  
+  return newShift
+}
+
+export async function updateShift(shiftId: string, data: ShiftUpdateData) {
+  const supabase = await createServerSupabaseClient()
+  const { data: updatedShift, error } = await supabase
+    .from('individual_shifts')
+    .update(data)
+    .eq('id', shiftId)
+    .select('*, shift_option:shift_options(*)')
+    .single()
+  
+  if (error) {
+    throw error
+  }
+  
+  return updatedShift
+}
+
+export async function deleteShift(shiftId: string) {
+  const supabase = await createServerSupabaseClient()
+  const { error } = await supabase
+    .from('individual_shifts')
+    .delete()
+    .eq('id', shiftId)
+  
+  if (error) {
+    throw error
+  }
+  
+  return true
+}
+
+export async function getShiftConflicts(params: {
+  employeeId: string
+  startTime: Date
+  endTime: Date
+  excludeShiftId?: string
+}) {
+  const supabase = await createServerSupabaseClient()
+  const query = supabase
+    .from('individual_shifts')
+    .select('*, shift_option:shift_options(*)')
+    .eq('employee_id', params.employeeId)
+    .gte('date', params.startTime.toISOString())
+    .lte('date', params.endTime.toISOString())
+    .neq('status', 'cancelled')
+  
+  if (params.excludeShiftId) {
+    query.neq('id', params.excludeShiftId)
+  }
+  
+  const { data, error } = await query
+  
+  if (error) {
+    throw error
+  }
+  
+  return data
 } 

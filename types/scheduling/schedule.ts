@@ -1,7 +1,6 @@
-import type { Employee } from '../models/employee'
+import type { Employee, TimeOffRequest, StaffingRequirement } from '@/types/supabase/index'
+import type { ShiftEvent } from './shift'
 import type { ShiftOption, IndividualShift } from '../models/shift'
-import type { TimeOffRequest } from '../models/time-off'
-import type { StaffingRequirement } from '../models/staffing'
 
 export type {
   Employee,
@@ -48,11 +47,9 @@ export interface ScheduleConflict {
 }
 
 export interface ScheduleGenerationParams {
-  startDate: Date
-  endDate: Date
-  considerPreferences?: boolean
-  allowOvertime?: boolean
-  maxOvertimeHours?: number
+  startDate: string
+  endDate: string
+  employeeIds: string[]
 }
 
 export interface ScheduleGenerationResult {
@@ -62,25 +59,31 @@ export interface ScheduleGenerationResult {
   warnings?: string[]
 }
 
+export interface Holiday {
+  date: string
+  name: string
+  isObserved: boolean
+}
+
 export interface GenerationContext {
   periodId: string
-  startDate: Date
-  endDate: Date
+  startDate: string
+  endDate: string
   employees: Employee[]
-  shiftOptions: ShiftOption[]
-  staffingRequirements: StaffingRequirement[]
   timeOffRequests: TimeOffRequest[]
+  staffingRequirements: StaffingRequirement[]
+  shiftOptions: ShiftOption[]
   params: ScheduleGenerationParams
   weeklyHours: Record<string, Record<string, number>>
-  shiftPatterns: Record<string, {
-    consecutiveShifts: number
-    lastShiftEnd: Date | null
-  }>
-  holidays: Array<{
-    date: string
-    name: string
-    isObserved: boolean
-  }>
+  shiftPatterns: Record<string, ShiftPattern>
+  existingShifts: ShiftEvent[]
+  holidays: Holiday[]
+}
+
+export interface ShiftPattern {
+  consecutiveShifts: number
+  lastShiftEnd: Date | null
+  currentPattern: 'PATTERN_A' | 'PATTERN_B'
 }
 
 export interface ShiftAssignment {

@@ -1,15 +1,19 @@
+'use client'
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { scheduleQueries } from '@/lib/supabase/data-access/schedules'
+import { useSupabase } from '@/app/providers/SupabaseContext'
 import { toast } from '@/components/ui/use-toast'
 import { ErrorCode, handleError, getUserFriendlyMessage } from '@/lib/utils/error-handler'
+import type { Database } from '@/types/supabase/database'
+import * as scheduleServer from '../server/use-schedules'
 
-type QueryOptions = Parameters<typeof scheduleQueries.searchSchedules>[0]
+type SchedulePeriod = Database['public']['Tables']['schedule_periods']['Row']
+type QueryOptions = Parameters<typeof scheduleServer.getSchedules>[0]
 
 export function useSchedules(options: QueryOptions = {}) {
   const queryClient = useQueryClient()
-  const supabase = createClient()
+  const { supabase } = useSupabase()
 
   const {
     data: schedules,
@@ -18,22 +22,18 @@ export function useSchedules(options: QueryOptions = {}) {
     refetch
   } = useQuery({
     queryKey: ['schedules', options],
-    queryFn: async () => {
-      const { data, error } = await scheduleQueries.searchSchedules(options)
-      if (error) throw error
-      return data
-    }
+    queryFn: () => scheduleServer.getSchedules(options)
   })
 
   useEffect(() => {
     const channel = supabase
-      .channel('schedules')
+      .channel('schedule_periods')
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'schedules'
+          table: 'schedule_periods'
         },
         (_payload) => {
           try {
@@ -73,11 +73,7 @@ export function useSchedule(scheduleId: string) {
     error
   } = useQuery({
     queryKey: ['schedule', scheduleId],
-    queryFn: async () => {
-      const { data, error } = await scheduleQueries.getSchedule(scheduleId)
-      if (error) throw error
-      return data
-    },
+    queryFn: () => scheduleServer.getSchedule(scheduleId),
     enabled: !!scheduleId
   })
 
@@ -92,10 +88,8 @@ export function useCreateSchedule() {
   const queryClient = useQueryClient()
 
   const mutation = useMutation({
-    mutationFn: async (data: Parameters<typeof scheduleQueries.createSchedule>[0]) => {
-      const { data: newSchedule, error } = await scheduleQueries.createSchedule(data)
-      if (error) throw error
-      return newSchedule
+    mutationFn: (data: Parameters<typeof scheduleServer.createSchedule>[0]) => {
+      return scheduleServer.createSchedule(data)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['schedules'] })
@@ -122,16 +116,14 @@ export function useUpdateSchedule() {
   const queryClient = useQueryClient()
 
   const mutation = useMutation({
-    mutationFn: async ({
+    mutationFn: ({
       scheduleId,
       data
     }: {
       scheduleId: string
-      data: Parameters<typeof scheduleQueries.updateSchedule>[1]
+      data: Parameters<typeof scheduleServer.updateSchedule>[1]
     }) => {
-      const { data: updatedSchedule, error } = await scheduleQueries.updateSchedule(scheduleId, data)
-      if (error) throw error
-      return updatedSchedule
+      return scheduleServer.updateSchedule(scheduleId, data)
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['schedules'] })
@@ -159,10 +151,8 @@ export function useDeleteSchedule() {
   const queryClient = useQueryClient()
 
   const mutation = useMutation({
-    mutationFn: async (scheduleId: string) => {
-      const { error } = await scheduleQueries.deleteSchedule(scheduleId)
-      if (error) throw error
-      return true
+    mutationFn: (scheduleId: string) => {
+      return scheduleServer.deleteSchedule(scheduleId)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['schedules'] })
@@ -192,11 +182,7 @@ export function useScheduleShifts(scheduleId: string) {
     error
   } = useQuery({
     queryKey: ['schedule-shifts', scheduleId],
-    queryFn: async () => {
-      const { data, error } = await scheduleQueries.getScheduleShifts(scheduleId)
-      if (error) throw error
-      return data
-    },
+    queryFn: () => scheduleServer.getScheduleShifts(scheduleId),
     enabled: !!scheduleId
   })
 
@@ -214,11 +200,7 @@ export function useScheduleConflicts(employeeId: string, startDate: Date, endDat
     error
   } = useQuery({
     queryKey: ['schedule-conflicts', employeeId, startDate, endDate],
-    queryFn: async () => {
-      const { data, error } = await scheduleQueries.getScheduleConflicts(employeeId, startDate, endDate)
-      if (error) throw error
-      return data
-    },
+    queryFn: () => scheduleServer.getScheduleConflicts(employeeId, startDate, endDate),
     enabled: !!employeeId && !!startDate && !!endDate
   })
 

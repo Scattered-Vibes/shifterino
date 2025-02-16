@@ -30,68 +30,20 @@ const cookieOptions: CookieOptions = {
 export async function createServerSupabaseClient() {
   const cookieStore = cookies()
 
-  const cookieHandler = {
-    get(name: string) {
-      const cookie = cookieStore.get(name)
-      console.log('[Supabase Cookie Get]', { 
-        name, 
-        value: cookie?.value ? '[REDACTED]' : undefined,
-        exists: !!cookie
-      })
-      return cookie?.value
-    },
-    set(name: string, value: string, options: CookieOptions) {
-      const finalOptions = {
-        ...cookieOptions,
-        ...options,
-        name,
-        value
-      }
-      
-      console.log('[Supabase Cookie Set]', { 
-        name,
-        options: {
-          ...finalOptions,
-          value: '[REDACTED]'
-        }
-      })
-      
-      try {
-        cookieStore.set(finalOptions)
-        console.log('[Supabase Cookie Set Success]', { name })
-      } catch (error) {
-        console.error('[Supabase Cookie Set Error]', { name, error })
-      }
-    },
-    remove(name: string, options: CookieOptions) {
-      const finalOptions = {
-        ...cookieOptions,
-        ...options,
-        name,
-        value: '',
-        maxAge: 0
-      }
-      
-      console.log('[Supabase Cookie Remove]', { name })
-      
-      try {
-        cookieStore.set(finalOptions)
-        console.log('[Supabase Cookie Remove Success]', { name })
-      } catch (error) {
-        console.error('[Supabase Cookie Remove Error]', { name, error })
-      }
-    }
-  }
-
   return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      cookies: cookieHandler,
-      auth: {
-        detectSessionInUrl: true,
-        persistSession: true,
-        autoRefreshToken: true,
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          cookieStore.set({ name, value, ...options })
+        },
+        remove(name: string, options: CookieOptions) {
+          cookieStore.set({ name, value: '', ...options })
+        },
       },
     }
   )
