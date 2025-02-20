@@ -1,20 +1,24 @@
-export interface StaffingRequirement {
-  id: string
-  name: string
-  time_block_start: string // HH:mm format
-  time_block_end: string // HH:mm format
-  min_total_staff: number
-  min_supervisors: number
-  day_of_week?: number // 0-6, where 0 is Sunday
-  is_holiday?: boolean
-  start_date?: string // YYYY-MM-DD
-  end_date?: string // YYYY-MM-DD
-  schedule_period_id?: string
-  override_reason?: string
-  created_at: string
-  updated_at: string
+import type { Database } from '../supabase/database'
+
+type Tables = Database['public']['Tables']
+
+/**
+ * Base staffing requirement type from database
+ */
+export type StaffingRequirement = Tables['staffing_requirements']['Row']
+
+/**
+ * Staffing requirement with additional computed fields
+ */
+export interface StaffingRequirementWithStats extends StaffingRequirement {
+  actualStaffCount: number
+  supervisorCount: number
+  isMet: boolean
 }
 
+/**
+ * Staffing alert type
+ */
 export interface StaffingAlert {
   id: string
   date: string
@@ -30,6 +34,9 @@ export interface StaffingAlert {
   updated_at: string
 }
 
+/**
+ * Staffing override type
+ */
 export interface StaffingOverride {
   id: string
   requirement_id: string
@@ -42,4 +49,17 @@ export interface StaffingOverride {
   created_by: string
   created_at: string
   updated_at: string
-} 
+}
+
+/**
+ * Input type for creating a new staffing requirement
+ */
+export type CreateStaffingRequirementInput = Omit<
+  StaffingRequirement,
+  'id' | 'created_at' | 'updated_at'
+>
+
+/**
+ * Input type for updating an existing staffing requirement
+ */
+export type UpdateStaffingRequirementInput = Partial<CreateStaffingRequirementInput> 

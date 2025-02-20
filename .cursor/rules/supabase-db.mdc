@@ -90,7 +90,7 @@ globs: database/**/*.sql, supabase/migrations/**/*.sql
 4. **Type Generation**
    ```bash
    # Generate types after schema changes
-   npx supabase gen types typescript --project-id your-project-id > types/supabase.ts
+   npx supabase gen types typescript --project-id dvnzmtowppsbfxkwgnod > types/supabase/database.ts
    ```
 
    ```typescript

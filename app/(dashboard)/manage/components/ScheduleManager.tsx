@@ -4,7 +4,7 @@ import { FC } from 'react'
 import { EventDropArg } from '@fullcalendar/core'
 import { EventResizeStopArg } from '@fullcalendar/interaction'
 import { ShiftCalendar } from '@/components/ui/calendar'
-import { useShifts } from '@/lib/hooks'
+import { useShifts, useUpdateShift, useDeleteShift } from '@/lib/hooks/client/use-shifts'
 import type { ShiftEvent } from '@/types/scheduling/shift'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
 import { toast } from '@/components/ui/use-toast'
@@ -31,7 +31,9 @@ const ErrorFallback: FC<{ error: Error }> = ({ error }) => {
 }
 
 export const ScheduleManager: FC<ScheduleManagerProps> = ({ shifts: _shifts }) => {
-  const { events, updateShift, isLoading, error } = useShifts()
+  const { events, isLoading, error } = useShifts()
+  const { updateShift, isLoading: isUpdatingShift } = useUpdateShift()
+  const { deleteShift, isLoading: isDeletingShift } = useDeleteShift()
 
   if (isLoading) {
     return (
@@ -58,11 +60,12 @@ export const ScheduleManager: FC<ScheduleManagerProps> = ({ shifts: _shifts }) =
     }
 
     try {
-      await updateShift(event.id, {
-        actual_start_time: event.start.toISOString(),
-        actual_end_time: event.end.toISOString(),
-        shift_option_id: event.extendedProps.shiftOptionId,
-        actual_hours_worked: (event.end.getTime() - event.start.getTime()) / (1000 * 60 * 60)
+      await updateShift({
+        shiftId: event.id,
+        data: {
+          date: event.start.toISOString(),
+          shift_option_id: event.extendedProps.shiftOptionId
+        }
       })
     } catch (error) {
       // Error is already handled in useShifts hook
@@ -83,11 +86,12 @@ export const ScheduleManager: FC<ScheduleManagerProps> = ({ shifts: _shifts }) =
     }
 
     try {
-      await updateShift(event.id, {
-        actual_start_time: event.start.toISOString(),
-        actual_end_time: event.end.toISOString(),
-        shift_option_id: event.extendedProps.shiftOptionId,
-        actual_hours_worked: (event.end.getTime() - event.start.getTime()) / (1000 * 60 * 60)
+      await updateShift({
+        shiftId: event.id,
+        data: {
+          date: event.start.toISOString(),
+          shift_option_id: event.extendedProps.shiftOptionId
+        }
       })
     } catch (error) {
       // Error is already handled in useShifts hook

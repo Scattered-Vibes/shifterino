@@ -5,6 +5,7 @@ import { ThemeProvider } from './theme-provider'
 import { ToastProvider } from './toast-provider'
 import { SupabaseProvider } from './supabase-provider'
 import { AuthProvider } from './auth-provider'
+import { ErrorBoundary } from './error-boundary'
 
 interface ProvidersProps {
   children: React.ReactNode
@@ -12,13 +13,15 @@ interface ProvidersProps {
 
 export function Providers({ children }: ProvidersProps) {
   return (
-    <ThemeProvider>
-      <AuthProvider>
+    <ErrorBoundary fallback={<div>Something went wrong. Please try again.</div>}>
+      <ThemeProvider>
         <SupabaseProvider>
-          {children}
-          <ToastProvider />
+          <AuthProvider>
+            {children}
+            <ToastProvider />
+          </AuthProvider>
         </SupabaseProvider>
-      </AuthProvider>
-    </ThemeProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   )
 } 

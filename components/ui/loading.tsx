@@ -1,44 +1,42 @@
 'use client'
 
-import React from 'react'
-import { Loader2 } from 'lucide-react'
-import { cn } from '@/lib/utils/index'
+import * as React from 'react'
+import { cn } from '@/lib/utils'
 
 interface LoadingProps extends React.HTMLAttributes<HTMLDivElement> {
   size?: 'sm' | 'md' | 'lg'
-  text?: string | null
-  className?: string
-  centered?: boolean
+  fullScreen?: boolean
 }
 
-const sizeClasses = {
-  sm: 'h-4 w-4',
-  md: 'h-8 w-8',
-  lg: 'h-12 w-12',
-}
-
-export function Loading({
-  size = 'md',
-  text = 'Loading...',
+export function Loading({ 
+  size = 'md', 
+  fullScreen = false,
   className,
-  centered = true,
-  ...props
+  ...props 
 }: LoadingProps) {
+  const sizeClasses = {
+    sm: 'w-4 h-4',
+    md: 'w-8 h-8',
+    lg: 'w-12 h-12'
+  }
+
   return (
     <div
       className={cn(
-        'flex flex-col',
-        centered && 'items-center justify-center',
+        'flex items-center justify-center',
+        fullScreen && 'fixed inset-0 bg-background/80 backdrop-blur-sm',
         className
       )}
       {...props}
-      role="status"
-      aria-label={text || 'Loading'}
     >
-      <Loader2 className={cn('animate-spin', sizeClasses[size])} />
-      {text && (
-        <p className="mt-2 text-sm text-muted-foreground">{text}</p>
-      )}
+      <div
+        className={cn(
+          'animate-spin rounded-full border-2 border-current border-t-transparent text-primary',
+          sizeClasses[size]
+        )}
+      >
+        <span className="sr-only">Loading...</span>
+      </div>
     </div>
   )
 }

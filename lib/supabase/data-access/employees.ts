@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/client'
 import type { Database } from '@/types/supabase/database'
 import { handleError } from '@/lib/utils/error-handler'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { validateShiftPatternFormat } from '@/lib/utils/shift-patterns'
 
 type DatabaseTables = Database['public']['Tables']
 type Employee = DatabaseTables['employees']['Row']
@@ -83,6 +84,22 @@ export async function getEmployee(id: string) {
 
 export async function createEmployee(employee: Omit<Employee, 'id' | 'created_at' | 'updated_at'>) {
   try {
+    // Validate shift pattern
+    if (employee.shift_pattern) {
+      const { pattern, wasConverted, originalPattern } = validateShiftPatternFormat(employee.shift_pattern)
+      
+      if (wasConverted) {
+        employee.shift_pattern = pattern
+        console.warn(
+          '[employees.createEmployee] Legacy shift pattern format converted:', {
+            pattern: originalPattern,
+            convertedTo: pattern,
+            timestamp: new Date().toISOString()
+          }
+        )
+      }
+    }
+
     const { data, error } = await supabase
       .from('employees')
       .insert([employee])
@@ -99,6 +116,23 @@ export async function createEmployee(employee: Omit<Employee, 'id' | 'created_at
 
 export async function updateEmployee(id: string, employee: Partial<Employee>) {
   try {
+    // Validate shift pattern
+    if (employee.shift_pattern) {
+      const { pattern, wasConverted, originalPattern } = validateShiftPatternFormat(employee.shift_pattern)
+      
+      if (wasConverted) {
+        employee.shift_pattern = pattern
+        console.warn(
+          '[employees.updateEmployee] Legacy shift pattern format converted:', {
+            employeeId: id,
+            pattern: originalPattern,
+            convertedTo: pattern,
+            timestamp: new Date().toISOString()
+          }
+        )
+      }
+    }
+
     const { data, error } = await supabase
       .from('employees')
       .update(employee)
@@ -137,12 +171,15 @@ export const employeeQueries = {
         .from('employees')
         .select(`
           *,
-          schedules (
+          assigned_shifts (
             id,
-            start_date,
-            end_date,
-            shift_type,
-            status
+            date,
+            shift:shifts (
+              id,
+              start_time,
+              end_time,
+              duration_hours
+            )
           )
         `)
         .eq('id', employeeId)
@@ -201,48 +238,23 @@ export const employeeQueries = {
     }
   },
 
-  async getEmployeeSchedules(employeeId: string, startDate?: Date, endDate?: Date) {
-    const supabase = createClient()
-    try {
-      let query = supabase
-        .from('schedules')
-        .select('*')
-        .eq('employee_id', employeeId)
-        .order('start_date', { ascending: true })
-
-      if (startDate) {
-        query = query.gte('start_date', startDate.toISOString())
-      }
-      if (endDate) {
-        query = query.lte('end_date', endDate.toISOString())
-      }
-
-      const { data, error } = await query
-
-      if (error) {
-        throw handleError(error)
-      }
-
-      return { data, error: null }
-    } catch (error) {
-      return { data: null, error: handleError(error) }
-    }
-  },
-
   async getEmployeeShifts(employeeId: string, startDate?: Date, endDate?: Date) {
     const supabase = createClient()
     try {
       let query = supabase
-        .from('individual_shifts')
-        .select('*')
+        .from('assigned_shifts')
+        .select(`
+          *,
+          shift:shifts (*)
+        `)
         .eq('employee_id', employeeId)
-        .order('actual_start_time', { ascending: true })
+        .order('shift_date', { ascending: true })
 
       if (startDate) {
-        query = query.gte('actual_start_time', startDate.toISOString())
+        query = query.gte('shift_date', startDate.toISOString().split('T')[0])
       }
       if (endDate) {
-        query = query.lte('actual_end_time', endDate.toISOString())
+        query = query.lte('shift_date', endDate.toISOString().split('T')[0])
       }
 
       const { data, error } = await query

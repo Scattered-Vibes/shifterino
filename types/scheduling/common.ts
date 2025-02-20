@@ -1,5 +1,7 @@
-export type ShiftCategory = 'early' | 'day' | 'swing' | 'graveyard'
-export type ShiftPattern = 'pattern_a' | 'pattern_b' | 'custom'
+import type { ShiftCategory } from '../models/employee'
+import type { ShiftPattern } from '../shift-patterns'
+import type { StaffingRequirement } from '../models/staffing'
+import type { ValidationError } from '../supabase/index'
 
 export interface TimeBlock {
   startTime: string // HH:mm format
@@ -8,22 +10,4 @@ export interface TimeBlock {
   minSupervisors: number
 }
 
-export interface ValidationError {
-  code: string
-  message: string
-  details?: Record<string, unknown>
-}
-
-export interface StaffingRequirement {
-  id: string
-  timeBlockStart: string // HH:mm format
-  timeBlockEnd: string // HH:mm format
-  minTotalStaff: number
-  minSupervisors: number
-  dayOfWeek?: number // 0-6, where 0 is Sunday
-  isHoliday?: boolean
-  startDate?: string // YYYY-MM-DD
-  endDate?: string // YYYY-MM-DD
-  createdAt: string
-  updatedAt: string
-} 
+export type { ShiftCategory, ShiftPattern, StaffingRequirement, ValidationError } 

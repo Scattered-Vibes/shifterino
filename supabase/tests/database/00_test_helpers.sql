@@ -1,14 +1,21 @@
 -- Create test schema
 CREATE SCHEMA IF NOT EXISTS tests;
 
+-- Grant usage on test schema to authenticated users
+GRANT USAGE ON SCHEMA tests TO authenticated;
+
+-- Drop existing functions to prevent duplicates
+DROP FUNCTION IF EXISTS tests.create_supabase_user(text);
+DROP FUNCTION IF EXISTS tests.get_supabase_uid(text);
+DROP FUNCTION IF EXISTS tests.cleanup_test_data();
+
 -- Function to create a test Supabase user
 CREATE OR REPLACE FUNCTION tests.create_supabase_user(email text)
-RETURNS uuid
-LANGUAGE plpgsql
-AS $$
+RETURNS uuid AS $$
 DECLARE
     user_id uuid;
 BEGIN
+    -- Insert into auth.users
     INSERT INTO auth.users (
         instance_id,
         id,
@@ -27,83 +34,64 @@ BEGIN
         email_change,
         email_change_token_new,
         recovery_token
-    )
-    VALUES (
+    ) VALUES (
         '00000000-0000-0000-0000-000000000000',
         gen_random_uuid(),
         'authenticated',
         'authenticated',
         email,
-        '$2a$10$2nqyHhXImqPBVVrBOj7V8.Y4A.P.p6YlRuZV3zRVqwMQYAYtFU.Gy', -- test123
-        NOW(),
-        NOW(),
-        NOW(),
+        '$2a$10$2nqyqX9ZGKe4c8KXqLuHhOGwNyqX9ZGKe4c8KXqLuHhO',
+        now(),
+        now(),
+        now(),
         '{"provider": "email", "providers": ["email"]}',
         '{}',
-        NOW(),
-        NOW(),
+        now(),
+        now(),
         '',
         '',
         '',
         ''
-    )
-    RETURNING id INTO user_id;
+    ) RETURNING id INTO user_id;
 
     RETURN user_id;
 END;
-$$;
+$$ LANGUAGE plpgsql;
 
--- Function to get a test user's ID
+-- Grant execute on test functions to authenticated users
+GRANT EXECUTE ON FUNCTION tests.create_supabase_user(text) TO authenticated;
+
+-- Function to get a Supabase user's ID by email
 CREATE OR REPLACE FUNCTION tests.get_supabase_uid(email text)
-RETURNS uuid
-LANGUAGE plpgsql
-AS $$
+RETURNS uuid AS $$
 DECLARE
     user_id uuid;
 BEGIN
     SELECT id INTO user_id
     FROM auth.users
-    WHERE auth.users.email = $1
-    LIMIT 1;
-
+    WHERE auth.users.email = get_supabase_uid.email;
+    
     RETURN user_id;
 END;
-$$;
+$$ LANGUAGE plpgsql;
+
+GRANT EXECUTE ON FUNCTION tests.get_supabase_uid(text) TO authenticated;
 
 -- Function to clean up test data
 CREATE OR REPLACE FUNCTION tests.cleanup_test_data()
-RETURNS void
-LANGUAGE plpgsql
-AS $$
+RETURNS void AS $$
 BEGIN
-    -- Clean up test time off requests
-    DELETE FROM public.time_off_requests 
-    WHERE employee_id IN (
-        SELECT id FROM public.employees 
-        WHERE email LIKE 'test.%@example.com'
-    );
-
-    -- Clean up test assigned shifts
-    DELETE FROM public.assigned_shifts 
-    WHERE employee_id IN (
-        SELECT id FROM public.employees 
-        WHERE email LIKE 'test.%@example.com'
-    );
-
-    -- Clean up test employees
-    DELETE FROM public.employees 
-    WHERE email LIKE 'test.%@example.com';
-
-    -- Clean up test users
-    DELETE FROM auth.users 
-    WHERE email LIKE 'test.%@example.com';
-
-    -- Clean up test teams
-    DELETE FROM public.teams 
-    WHERE name LIKE 'Team %';
-
-    -- Clean up test shifts
-    DELETE FROM public.shifts 
-    WHERE name LIKE 'Test %';
+    -- Clean up data in reverse dependency order
+    DELETE FROM public.individual_shifts;
+    DELETE FROM public.time_off_requests;
+    DELETE FROM public.staffing_requirements;
+    DELETE FROM public.schedule_periods;
+    DELETE FROM public.shifts;
+    DELETE FROM public.shift_options;
+    DELETE FROM public.employees;
+    DELETE FROM public.teams;
+    DELETE FROM auth.users;
 END;
-$$; 
+$$ LANGUAGE plpgsql;
+
+GRANT EXECUTE ON FUNCTION tests.cleanup_test_data() TO authenticated; 

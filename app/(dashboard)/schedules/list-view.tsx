@@ -2,11 +2,9 @@
 
 import { format } from 'date-fns'
 import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import type { Database } from '@/types/supabase/database'
 
-type ScheduleWithDetails = Database['public']['Tables']['individual_shifts']['Row'] & {
+type ScheduleWithDetails = Database['public']['Tables']['assigned_shifts']['Row'] & {
   employee: Database['public']['Tables']['employees']['Row']
   shift_option: Database['public']['Tables']['shift_options']['Row']
 }
@@ -16,61 +14,33 @@ interface ListViewProps {
 }
 
 export function ScheduleList({ shifts }: ListViewProps) {
-  return <ListView shifts={shifts} />
-}
-
-function ListView({ shifts }: { shifts: ScheduleWithDetails[] }) {
-  // Group shifts by date
-  const shiftsByDate = shifts.reduce((acc, shift) => {
-    const date = shift.date
-    if (!acc[date]) {
-      acc[date] = []
-    }
-    acc[date].push(shift)
-    return acc
-  }, {} as Record<string, ScheduleWithDetails[]>)
-
-  // Sort dates
-  const sortedDates = Object.keys(shiftsByDate).sort()
-
   return (
-    <ScrollArea className="h-[600px]">
-      <div className="space-y-6 pr-4">
-        {sortedDates.map((date) => (
-          <div key={date} className="space-y-2">
-            <h3 className="font-medium">
-              {format(new Date(date), 'EEEE, MMMM d, yyyy')}
-            </h3>
-            
-            {shiftsByDate[date].map((shift) => (
-              <Card key={shift.id} className="p-4">
-                <div className="flex items-center gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">
-                        {shift.employee.first_name} {shift.employee.last_name}
-                      </span>
-                      <Badge
-                        variant={
-                          shift.shift_option.category === 'supervisor'
-                            ? 'default'
-                            : 'secondary'
-                        }
-                      >
-                        {shift.shift_option.name}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {format(new Date(`${date}T${shift.shift_option.start_time}`), 'h:mm a')} -{' '}
-                      {format(new Date(`${date}T${shift.shift_option.end_time}`), 'h:mm a')}
-                    </p>
-                  </div>
+    <div className="space-y-4">
+      {shifts.length === 0 ? (
+        <p className="text-sm text-gray-500">
+          No shifts to display.
+        </p>
+      ) : (
+        shifts.map((shift) => (
+          <Card key={shift.id} className="p-4">
+            <div className="space-y-2">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h4 className="font-medium">
+                    {shift.employee?.first_name} {shift.employee?.last_name}
+                  </h4>
+                  <p className="text-sm text-gray-500">
+                    {format(new Date(shift.date), 'PPP')}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {format(new Date(`1970-01-01T${shift.shift_option.start_time}`), 'h:mm a')} - {format(new Date(`1970-01-01T${shift.shift_option.end_time}`), 'h:mm a')}
+                  </p>
                 </div>
-              </Card>
-            ))}
-          </div>
-        ))}
-      </div>
-    </ScrollArea>
+              </div>
+            </div>
+          </Card>
+        ))
+      )}
+    </div>
   )
-} 
+}

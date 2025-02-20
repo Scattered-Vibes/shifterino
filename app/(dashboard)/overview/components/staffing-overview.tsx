@@ -1,48 +1,122 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { createClient } from '@/lib/supabase/client'
-import type { StaffingRequirement, StaffingGap } from '@/types/models/schedule'
-import type { IndividualShift } from '@/types/models/shift'
+import { browserClient } from '@/lib/supabase/clientInstance'
+import type { Database } from '@/types/supabase/database'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils/index'
+
+type Tables = Database['public']['Tables']
+type StaffingRequirement = Tables['staffing_requirements']['Row']
+type ShiftOption = Tables['shifts']['Row'] & {
+  requires_supervisor: boolean
+}
+type IndividualShift = Tables['assigned_shifts']['Row'] & {
+  shift_option: ShiftOption | null
+}
+type StaffingGap = {
+  time_block_start: string
+  time_block_end: string
+  required_count: number
+  actual_count: number
+  missing_supervisor: boolean
+}
 
 interface StaffingOverviewProps {
   date: Date
 }
 
 export function StaffingOverview({ date }: StaffingOverviewProps) {
-  const supabase = createClient()
+  const componentId = Math.random().toString(36).substring(7)
 
-  const { data: staffingLevels } = useQuery({
+  useEffect(() => {
+    console.log(`[StaffingOverview:${componentId}] Component mounted with date:`, {
+      date: date.toISOString(),
+      timestamp: new Date().toISOString()
+    })
+
+    return () => {
+      console.log(`[StaffingOverview:${componentId}] Component unmounting`)
+    }
+  }, [date, componentId])
+
+  const { data: staffingLevels, error } = useQuery({
     queryKey: ['staffing-levels', date.toISOString()],
     queryFn: async () => {
-      const [requirementsResult, shiftsResult] = await Promise.all([
-        supabase
-          .from('staffing_requirements')
-          .select('*')
-          .eq('day_of_week', date.getDay())
-          .order('time_block_start'),
-        supabase
-          .from('individual_shifts')
-          .select('*, shift_option:shift_options(*)')
-          .eq('date', date.toISOString().split('T')[0])
-      ])
+      console.log(`[StaffingOverview:${componentId}] Starting data fetch`)
+      const fetchStart = Date.now()
 
-      if (requirementsResult.error) throw requirementsResult.error
-      if (shiftsResult.error) throw shiftsResult.error
+      try {
+        const dayOfWeek = date.getDay().toString()
+        const dateString = date.toISOString().split('T')[0]
 
-      const requirements = requirementsResult.data as unknown as StaffingRequirement[]
-      const shifts = shiftsResult.data as unknown as IndividualShift[]
+        const [requirementsResult, shiftsResult] = await Promise.all([
+          browserClient
+            .from('staffing_requirements')
+            .select()
+            .eq('day_of_week', dayOfWeek as any)
+            .order('start_time')
+            .throwOnError(),
+          browserClient
+            .from('individual_shifts')
+            .select('*, shift_option:shift_options(*)')
+            .eq('date', dateString as any)
+            .throwOnError()
+        ])
 
-      return calculateStaffingLevels(requirements, shifts)
+        console.log(`[StaffingOverview:${componentId}] Database queries completed in ${Date.now() - fetchStart}ms`)
+
+        const requirements = requirementsResult.data as unknown as StaffingRequirement[]
+        const shifts = shiftsResult.data as unknown as IndividualShift[]
+
+        console.log(`[StaffingOverview:${componentId}] Data fetched successfully:`, {
+          requirementsCount: requirements.length,
+          shiftsCount: shifts.length,
+          timeElapsed: Date.now() - fetchStart
+        })
+
+        return calculateStaffingLevels(requirements, shifts)
+      } catch (error) {
+        console.error(`[StaffingOverview:${componentId}] Error fetching data:`, {
+          error: error instanceof Error ? {
+            message: error.message,
+            name: error.name,
+            stack: error.stack
+          } : 'Unknown error type',
+          timeElapsed: Date.now() - fetchStart
+        })
+        throw error
+      }
     }
   })
 
+  useEffect(() => {
+    if (error) {
+      console.error(`[StaffingOverview:${componentId}] Query error:`, {
+        error: error instanceof Error ? {
+          message: error.message,
+          name: error.name,
+          stack: error.stack
+        } : 'Unknown error type'
+      })
+    }
+  }, [error, componentId])
+
+  if (error) {
+    throw error
+  }
+
   if (!staffingLevels) {
+    console.log(`[StaffingOverview:${componentId}] No data available yet`)
     return null
   }
+
+  console.log(`[StaffingOverview:${componentId}] Rendering with data:`, {
+    levelsCount: staffingLevels.length,
+    timestamp: new Date().toISOString()
+  })
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -88,7 +162,7 @@ function calculateStaffingLevels(
 ): StaffingGap[] {
   return requirements.map(req => {
     const shiftsInPeriod = shifts.filter(shift => 
-      isShiftInPeriod(shift, req.time_block_start, req.time_block_end)
+      isShiftInPeriod(shift, req.start_time, req.end_time)
     )
 
     const supervisorPresent = shiftsInPeriod.some(shift => 
@@ -96,8 +170,8 @@ function calculateStaffingLevels(
     )
 
     return {
-      time_block_start: req.time_block_start,
-      time_block_end: req.time_block_end,
+      time_block_start: req.start_time,
+      time_block_end: req.end_time,
       required_count: req.min_total_staff,
       actual_count: shiftsInPeriod.length,
       missing_supervisor: !supervisorPresent && req.min_supervisors > 0

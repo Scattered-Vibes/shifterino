@@ -173,7 +173,7 @@ describe('LoginForm', () => {
   })
 
   it('includes redirectTo in form submission', async () => {
-    const redirectTo = '/dashboard'
+    const redirectTo = '/overview'
     const mockFormAction = vi.fn()
     vi.mocked(useFormState).mockReturnValue([null, mockFormAction, false])
 

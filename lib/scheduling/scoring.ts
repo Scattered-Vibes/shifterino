@@ -1,7 +1,12 @@
-import type { Employee } from '@/types/supabase/index'
-import type { ShiftEvent } from '@/types/scheduling/shift'
-import type { GenerationContext, ShiftPattern } from '@/types/scheduling/schedule'
-import { differenceInHours, parseISO, startOfWeek } from 'date-fns'
+import { parseISO, differenceInHours } from 'date-fns'
+import type {
+  Employee,
+  ShiftEvent,
+  GenerationContext
+} from '@/types/scheduling/schedule'
+import type { GenerationContext as ShiftPattern } from '@/types/scheduling/schedule'
+import { startOfWeek } from 'date-fns'
+import { SHIFT_PATTERNS } from '@/types/shift-patterns'
 
 interface ScoreFactors {
   hoursBalance: number      // How well this balances weekly hours
@@ -28,11 +33,56 @@ export function calculateShiftScore(
   shift: ShiftEvent,
   context: GenerationContext
 ): number {
-  const factors = calculateScoreFactors(employee, shift, context)
-  
-  return Object.entries(SCORE_WEIGHTS).reduce((total, [factor, weight]) => {
-    return total + (factors[factor as keyof ScoreFactors] * weight)
-  }, 0)
+  let score = 0
+
+  // Base score for all employees
+  score += 10
+
+  // Prefer employees with fewer hours this week
+  const weeklyHours = getEmployeeWeeklyHours(context.weeklyHours, employee.id, shift.start)
+  score += (40 - weeklyHours) * 0.5
+
+  // Prefer employees following their pattern
+  if (shift.pattern === employee.shift_pattern) {
+    score += 5
+  }
+
+  // Prefer supervisors for supervisor-required shifts
+  if (employee.role === 'supervisor') {
+    score += 3
+  }
+
+  // Consider consecutive shifts
+  const pattern = context.shiftPatterns[employee.id]
+  if (pattern.lastShiftEnd) {
+    const lastEnd = parseISO(pattern.lastShiftEnd)
+    const currentStart = parseISO(shift.start)
+    const hoursBetween = differenceInHours(currentStart, lastEnd)
+
+    // Prefer shifts that maintain proper rest periods
+    if (hoursBetween >= 8 && hoursBetween <= 16) {
+      score += 2
+    }
+  }
+
+  return score
+}
+
+function getEmployeeWeeklyHours(
+  weeklyHours: Record<string, Record<string, number>>,
+  employeeId: string,
+  date: string
+): number {
+  const weekStart = getWeekStart(date)
+  return weeklyHours[employeeId]?.[weekStart] || 0
+}
+
+function getWeekStart(dateStr: string): string {
+  const date = parseISO(dateStr)
+  const day = date.getDay()
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1)
+  const weekStart = new Date(date.setDate(diff))
+  return weekStart.toISOString().split('T')[0]
 }
 
 function calculateScoreFactors(

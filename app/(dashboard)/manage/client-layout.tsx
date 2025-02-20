@@ -2,7 +2,7 @@
 
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { usePathname, useRouter } from 'next/navigation'
-import { cn } from '@/lib/utils/index'
+import { cn } from '@/lib/utils'
 import {
   Select,
   SelectContent,
@@ -11,14 +11,21 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useMediaQuery } from '@/lib/hooks/client/use-media-query'
-import { useSupabase } from '@/app/providers/SupabaseContext'
+import type { User } from '@supabase/supabase-js'
+import type { Employee } from '@/types/models/employee'
+import type { UserRole } from '@/lib/auth/core'
 
-type Role = 'dispatcher' | 'supervisor' | 'manager'
+interface ClientManageLayoutProps {
+  children: React.ReactNode
+  userRole: UserRole
+  user: User
+  employee: Employee
+}
 
 interface Tab {
   value: string
   label: string
-  requiredRole?: Role
+  requiredRole?: UserRole
 }
 
 const tabs: Tab[] = [
@@ -41,7 +48,7 @@ const tabs: Tab[] = [
   },
 ]
 
-const hasRequiredRole = (userRole: Role, requiredRole?: Role): boolean => {
+const hasRequiredRole = (userRole: UserRole, requiredRole?: UserRole): boolean => {
   if (!requiredRole) return true
   
   switch (requiredRole) {
@@ -57,28 +64,15 @@ const hasRequiredRole = (userRole: Role, requiredRole?: Role): boolean => {
 export function ClientManageLayout({
   children,
   userRole,
-}: {
-  children: React.ReactNode
-  userRole: string
-}) {
+  user,
+  employee
+}: ClientManageLayoutProps) {
   const router = useRouter()
   const pathname = usePathname()
   const isMobile = useMediaQuery('(max-width: 768px)')
-  const { user, employee, isLoading } = useSupabase()
 
   const currentTab = pathname.split('/').pop() || 'schedule'
-
-  if (isLoading) {
-    return <div>Loading...</div>
-  }
-  
-  if (!user || !employee) {
-    return <div>Not authorized.</div>
-  }
-
-  const role = userRole.toLowerCase() as Role
-
-  const accessibleTabs = tabs.filter(tab => hasRequiredRole(role, tab.requiredRole))
+  const accessibleTabs = tabs.filter(tab => hasRequiredRole(userRole, tab.requiredRole))
 
   const handleTabChange = (value: string) => {
     router.push(`/manage/${value}`)

@@ -1,7 +1,6 @@
 'use client'
 
 import { MainNav } from './main-nav'
-import { UserNav } from './user-nav'
 import { ThemeToggle } from './theme-toggle'
 
 export function Header() {
@@ -11,7 +10,6 @@ export function Header() {
         <MainNav />
         <div className="flex items-center gap-4 ml-auto">
           <ThemeToggle />
-          <UserNav />
         </div>
       </div>
     </header>

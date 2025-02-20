@@ -1,68 +1,159 @@
 import type { Database } from '../supabase/database'
+import type { ValidationResult } from '../validation'
 
 type Tables = Database['public']['Tables']
 type Enums = Database['public']['Enums']
 
-// Base Types
-export type Employee = Tables['employees']['Row']
-export type EmployeeInsert = Tables['employees']['Insert']
-export type EmployeeUpdate = Tables['employees']['Update']
-export type EmployeeRole = Enums['employee_role']
-
-// Extended Types
-export interface EmployeeWithSchedule extends Employee {
-  current_schedule?: Tables['schedules']['Row']
-  upcoming_shifts?: Tables['individual_shifts']['Row'][]
-}
-
-export interface EmployeeWithStats extends Employee {
-  total_hours_worked: number
-  average_hours_per_week: number
-  overtime_hours: number
-  consecutive_days_worked: number
-}
-
-export interface EmployeeWithTimeOff extends Employee {
-  time_off_requests: Tables['time_off_requests']['Row'][]
-  upcoming_time_off: Tables['time_off_requests']['Row'][]
-}
-
-// Create Types
-export interface CreateEmployeeInput {
+/**
+ * Base employee type from database with additional fields
+ */
+export interface Employee {
+  id: string
+  auth_id: string
+  email: string
   first_name: string
   last_name: string
-  email: string
-  role: EmployeeRole
+  role: Enums['employee_role']
   shift_pattern: Enums['shift_pattern']
-  preferred_shift_category: Enums['shift_category']
+  team_id?: string | null
+  default_weekly_hours: number
   weekly_hours_cap: number
   max_overtime_hours: number
+  overtime_hours: number
+  preferred_shift_category?: ShiftCategory | null
+  profile_incomplete: boolean
+  created_at: string
+  updated_at: string
+  created_by?: string | null
+  updated_by?: string | null
 }
 
-// Update Types
-export type UpdateEmployeeInput = Partial<CreateEmployeeInput>
+/**
+ * Employee role from database enum
+ */
+export type EmployeeRole = Enums['employee_role']
 
-// Filter Types
-export interface EmployeeFilters {
-  role?: EmployeeRole
-  shift_pattern?: Enums['shift_pattern']
-  shift_category?: Enums['shift_category']
-  is_active?: boolean
-  search?: string
+/**
+ * Shift category type
+ */
+export type ShiftCategory = 'early' | 'day' | 'swing' | 'graveyard'
+
+/**
+ * Shift pattern type from database enum
+ */
+export type ShiftPattern = Enums['shift_pattern']
+
+/**
+ * Employee with their current schedule information
+ */
+export interface EmployeeWithSchedule extends Employee {
+  assignedShifts: Tables['assigned_shifts']['Row'][]
+  timeOffRequests: Tables['time_off_requests']['Row'][]
 }
 
-// Sort Types
-export type EmployeeSortField = 
+/**
+ * Employee with their schedule statistics
+ */
+export interface EmployeeWithStats extends Employee {
+  totalHours: number
+  overtimeHours: number
+  regularHours: number
+  scheduledDays: number
+  consecutiveDays: number
+  timeOffDays: number
+}
+
+/**
+ * Employee schedule preferences
+ */
+export interface EmployeeSchedulePreferences {
+  preferredShiftCategory: ShiftCategory
+  preferredDaysOff: number[]  // 0-6, where 0 is Sunday
+  maxConsecutiveDays: number
+  minRestHours: number
+  overtimePreference: boolean
+}
+
+/**
+ * Employee availability for a specific date range
+ */
+export interface EmployeeAvailability {
+  employeeId: string
+  startDate: string  // YYYY-MM-DD
+  endDate: string    // YYYY-MM-DD
+  availableTimeBlocks: {
+    dayOfWeek: number  // 0-6
+    startTime: string  // HH:mm
+    endTime: string    // HH:mm
+  }[]
+  timeOffRequests: Tables['time_off_requests']['Row'][]
+}
+
+/**
+ * Fields that can be used to sort employees
+ */
+export type EmployeeSortField = keyof Pick<
+  Employee,
   | 'first_name'
   | 'last_name'
   | 'role'
   | 'shift_pattern'
-  | 'weekly_hours'
+  | 'weekly_hours_cap'
   | 'created_at'
+  | 'updated_at'
+>
 
+/**
+ * Input type for creating a new employee
+ */
+export type CreateEmployeeInput = Omit<
+  Employee,
+  'id' | 'created_at' | 'updated_at' | 'created_by' | 'updated_by'
+>
+
+/**
+ * Input type for updating an existing employee
+ */
+export type UpdateEmployeeInput = Partial<CreateEmployeeInput>
+
+/**
+ * Result of employee validation
+ */
+export interface EmployeeValidationResult extends ValidationResult {
+  employee: Employee
+  scheduleConflicts: {
+    date: string
+    type: 'OVERTIME' | 'PATTERN_VIOLATION' | 'REST_PERIOD'
+    message: string
+  }[]
+}
+
+/**
+ * Employee sort configuration
+ */
 export interface EmployeeSort {
   field: EmployeeSortField
   direction: 'asc' | 'desc'
+}
+
+/**
+ * Employee filter options
+ */
+export interface EmployeeFilters {
+  roles?: EmployeeRole[]
+  shiftPatterns?: ShiftPattern[]
+  preferredShiftCategory?: ShiftCategory
+  minWeeklyHours?: number
+  maxWeeklyHours?: number
+  searchTerm?: string
+}
+
+/**
+ * Employee with time off information
+ */
+export interface EmployeeWithTimeOff extends Employee {
+  time_off_requests: Tables['time_off_requests']['Row'][]
+  upcoming_time_off: Tables['time_off_requests']['Row'][]
 }
 
 // Utility Types
@@ -78,4 +169,6 @@ export interface EmployeeAvailability {
   date: string
   is_available: boolean
   reason?: string
-} 
+}
+
+export type UserRole = 'dispatcher' | 'supervisor' | 'manager' 

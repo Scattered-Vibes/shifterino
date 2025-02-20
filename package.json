@@ -20,7 +20,8 @@
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest watch",
     "db:types": "supabase gen types typescript --project-id \"$(grep NEXT_PUBLIC_SUPABASE_PROJECT_ID .env.local | cut -d '=' -f2)\" > types/supabase/database.ts",
-    "setup-db": "tsx scripts/setup-db.ts"
+    "setup-db": "tsx scripts/setup-db.ts",
+    "supa-logs": "npx supabase logs"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.15",
@@ -28,7 +29,7 @@
     "@fullcalendar/react": "^6.1.15",
     "@fullcalendar/timegrid": "^6.1.15",
     "@heroicons/react": "^2.2.0",
-    "@hookform/resolvers": "^3.3.4",
+    "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "^1.1.2",
     "@radix-ui/react-alert-dialog": "^1.0.5",
     "@radix-ui/react-avatar": "^1.0.4",
@@ -68,7 +69,8 @@
     "geist": "^1.3.1",
     "js-cookie": "^3.0.5",
     "lucide-react": "^0.323.0",
-    "next": "14.1.0",
+    "next": "^14.1.0",
+    "next-auth": "^4.24.11",
     "next-themes": "^0.2.1",
     "nuqs": "^1.17.1",
     "react": "^18.2.0",
@@ -82,14 +84,16 @@
     "switch": "^0.0.0",
     "tailwind-merge": "^2.2.1",
     "vite": "^6.1.0",
-    "zod": "^3.22.4"
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@faker-js/faker": "^9.5.0",
     "@ianvs/prettier-plugin-sort-imports": "^4.4.1",
     "@testing-library/jest-dom": "^6.4.2",
     "@testing-library/react": "^14.2.1",
     "@testing-library/user-event": "^14.6.1",
+    "@types/bcrypt": "^5.0.2",
     "@types/jest": "^29.5.14",
     "@types/node": "^20.17.19",
     "@types/react": "^18.2.55",
@@ -98,6 +102,7 @@
     "@vitest/coverage-v8": "^1.3.1",
     "@vitest/ui": "^1.3.1",
     "autoprefixer": "^10.4.17",
+    "bcrypt": "^5.1.1",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-tailwindcss": "^3.14.3",

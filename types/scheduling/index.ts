@@ -1,4 +1,6 @@
 import type { Database } from '../supabase/database'
+import type { StaffingRequirement } from '../models/staffing'
+import type { Schedule, ScheduleStatus } from '../models/schedule'
 
 // Database types
 type Tables = Database['public']['Tables']
@@ -8,48 +10,32 @@ type Enums = Database['public']['Enums']
 export type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
 export interface TimeSlot {
-  startHour: number;
-  endHour: number;
+  start_hour: number;
+  end_hour: number;
   days: DayOfWeek[];
 }
 
 // Constraint Types
 export interface SchedulingConstraints {
-  maxHoursPerWeek: number;
-  minHoursPerWeek: number;
-  maxConsecutiveDays: number;
-  minRestHoursBetweenShifts: number;
-  requireSupervisorPresence: boolean;
+  max_hours_per_week: number;
+  min_hours_per_week: number;
+  max_consecutive_days: number;
+  min_rest_hours_between_shifts: number;
+  require_supervisor_presence: boolean;
 }
 
-// Entity Types
-export interface Schedule {
-  id: string;
-  employeeId: string;
-  date: string;
-  status: ScheduleStatus;
-  shiftOptionId: string;
-  isOvertime: boolean;
-  isRegularSchedule: boolean;
-  shiftScore: number;
-  createdAt: string;
-  updatedAt: string;
-  notes?: string;
-  supervisorApprovedAt?: string;
-  supervisorApprovedBy?: string;
-}
-
-export type ScheduleStatus = 'draft' | 'scheduled' | 'published' | 'completed' | 'cancelled';
+// Re-export the Schedule type
+export type { Schedule, ScheduleStatus }
 
 export interface ShiftOption {
   id: string;
   name: string;
-  startTime: string; // HH:mm format
-  endTime: string; // HH:mm format;
-  durationHours: number;
-  isSupervised: boolean;
-  requiredRole: string;
-  breakDurationMinutes: number;
+  start_time: string; // HH:mm format
+  end_time: string; // HH:mm format;
+  duration_hours: number;
+  is_supervised: boolean;
+  required_role: string;
+  break_duration_minutes: number;
 }
 
 export interface ShiftPattern {
@@ -57,51 +43,51 @@ export interface ShiftPattern {
   name: string;
   description?: string;
   shifts: ShiftPatternEntry[];
-  totalHours: number;
-  daysInPattern: number;
+  total_hours: number;
+  days_in_pattern: number;
 }
 
 export interface ShiftPatternEntry {
-  dayOffset: number;
+  day_offset: number;
   duration: number; // in hours
-  shiftOptionId: string;
+  shift_option_id: string;
 }
 
 // Generation Types
 export interface ScheduleGenerationParams {
-  startDate: string;
-  endDate: string;
-  considerPreferences?: boolean;
-  allowOvertime?: boolean;
-  maxOvertimeHours?: number;
-  schedulePeriodId: string;
+  start_date: string;
+  end_date: string;
+  consider_preferences?: boolean;
+  allow_overtime?: boolean;
+  max_overtime_hours?: number;
+  schedule_period_id: string;
 }
 
 export interface ScheduleGenerationResult {
   success: boolean;
-  shiftsGenerated: number;
-  unfilledRequirements: number;
+  shifts_generated: number;
+  unfilled_requirements: number;
   errors?: string[];
   warnings?: string[];
 }
 
 export interface GenerationContext {
-  periodId: string;
-  startDate: string;
-  endDate: string;
+  period_id: string;
+  start_date: string;
+  end_date: string;
   employees: Tables['employees']['Row'][];
-  timeOffRequests: TimeOffRequest[];
-  staffingRequirements: StaffingRequirement[];
-  shiftOptions: ShiftOption[];
+  time_off_requests: TimeOffRequest[];
+  staffing_requirements: StaffingRequirement[];
+  shift_options: ShiftOption[];
   params: ScheduleGenerationParams;
-  weeklyHours: Record<string, number>;
-  shiftPatterns: Record<string, ShiftPattern>;
+  weekly_hours: Record<string, number>;
+  shift_patterns: Record<string, ShiftPattern>;
   holidays: Holiday[];
 }
 
 // Validation Types
 export interface ScheduleValidation {
-  isValid: boolean;
+  is_valid: boolean;
   conflicts: SchedulingConflict[];
   warnings: string[];
   suggestions: string[];
@@ -112,9 +98,9 @@ export interface SchedulingConflict {
   type: ConflictType;
   severity: 'error' | 'warning';
   message: string;
-  affectedShifts: string[];
-  startTime: string;
-  endTime: string;
+  affected_shifts: string[];
+  start_time: string;
+  end_time: string;
   resolution?: ConflictResolution;
 }
 
@@ -122,37 +108,26 @@ export type ConflictType = 'overlap' | 'pattern' | 'hours' | 'staffing' | 'super
 
 export interface ConflictResolution {
   action: 'reassign' | 'adjust' | 'split' | 'delete';
-  shiftId: string;
-  newEmployeeId?: string;
-  adjustedTime?: string;
+  shift_id: string;
+  new_employee_id?: string;
+  adjusted_time?: string;
 }
 
 // Supporting Types
 export interface Holiday {
   date: string;
   name: string;
-  isObserved: boolean;
+  is_observed: boolean;
 }
 
 export interface TimeOffRequest {
   id: string;
-  employeeId: string;
-  startDate: string;
-  endDate: string;
+  employee_id: string;
+  start_date: string;
+  end_date: string;
   status: 'pending' | 'approved' | 'rejected';
   type: 'vacation' | 'sick' | 'personal';
   notes?: string;
-}
-
-export interface StaffingRequirement {
-  id: string;
-  timeSlot: TimeSlot;
-  minTotalStaff: number;
-  minSupervisors: number;
-  startDate?: string;
-  endDate?: string;
-  dayOfWeek?: DayOfWeek;
-  priority: number;
 }
 
 // Re-export database types

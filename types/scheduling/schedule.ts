@@ -1,49 +1,47 @@
-import type { Employee, TimeOffRequest, StaffingRequirement } from '@/types/supabase/index'
-import type { ShiftEvent } from './shift'
-import type { ShiftOption, IndividualShift } from '../models/shift'
+import type { ShiftPattern, Holiday } from '@/types/shift-patterns'
 
-export type {
-  Employee,
-  ShiftOption,
-  IndividualShift,
-  TimeOffRequest,
-  StaffingRequirement
+export type ShiftStatus = 'scheduled' | 'completed' | 'cancelled'
+
+export interface Employee {
+  id: string
+  name: string
+  email: string
+  role: 'supervisor' | 'dispatcher' | 'manager'
+  shift_pattern: ShiftPattern
+  max_weekly_hours: number
 }
 
-export interface TimeBlock {
-  start: string // ISO time string
-  end: string // ISO time string
-  minStaff: number
-  supervisorRequired: boolean
+export interface ShiftOption {
+  id: string
+  startTime: string
+  endTime: string
+  durationHours: number
+  category: string
 }
 
-export interface Schedule {
+export interface TimeOffRequest {
   id: string
   employeeId: string
-  date: string // YYYY-MM-DD
-  shiftId: string
-  startTime: string // HH:mm
-  endTime: string // HH:mm
-  status: 'pending' | 'approved' | 'completed'
-  notes?: string
+  startDate: string
+  endDate: string
+  status: 'pending' | 'approved' | 'rejected'
 }
 
-export interface ScheduleGenerationOptions {
-  startDate: string // YYYY-MM-DD
-  endDate: string // YYYY-MM-DD
-  employees: Employee[]
-  shiftOptions: ShiftOption[]
-  staffingRequirements: TimeBlock[]
-  existingSchedules?: Schedule[]
+export interface StaffingRequirement {
+  id: string
+  timeBlockStart: string
+  timeBlockEnd: string
+  minTotalStaff: number
+  minSupervisors: number
 }
 
-export interface ScheduleConflict {
-  type: 'overlap' | 'hours_exceeded' | 'pattern_violation'
-  message: string
-  scheduleId: string
+export interface IndividualShift {
   employeeId: string
+  shiftOptionId: string
   date: string
-  details?: Record<string, unknown>
+  status: ShiftStatus
+  createdAt: string
+  updatedAt: string
 }
 
 export interface ScheduleGenerationParams {
@@ -55,14 +53,27 @@ export interface ScheduleGenerationParams {
 export interface ScheduleGenerationResult {
   success: boolean
   shiftsGenerated: number
+  shifts_generated: number
   errors?: string[]
   warnings?: string[]
 }
 
-export interface Holiday {
-  date: string
-  name: string
-  isObserved: boolean
+export interface ShiftEvent {
+  id: string
+  employeeId: string
+  employeeRole: 'supervisor' | 'dispatcher' | 'manager'
+  start: string
+  end: string
+  status: ShiftStatus
+  pattern: ShiftPattern
+  shiftOptionId: string
+  title: string
+}
+
+export interface ShiftPatternState {
+  consecutiveShifts: number
+  lastShiftEnd: string | null
+  currentPattern: ShiftPattern
 }
 
 export interface GenerationContext {
@@ -75,21 +86,40 @@ export interface GenerationContext {
   shiftOptions: ShiftOption[]
   params: ScheduleGenerationParams
   weeklyHours: Record<string, Record<string, number>>
-  shiftPatterns: Record<string, ShiftPattern>
-  existingShifts: ShiftEvent[]
+  shiftPatterns: Record<string, ShiftPatternState>
+  existingShifts: IndividualShift[]
   holidays: Holiday[]
 }
 
-export interface ShiftPattern {
-  consecutiveShifts: number
-  lastShiftEnd: Date | null
-  currentPattern: 'PATTERN_A' | 'PATTERN_B'
+export interface Schedule {
+  shift_id: string
+  start_time: string // HH:mm
+  end_time: string // HH:mm
+  employee_id: string
+}
+
+export interface ScheduleGenerationOptions {
+  start_date: string // YYYY-MM-DD
+  end_date: string // YYYY-MM-DD
+  employees: Employee[]
+  shift_options: ShiftOption[]
+  staffing_requirements: StaffingRequirement[]
+  existing_schedules?: Schedule[]
+}
+
+export interface ScheduleConflict {
+  type: 'overlap' | 'hours_exceeded' | 'pattern_violation'
+  message: string
+  schedule_id: string
+  employee_id: string
+  date: string
+  details?: Record<string, unknown>
 }
 
 export interface ShiftAssignment {
-  employeeId: string
-  shiftOptionId: string
+  employee_id: string
+  shift_option_id: string
   date: Date
-  isOvertime: boolean
+  is_overtime: boolean
   score: number
-} 
+}

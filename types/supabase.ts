@@ -6,108 +6,714 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-export interface Database {
+export type Database = {
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          operationName?: string
+          query?: string
+          variables?: Json
+          extensions?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
+      assigned_shifts: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          date: string
+          employee_id: string
+          id: string
+          shift_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          date: string
+          employee_id: string
+          id?: string
+          shift_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          employee_id?: string
+          id?: string
+          shift_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assigned_shifts_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assigned_shifts_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employees: {
         Row: {
-          id: string
+          auth_id: string
           created_at: string
+          created_by: string | null
           email: string
           first_name: string
+          id: string
           last_name: string
-          role: string
-          shift_pattern: string
-          weekly_hours: number
+          max_overtime_hours: number
+          preferred_shift_category:
+            | Database["public"]["Enums"]["shift_category"]
+            | null
+          role: Database["public"]["Enums"]["employee_role"]
+          shift_pattern: Database["public"]["Enums"]["shift_pattern"]
+          team_id: string | null
+          updated_at: string
+          updated_by: string | null
+          weekly_hours_cap: number
         }
         Insert: {
-          id?: string
+          auth_id: string
           created_at?: string
+          created_by?: string | null
           email: string
           first_name: string
+          id?: string
           last_name: string
-          role: string
-          shift_pattern?: string
-          weekly_hours?: number
+          max_overtime_hours?: number
+          preferred_shift_category?:
+            | Database["public"]["Enums"]["shift_category"]
+            | null
+          role?: Database["public"]["Enums"]["employee_role"]
+          shift_pattern?: Database["public"]["Enums"]["shift_pattern"]
+          team_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          weekly_hours_cap?: number
         }
         Update: {
-          id?: string
+          auth_id?: string
           created_at?: string
+          created_by?: string | null
           email?: string
           first_name?: string
+          id?: string
           last_name?: string
-          role?: string
-          shift_pattern?: string
-          weekly_hours?: number
+          max_overtime_hours?: number
+          preferred_shift_category?:
+            | Database["public"]["Enums"]["shift_category"]
+            | null
+          role?: Database["public"]["Enums"]["employee_role"]
+          shift_pattern?: Database["public"]["Enums"]["shift_pattern"]
+          team_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          weekly_hours_cap?: number
         }
+        Relationships: []
       }
-      schedules: {
+      holidays: {
         Row: {
-          id: string
           created_at: string
-          employee_id: string
-          start_time: string
-          end_time: string
-          shift_type: string
-          is_supervisor: boolean
+          created_by: string | null
+          date: string
+          description: string | null
+          id: string
+          is_observed: boolean | null
+          name: string
+          type: Database["public"]["Enums"]["holiday_type"]
+          updated_at: string
+          updated_by: string | null
         }
         Insert: {
-          id?: string
           created_at?: string
-          employee_id: string
-          start_time: string
-          end_time: string
-          shift_type: string
-          is_supervisor?: boolean
+          created_by?: string | null
+          date: string
+          description?: string | null
+          id?: string
+          is_observed?: boolean | null
+          name: string
+          type: Database["public"]["Enums"]["holiday_type"]
+          updated_at?: string
+          updated_by?: string | null
         }
         Update: {
-          id?: string
           created_at?: string
-          employee_id?: string
-          start_time?: string
-          end_time?: string
-          shift_type?: string
-          is_supervisor?: boolean
+          created_by?: string | null
+          date?: string
+          description?: string | null
+          id?: string
+          is_observed?: boolean | null
+          name?: string
+          type?: Database["public"]["Enums"]["holiday_type"]
+          updated_at?: string
+          updated_by?: string | null
         }
+        Relationships: []
       }
-      time_off: {
+      individual_shifts: {
         Row: {
-          id: string
+          actual_hours_worked: number | null
+          assigned_shift_id: string | null
           created_at: string
+          created_by: string | null
+          date: string
           employee_id: string
-          start_date: string
-          end_date: string
-          status: string
-          reason: string
+          id: string
+          notes: string | null
+          status: Database["public"]["Enums"]["shift_status"]
+          updated_at: string
+          updated_by: string | null
         }
         Insert: {
-          id?: string
+          actual_hours_worked?: number | null
+          assigned_shift_id?: string | null
           created_at?: string
+          created_by?: string | null
+          date: string
           employee_id: string
-          start_date: string
-          end_date: string
-          status?: string
-          reason: string
+          id?: string
+          notes?: string | null
+          status?: Database["public"]["Enums"]["shift_status"]
+          updated_at?: string
+          updated_by?: string | null
         }
         Update: {
-          id?: string
+          actual_hours_worked?: number | null
+          assigned_shift_id?: string | null
           created_at?: string
+          created_by?: string | null
+          date?: string
           employee_id?: string
-          start_date?: string
+          id?: string
+          notes?: string | null
+          status?: Database["public"]["Enums"]["shift_status"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "individual_shifts_assigned_shift_id_fkey"
+            columns: ["assigned_shift_id"]
+            isOneToOne: false
+            referencedRelation: "assigned_shifts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "individual_shifts_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      on_call_assignments: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          employee_id: string
+          end_date: string
+          id: string
+          notes: string | null
+          start_date: string
+          status: Database["public"]["Enums"]["on_call_status"]
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          employee_id: string
+          end_date: string
+          id?: string
+          notes?: string | null
+          start_date: string
+          status?: Database["public"]["Enums"]["on_call_status"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          employee_id?: string
           end_date?: string
-          status?: string
-          reason?: string
+          id?: string
+          notes?: string | null
+          start_date?: string
+          status?: Database["public"]["Enums"]["on_call_status"]
+          updated_at?: string
+          updated_by?: string | null
         }
+        Relationships: [
+          {
+            foreignKeyName: "on_call_assignments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      schedule_periods: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          end_date: string
+          id: string
+          start_date: string
+          status: Database["public"]["Enums"]["schedule_status"]
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_date: string
+          id?: string
+          start_date: string
+          status?: Database["public"]["Enums"]["schedule_status"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_date?: string
+          id?: string
+          start_date?: string
+          status?: Database["public"]["Enums"]["schedule_status"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      scheduling_logs: {
+        Row: {
+          action: string
+          changed_at: string
+          changed_by: string
+          id: string
+          metadata: Json | null
+          new_data: Json | null
+          old_data: Json | null
+          record_id: string
+          table_name: string
+        }
+        Insert: {
+          action: string
+          changed_at?: string
+          changed_by: string
+          id?: string
+          metadata?: Json | null
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id: string
+          table_name: string
+        }
+        Update: {
+          action?: string
+          changed_at?: string
+          changed_by?: string
+          id?: string
+          metadata?: Json | null
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string
+          table_name?: string
+        }
+        Relationships: []
+      }
+      shift_options: {
+        Row: {
+          category: Database["public"]["Enums"]["shift_category"]
+          created_at: string
+          created_by: string | null
+          duration_hours: number
+          end_time: string
+          id: string
+          is_overnight: boolean
+          name: string
+          start_time: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["shift_category"]
+          created_at?: string
+          created_by?: string | null
+          duration_hours: number
+          end_time: string
+          id?: string
+          is_overnight?: boolean
+          name: string
+          start_time: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["shift_category"]
+          created_at?: string
+          created_by?: string | null
+          duration_hours?: number
+          end_time?: string
+          id?: string
+          is_overnight?: boolean
+          name?: string
+          start_time?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      shift_swap_requests: {
+        Row: {
+          approved_rejected_at: string | null
+          approved_rejected_by: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          receiving_employee_id: string
+          requesting_employee_id: string
+          shift_id: string
+          status: Database["public"]["Enums"]["swap_request_status"]
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          approved_rejected_at?: string | null
+          approved_rejected_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          receiving_employee_id: string
+          requesting_employee_id: string
+          shift_id: string
+          status?: Database["public"]["Enums"]["swap_request_status"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          approved_rejected_at?: string | null
+          approved_rejected_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          receiving_employee_id?: string
+          requesting_employee_id?: string
+          shift_id?: string
+          status?: Database["public"]["Enums"]["swap_request_status"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_swap_requests_receiving_employee_id_fkey"
+            columns: ["receiving_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_swap_requests_requesting_employee_id_fkey"
+            columns: ["requesting_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_swap_requests_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "assigned_shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shifts: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          duration_hours: number
+          end_time: string
+          id: string
+          is_overnight: boolean
+          name: string
+          start_time: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          duration_hours: number
+          end_time: string
+          id?: string
+          is_overnight?: boolean
+          name: string
+          start_time: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          duration_hours?: number
+          end_time?: string
+          id?: string
+          is_overnight?: boolean
+          name?: string
+          start_time?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      staffing_requirements: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          day_of_week: number
+          end_time: string
+          id: string
+          min_supervisors: number
+          min_total_staff: number
+          start_time: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          day_of_week?: number
+          end_time: string
+          id?: string
+          min_supervisors?: number
+          min_total_staff: number
+          start_time: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          day_of_week?: number
+          end_time?: string
+          id?: string
+          min_supervisors?: number
+          min_total_staff?: number
+          start_time?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      time_off_requests: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          employee_id: string
+          end_date: string
+          id: string
+          notes: string | null
+          start_date: string
+          status: Database["public"]["Enums"]["time_off_status"]
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          employee_id: string
+          end_date: string
+          id?: string
+          notes?: string | null
+          start_date: string
+          status?: Database["public"]["Enums"]["time_off_status"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          employee_id?: string
+          end_date?: string
+          id?: string
+          notes?: string | null
+          start_date?: string
+          status?: Database["public"]["Enums"]["time_off_status"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_off_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      check_user_role: {
+        Args: {
+          required_roles: string[]
+        }
+        Returns: boolean
+      }
     }
     Enums: {
+      employee_role: "dispatcher" | "supervisor" | "manager"
+      holiday_type: "FEDERAL" | "COMPANY" | "OTHER"
+      on_call_status: "scheduled" | "active" | "completed" | "cancelled"
+      schedule_status: "draft" | "published" | "archived"
+      shift_category: "early" | "day" | "swing" | "graveyard"
+      shift_pattern: "4x10" | "3x12_plus_4"
+      shift_status: "scheduled" | "completed" | "cancelled"
+      swap_request_status: "pending" | "approved" | "rejected" | "cancelled"
+      time_off_status: "pending" | "approved" | "rejected"
+    }
+    CompositeTypes: {
       [_ in never]: never
     }
   }
-} 
+}
+
+type PublicSchema = Database[Extract<keyof Database, "public">]
+
+export type Tables<
+  PublicTableNameOrOptions extends
+    | keyof (PublicSchema["Tables"] & PublicSchema["Views"])
+    | { schema: keyof Database },
+  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
+    ? keyof (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
+        Database[PublicTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = PublicTableNameOrOptions extends { schema: keyof Database }
+  ? (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
+      Database[PublicTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : PublicTableNameOrOptions extends keyof (PublicSchema["Tables"] &
+        PublicSchema["Views"])
+    ? (PublicSchema["Tables"] &
+        PublicSchema["Views"])[PublicTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  PublicTableNameOrOptions extends
+    | keyof PublicSchema["Tables"]
+    | { schema: keyof Database },
+  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
+    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = PublicTableNameOrOptions extends { schema: keyof Database }
+  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
+    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  PublicTableNameOrOptions extends
+    | keyof PublicSchema["Tables"]
+    | { schema: keyof Database },
+  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
+    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = PublicTableNameOrOptions extends { schema: keyof Database }
+  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
+    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  PublicEnumNameOrOptions extends
+    | keyof PublicSchema["Enums"]
+    | { schema: keyof Database },
+  EnumName extends PublicEnumNameOrOptions extends { schema: keyof Database }
+    ? keyof Database[PublicEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = PublicEnumNameOrOptions extends { schema: keyof Database }
+  ? Database[PublicEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : PublicEnumNameOrOptions extends keyof PublicSchema["Enums"]
+    ? PublicSchema["Enums"][PublicEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof PublicSchema["CompositeTypes"]
+    | { schema: keyof Database },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
+  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof PublicSchema["CompositeTypes"]
+    ? PublicSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+

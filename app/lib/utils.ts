@@ -113,3 +113,16 @@ export function handleError(error: unknown) {
   
   throw new Error('An unexpected error occurred')
 }
+
+type LogMessage = {
+  action: string
+  message: string
+  data?: Record<string, any>
+}
+
+export function generateLogMessage({ action, message, data }: LogMessage): void {
+  console.log(`[ServerAction:${action}] ${message}`, {
+    ...data,
+    timestamp: new Date().toISOString(),
+  })
+}

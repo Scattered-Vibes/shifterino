@@ -1,33 +1,30 @@
-import { createServiceInstance } from '@/lib/supabase/clientInstance'
-import { NextResponse } from 'next/server'
+'use server'
 
-export const dynamic = 'force-dynamic'
+import { createTestUsers } from '@/lib/auth/server'
+import { redirect } from 'next/navigation'
 
-export async function GET() {
-  try {
-    // Create a service role client
-    const supabase = createServiceInstance()
+export default async function TestAuth() {
+  const { data, error } = await createTestUsers()
 
-    // Query auth.users using rpc to avoid TypeScript errors
-    const { data, error } = await supabase.rpc('get_auth_users')
-
-    if (error) {
-      console.error("Supabase error:", error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('Failed to create test users:', error)
+    return {
+      error: {
+        message: 'Failed to create test users',
+        details: error.message
+      }
     }
-
-    if (!data) {
-      console.error("No data returned")
-      return NextResponse.json({ error: 'No data returned' }, { status: 404 })
-    }
-
-    // If successful, return the user data
-    return NextResponse.json({ data })
-  } catch (error) {
-    console.error('Unexpected error:', error)
-    return NextResponse.json(
-      { error: 'An unexpected error occurred' },
-      { status: 500 }
-    )
   }
+
+  console.log('Created test users successfully')
+  redirect('/')
+}
+
+export function TestPage() {
+  return (
+    <div>
+      <h1>Test Page</h1>
+      <p>If you can see this, basic routing is working</p>
+    </div>
+  )
 } 

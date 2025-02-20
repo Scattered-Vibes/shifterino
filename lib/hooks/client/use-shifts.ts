@@ -8,7 +8,7 @@ import { ErrorCode, handleError, getUserFriendlyMessage } from '@/lib/utils/erro
 import type { Database } from '@/types/supabase/database'
 import * as shiftServer from '../server/use-shifts'
 
-type IndividualShift = Database['public']['Tables']['individual_shifts']['Row']
+type AssignedShift = Database['public']['Tables']['assigned_shifts']['Row']
 type QueryOptions = Parameters<typeof shiftServer.getShifts>[0]
 
 interface ShiftEvent {
@@ -17,11 +17,11 @@ interface ShiftEvent {
   start: string
   end: string
   employeeId: string
-  status: IndividualShift['status']
+  status: AssignedShift['status']
   extendedProps: {
     employeeId: string
     shiftType: string
-    status: IndividualShift['status']
+    status: AssignedShift['status']
   }
 }
 
@@ -41,13 +41,13 @@ export function useShifts(options: QueryOptions = {}) {
 
   useEffect(() => {
     const channel = supabase
-      .channel('individual_shifts')
+      .channel('assigned_shifts')
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'individual_shifts'
+          table: 'assigned_shifts'
         },
         (_payload) => {
           try {
@@ -83,17 +83,17 @@ export function useShifts(options: QueryOptions = {}) {
   }
 }
 
-function transformToEvents(shifts: IndividualShift[]): ShiftEvent[] {
+function transformToEvents(shifts: AssignedShift[]): ShiftEvent[] {
   return shifts.map((shift) => ({
     id: shift.id,
-    title: `${shift.employee_id} - ${shift.assigned_shift_id || 'unassigned'}`,
+    title: `${shift.employee_id} - ${shift.shift_option_id}`,
     start: shift.date,
     end: shift.date,
     employeeId: shift.employee_id,
     status: shift.status,
     extendedProps: {
       employeeId: shift.employee_id,
-      shiftType: shift.assigned_shift_id || 'unassigned',
+      shiftType: shift.shift_option_id,
       status: shift.status,
     },
   }))
@@ -115,34 +115,6 @@ export function useShift(shiftId: string) {
     isLoading,
     error
   }
-}
-
-export function useCreateShift() {
-  const queryClient = useQueryClient()
-
-  const mutation = useMutation({
-    mutationFn: (data: Parameters<typeof shiftServer.createShift>[0]) => {
-      return shiftServer.createShift(data)
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['shifts'] })
-      toast({
-        title: 'Success',
-        description: 'Shift created successfully',
-        variant: 'default'
-      })
-    },
-    onError: (error) => {
-      const appError = handleError(error)
-      toast({
-        title: 'Error Creating Shift',
-        description: getUserFriendlyMessage(appError.code),
-        variant: 'destructive'
-      })
-    }
-  })
-
-  return mutation
 }
 
 export function useUpdateShift() {
@@ -224,4 +196,4 @@ export function useShiftConflicts(params: Parameters<typeof shiftServer.getShift
     isLoading,
     error
   }
-} 
+}

@@ -44,3 +44,9 @@ next-env.d.ts
 
 # specstory
 .specstory
+
+# complete codebase
+complete_codebase.txt
+
+# package-lock.json
+package-lock.json

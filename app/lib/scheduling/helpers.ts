@@ -3,8 +3,8 @@ import type {
   ShiftOption,
   TimeOffRequest,
   StaffingRequirement
-} from '@/types/scheduling/schedule'
-import { isWithinInterval, parseISO, startOfDay } from 'date-fns'
+} from '@/types/models/shift'
+import { isWithinInterval, parseISO, startOfDay, getDay, format, addDays } from 'date-fns'
 
 /**
  * Validate if a schedule period is valid.
@@ -14,7 +14,7 @@ export function validateSchedulePeriod(startDate: Date, endDate: Date): boolean 
   if (!startDate || !endDate) return false
   if (endDate < startDate) return false
   
-  // Maximum schedule period is 180 days
+  // Maximum schedule period is 180 days = roughly 6 months
   const maxPeriod = 180 * 24 * 60 * 60 * 1000
   if (endDate.getTime() - startDate.getTime() > maxPeriod) return false
   
@@ -27,11 +27,17 @@ export function validateSchedulePeriod(startDate: Date, endDate: Date): boolean 
  */
 export function getApplicableRequirements(
   requirements: StaffingRequirement[],
-  date: Date
+  date: Date,
+  isHoliday?: boolean
 ): StaffingRequirement[] {
-  const dayOfWeek = date.getDay()
+  const dayOfWeek = date.getDay() // 0 (Sunday) to 6 (Saturday)
 
   return requirements.filter(req => {
+    // Check if the requirement is for a holiday and if today is a holiday
+    if (req.is_holiday !== null && req.is_holiday !== isHoliday) {
+      return false // Skip if holiday status doesn't match
+    }
+
     // If requirement has specific date range, check if date falls within it
     if (req.start_date && req.end_date) {
       return isWithinInterval(date, {
@@ -41,12 +47,11 @@ export function getApplicableRequirements(
     }
 
     // If requirement has specific day of week, check if it matches
-    if (req.day_of_week !== undefined) {
+    if (req.day_of_week !== null && req.day_of_week !== undefined) {
       return req.day_of_week === dayOfWeek
     }
 
-    // If no specific constraints, requirement applies to all days
-    return true
+    return true // If no specific constraints, requirement applies to all days
   })
 }
 
@@ -58,13 +63,21 @@ export function getMatchingShiftOptions(
   requirement: StaffingRequirement
 ): ShiftOption[] {
   return options.filter(option => {
-    const shiftStart = parseTimeString(option.startTime)
-    const shiftEnd = parseTimeString(option.endTime)
+    const optionStart = parseTimeString(option.start_time)
+    let optionEnd = parseTimeString(option.end_time)
     const reqStart = parseTimeString(requirement.time_block_start)
-    const reqEnd = parseTimeString(requirement.time_block_end)
+    let reqEnd = parseTimeString(requirement.time_block_end)
 
-    // Shift must cover the entire requirement time block
-    return shiftStart <= reqStart && shiftEnd >= reqEnd
+    // Handle overnight shifts
+    if (optionEnd < optionStart) {
+      optionEnd += 24 * 60 // Add 24 hours if end time is earlier than start time
+    }
+    if (reqEnd <= reqStart) { // `<=` accounts for shifts ending exactly at midnight
+      reqEnd += 24 * 60
+    }
+    
+    // Check if option covers the requirement
+    return optionStart <= reqStart && optionEnd >= reqEnd
   })
 }
 
@@ -81,7 +94,7 @@ export function getAvailableEmployees(
 
   return employees.filter(employee => {
     // Check for time off conflicts
-    const hasTimeOff = timeOffRequests.some(request => 
+    const hasTimeOff = timeOffRequests.some(request =>
       request.employee_id === employee.id &&
       request.status === 'approved' &&
       isWithinInterval(dayStart, {
@@ -92,14 +105,14 @@ export function getAvailableEmployees(
 
     if (hasTimeOff) return false
 
-    return true
+    return true // Employee is available
   })
 }
 
 /**
  * Helper function to parse time string (HH:mm) to minutes since midnight
  */
-function parseTimeString(time: string): number {
+export function parseTimeString(time: string): number {
   const [hours, minutes] = time.split(':').map(Number)
   return hours * 60 + minutes
 }
@@ -156,4 +169,4 @@ export function formatMinutesToTime(minutes: number): string {
   const hours = Math.floor(minutes / 60) % 24
   const mins = minutes % 60
   return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`
-} 
+}

@@ -1,48 +1,29 @@
 import { Metadata } from 'next'
-import { LoginForm } from './login-form'
-import { type SearchParams } from '@/types/next'
-
-/**
- * Login page component for the 911 Dispatch Center application
- * Provides email/password authentication with error handling and loading states
- *
- * Features:
- * - Email and password form inputs with validation
- * - Loading state during authentication
- * - Error display for failed login attempts
- * - Links to signup and password recovery
- * - Responsive layout with centered card design
- *
- * @component
- * @example
- * ```tsx
- * <LoginPage />
- * ```
- */
+import { UserAuthForm } from '../components/user-auth-form'
+import { TestRedirect } from '../components/test-redirect'
 
 export const metadata: Metadata = {
   title: 'Login',
   description: 'Login to your account',
 }
 
-interface LoginPageProps {
-  searchParams: SearchParams
-}
-
-export default function LoginPage({ searchParams }: LoginPageProps) {
-  const redirectTo = searchParams.redirectTo as string | undefined
-
+export default function LoginPage() {
   return (
-    <>
-      <div className="flex flex-col space-y-2 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Welcome back
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Enter your credentials to sign in
-        </p>
+    <div className="container flex h-screen w-screen flex-col items-center justify-center">
+      <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
+        <div className="flex flex-col space-y-2 text-center">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Welcome back
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Enter your email to sign in to your account
+          </p>
+        </div>
+        <UserAuthForm />
+        <div className="mt-4">
+          <TestRedirect />
+        </div>
       </div>
-      <LoginForm redirectTo={redirectTo} />
-    </>
+    </div>
   )
 }

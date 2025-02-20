@@ -15,6 +15,8 @@ export type AuthState = {
     code?: string
   }
   success?: boolean
+  message?: string
+  redirectTo?: string
 }
 
 // Derived state types

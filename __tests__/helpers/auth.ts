@@ -1,139 +1,168 @@
 import { vi } from 'vitest'
 import { createClient } from '@/lib/supabase/server'
-import type { AuthResult } from '@/lib/auth/middleware'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Database } from '@/types/supabase/database'
 
-vi.mock('@/lib/supabase/server', () => ({
-  createClient: vi.fn()
-}))
-
+// Mock user data
 export const mockUser = {
   id: 'test-user-id',
   email: 'test@example.com',
-  app_metadata: {
-    provider: 'email'
-  }
+  role: 'user',
+  created_at: new Date().toISOString()
 }
 
-export const mockEmployees = {
-  dispatcher: {
-    id: 'dispatcher-id',
-    auth_id: mockUser.id,
-    role: 'dispatcher' as const,
-    team_id: 'team-1'
-  },
-  supervisor: {
-    id: 'supervisor-id',
-    auth_id: mockUser.id,
-    role: 'supervisor' as const,
-    team_id: 'team-1'
-  },
-  manager: {
-    id: 'manager-id',
-    auth_id: mockUser.id,
-    role: 'manager' as const
-  }
+// Mock session data
+export const mockSession = {
+  access_token: 'test-token',
+  refresh_token: 'test-refresh-token',
+  expires_at: Date.now() + 3600000,
+  user: mockUser
 }
 
-export function mockAuthUser(role: keyof typeof mockEmployees) {
-  const employee = mockEmployees[role]
-  
-  const mockSupabase = {
+// Mock error type
+interface AuthError {
+  message: string
+  status?: number
+}
+
+// Mock Supabase responses
+export const mockSupabaseResponses = {
+  success: {
+    user: {
+      data: { user: mockUser },
+      error: null
+    },
+    session: {
+      data: { session: mockSession },
+      error: null
+    },
+    login: {
+      data: { user: mockUser, session: mockSession },
+      error: null
+    }
+  },
+  error: {
     auth: {
-      getUser: vi.fn().mockResolvedValue({
-        data: { user: mockUser },
-        error: null
-      }),
-      signInWithPassword: vi.fn().mockResolvedValue({
-        data: { user: mockUser },
-        error: null
-      }),
-      signOut: vi.fn().mockResolvedValue({
-        error: null
-      }),
-      exchangeCodeForSession: vi.fn().mockResolvedValue({
-        data: { 
-          session: { access_token: 'test-token', refresh_token: 'test-refresh' },
-          user: mockUser
-        },
-        error: null
-      }),
-      admin: {
-        listUsers: vi.fn().mockResolvedValue({
-          data: [],
-          error: null
-        }),
-        deleteUser: vi.fn().mockResolvedValue({
-          error: null
-        }),
-        getUserById: vi.fn().mockResolvedValue({
-          data: { user: mockUser },
+      data: { user: null, session: null },
+      error: { message: 'Invalid credentials', status: 401 }
+    }
+  }
+}
+
+interface AuthMockOptions {
+  authenticated?: boolean
+  error?: AuthError | null
+}
+
+// Auth setup helper
+export const mockSupabaseAuth = () => ({
+  auth: {
+    signInWithPassword: vi.fn().mockImplementation(({ email, password }) => {
+      if (email === 'test@example.com' && password === 'password123') {
+        return Promise.resolve({
+          data: {
+            user: mockUser,
+            session: mockSession
+          },
           error: null
         })
       }
-    },
-    from: vi.fn().mockReturnValue({
-      select: vi.fn().mockReturnThis(),
-      insert: vi.fn().mockReturnThis(),
-      update: vi.fn().mockReturnThis(),
-      delete: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValue({
-        data: employee,
+      return Promise.resolve({
+        data: { user: null, session: null },
+        error: { message: 'Invalid login credentials' }
+      })
+    }),
+    getUser: vi.fn().mockImplementation(() => {
+      return Promise.resolve({
+        data: { user: mockUser },
         error: null
       })
+    }),
+    getSession: vi.fn().mockImplementation(() => {
+      return Promise.resolve({
+        data: { session: mockSession },
+        error: null
+      })
+    }),
+    signOut: vi.fn().mockImplementation(() => {
+      return Promise.resolve({ error: null })
+    })
+  }
+})
+
+export const setupAuthMocks = ({ authenticated = false, error = null }: AuthMockOptions = {}) => {
+  const mockSupabase = mockSupabaseAuth()
+  
+  if (error) {
+    mockSupabase.auth.signInWithPassword.mockRejectedValue(error)
+    mockSupabase.auth.getUser.mockRejectedValue(error)
+    mockSupabase.auth.getSession.mockRejectedValue(error)
+    return mockSupabase
+  }
+
+  if (!authenticated) {
+    mockSupabase.auth.getUser.mockResolvedValue({
+      data: { user: null },
+      error: null
+    })
+    mockSupabase.auth.getSession.mockResolvedValue({
+      data: { session: null },
+      error: null
     })
   }
 
-  ;(createClient as ReturnType<typeof vi.fn>).mockReturnValue(mockSupabase)
-  
-  return {
-    user: mockUser,
-    employee,
-    supabase: mockSupabase
-  }
+  return mockSupabase
 }
 
-export function mockUnauthenticated() {
-  const mockSupabase = {
-    auth: {
-      getUser: vi.fn().mockResolvedValue({
-        data: { user: null },
-        error: { message: 'Not authenticated', status: 401 }
-      })
-    }
-  }
-
-  ;(createClient as ReturnType<typeof vi.fn>).mockReturnValue(mockSupabase)
-  
-  return { supabase: mockSupabase }
+// Mock Next.js router
+export const mockRouter = {
+  push: vi.fn(),
+  replace: vi.fn(),
+  refresh: vi.fn(),
+  back: vi.fn(),
+  forward: vi.fn(),
+  prefetch: vi.fn()
 }
 
-export function mockAuthError(message: string, status = 400) {
-  const mockSupabase = {
-    auth: {
-      getUser: vi.fn().mockResolvedValue({
-        data: { user: null },
-        error: { message, status }
-      })
-    }
+vi.mock('next/navigation', () => ({
+  useRouter: () => mockRouter,
+  redirect: (path: string) => {
+    const response = new Response(null, {
+      status: 307,
+      headers: { Location: path }
+    })
+    return response
+  },
+  revalidatePath: (path: string) => {
+    // Implementation of revalidatePath
   }
+}))
 
-  ;(createClient as ReturnType<typeof vi.fn>).mockReturnValue(mockSupabase)
-  
-  return { supabase: mockSupabase }
+vi.mock('@supabase/supabase-js', () => ({
+  createClient: vi.fn()
+}))
+
+// Mock cookies store
+export const mockCookies = {
+  get: vi.fn(),
+  set: vi.fn(),
+  delete: vi.fn()
 }
 
-export function getMockAuthResult(role: keyof typeof mockEmployees): AuthResult {
-  const employee = mockEmployees[role]
-  const base = {
-    userId: mockUser.id,
-    role: employee.role,
-    employeeId: employee.id
-  }
-  
-  if ('team_id' in employee) {
-    return { ...base, teamId: employee.team_id }
-  }
-  
-  return base
-} 
+// Helper to simulate form submission
+export function createFormData(data: Record<string, string>) {
+  const formData = new FormData()
+  Object.entries(data).forEach(([key, value]) => {
+    formData.append(key, value)
+  })
+  return formData
+}
+
+// Helper to wait for state updates
+export async function waitForStateUpdate() {
+  await new Promise(resolve => setTimeout(resolve, 0))
+}
+
+// Test utilities for auth components
+export const mockRedirect = vi.fn()
+export const mockRevalidatePath = vi.fn() 

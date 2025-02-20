@@ -1,26 +1,46 @@
 'use client'
 
-import React, { useState } from 'react'
+import React from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { ThemeProvider } from '@/providers/theme-provider'
-import { ToastProvider } from '@/providers/toast-provider'
+import { ThemeProvider } from './theme-provider'
+import { Toaster } from '@/components/ui/toaster'
 import { SupabaseProvider } from './SupabaseContext'
+import { ErrorBoundary } from '@/components/ui/error-boundary'
+
+// Create a client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60 * 1000, // 1 minute
+      retry: 1,
+      networkMode: 'always'
+    },
+    mutations: {
+      networkMode: 'always'
+    }
+  }
+})
 
 interface ProvidersProps {
   children: React.ReactNode
 }
 
 export function Providers({ children }: ProvidersProps) {
-  const [queryClient] = useState(() => new QueryClient())
-
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <SupabaseProvider>
-          {children}
-          <ToastProvider />
-        </SupabaseProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <SupabaseProvider>
+            {children}
+            <Toaster />
+          </SupabaseProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   )
 }

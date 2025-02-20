@@ -1,95 +1,124 @@
 import type { Database } from '../supabase/database'
+import type { ValidationResult } from '../validation'
+import type { ShiftPattern } from '../shift-patterns'
 import type { Employee } from './employee'
-import type { IndividualShift, ShiftPattern } from './shift'
+import type { Shift, AssignedShift } from './shift'
 
 type Tables = Database['public']['Tables']
 type Enums = Database['public']['Enums']
 
-// Base Types
-export type Schedule = Tables['schedules']['Row']
-export type ScheduleInsert = Tables['schedules']['Insert']
-export type ScheduleUpdate = Tables['schedules']['Update']
+/**
+ * Schedule status type
+ */
+export type ScheduleStatus = 'draft' | 'published' | 'archived'
 
-export type SchedulePeriod = Tables['schedule_periods']['Row']
-export type SchedulePeriodInsert = Tables['schedule_periods']['Insert']
-export type SchedulePeriodUpdate = Tables['schedule_periods']['Update']
+/**
+ * Base schedule type from database
+ */
+export type Schedule = {
+  id: string
+  name: string // This field does not exist in the schedule_periods table
+  start_date: string
+  end_date: string
+  status: ScheduleStatus
+  description: string | null
+  created_by: string | null
+  updated_by: string | null
+  created_at: string
+  updated_at: string
+}
 
-// Extended Types
+/**
+ * Schedule with additional computed fields
+ */
 export interface ScheduleWithDetails extends Schedule {
-  employee: Employee
-  shifts: IndividualShift[]
+  employees: Employee[]
+  assignedShifts: (AssignedShift & {
+    employee: Employee
+    shift: Shift
+  })[]
+  totalHours: number
+  totalAssignments: number
+  coverageStats: {
+    totalRequired: number
+    totalAssigned: number
+    coveragePercentage: number
+  }
 }
 
-export interface SchedulePeriodWithDetails extends SchedulePeriod {
-  schedules: Schedule[]
-  shifts: IndividualShift[]
-  staffing_requirements: Tables['staffing_requirements']['Row'][]
+/**
+ * Schedule validation result
+ */
+export interface ScheduleValidationResult extends ValidationResult {
+  schedule: Schedule
+  conflicts: {
+    type: 'COVERAGE' | 'PATTERN' | 'HOURS' | 'TIME_OFF'
+    message: string
+    date?: string
+    employeeId?: string
+    shiftId?: string
+  }[]
 }
 
-// Create Types
-export interface CreateScheduleInput {
-  employee_id: string
-  start_date: string
-  end_date: string
-  shift_pattern: ShiftPattern
-  shift_type: string
-  is_supervisor?: boolean
-}
+/**
+ * Input for creating a new schedule
+ */
+export type CreateScheduleInput = Omit<
+  Schedule,
+  'id' | 'created_at' | 'updated_at' | 'created_by' | 'updated_by'
+>
 
-export interface CreateSchedulePeriodInput {
-  start_date: string
-  end_date: string
-  description?: string
-  is_active?: boolean
-}
-
-// Update Types
+/**
+ * Input for updating an existing schedule
+ */
 export type UpdateScheduleInput = Partial<CreateScheduleInput>
-export type UpdateSchedulePeriodInput = Partial<CreateSchedulePeriodInput>
 
-// Filter Types
+/**
+ * Schedule filter options
+ */
 export interface ScheduleFilters {
   start_date?: string
   end_date?: string
-  employee_id?: string
-  shift_pattern?: ShiftPattern
-  is_supervisor?: boolean
+  status?: Schedule['status']
+  employeeId?: string
+  searchTerm?: string
 }
 
-export interface SchedulePeriodFilters {
-  start_date?: string
-  end_date?: string
-  is_active?: boolean
-}
+/**
+ * Fields that can be used to sort schedules
+ */
+export type ScheduleSortField = keyof Pick<
+  Schedule,
+  'name' | 'start_date' | 'end_date' | 'status' | 'created_at' | 'updated_at'
+>
 
-// Sort Types
-export type ScheduleSortField = 
-  | 'start_date'
-  | 'end_date'
-  | 'employee_name'
-  | 'shift_pattern'
-  | 'created_at'
-
+/**
+ * Schedule sort configuration
+ */
 export interface ScheduleSort {
   field: ScheduleSortField
   direction: 'asc' | 'desc'
 }
 
-// Utility Types
-export interface ScheduleValidation {
-  is_valid: boolean
-  errors: {
-    type: 'staffing' | 'pattern' | 'overtime' | 'availability'
-    message: string
-    date?: string
+/**
+ * Schedule generation options
+ */
+export interface ScheduleGenerationOptions {
+  start_date: string
+  end_date: string
+  employeeIds: string[]
+  shiftPatterns: {
+    employeeId: string
+    pattern: ShiftPattern
   }[]
-}
-
-export interface ScheduleStatistics {
-  total_shifts: number
-  total_hours: number
-  overtime_hours: number
-  supervisor_coverage: number
-  staffing_requirements_met: number
-  pattern_adherence: number
+  preferences?: {
+    employeeId: string
+    preferredShifts: string[]
+    avoidShifts: string[]
+  }[]
+  constraints?: {
+    maxConsecutiveDays?: number
+    minRestHours?: number
+    maxOvertimeHours?: number
+  }
 }

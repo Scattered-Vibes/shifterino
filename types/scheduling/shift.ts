@@ -1,26 +1,35 @@
 import type { Employee } from '../models/employee'
-import type { IndividualShift } from '@/types/supabase/index'
+import type { Database } from '../supabase/database'
+import type { ShiftPattern } from '../shift-patterns'
+
+type Tables = Database['public']['Tables']
+type Enums = Database['public']['Enums']
 
 /**
  * Represents the type of shift pattern an employee can work
  */
-export type ShiftPatternType = 'PATTERN_A' | 'PATTERN_B'
+export type ShiftPatternType = ShiftPattern
 
 /**
  * Represents the possible statuses for a shift
  */
-export type ShiftStatus = IndividualShift['status']
+export type ShiftStatus = 'scheduled' | 'completed' | 'cancelled'
 
 /**
  * Represents a shift event with complete timing information
  */
-export interface ShiftEvent extends IndividualShift {
-  /** Start time of the shift in ISO format */
-  start: string
-  /** End time of the shift in ISO format */
-  end: string
-  /** Type of shift pattern this belongs to */
+export interface ShiftEvent {
+  id: string
+  employeeId: string
+  employeeRole: 'dispatcher' | 'supervisor' | 'manager'
+  title: string
+  start: string // ISO date string
+  end: string // ISO date string
   pattern: ShiftPatternType
+  status: ShiftStatus
+  overrideHoursCap?: boolean
+  notes?: string
+  shiftOptionId: string
 }
 
 export interface ShiftUpdateData {
@@ -60,7 +69,18 @@ export interface Duration {
  * Converts a database shift record to a ShiftEvent
  */
 export function convertToShiftEvent(
-  shift: IndividualShift,
+  shift: {
+    id: string
+    employee_id: string
+    date: string
+    actual_hours_worked?: number
+    status: ShiftStatus
+    notes?: string
+    created_at: string
+    updated_at: string
+    created_by?: string | null
+    updated_by?: string | null
+  },
   shiftOption: {
     start_time: string
     end_time: string
@@ -90,9 +110,15 @@ export function convertToShiftEvent(
   }
 
   return {
-    ...shift,
+    id: shift.id,
+    employeeId: shift.employee_id,
+    employeeRole: 'dispatcher', // This needs to be updated to get actual role
+    title: 'Shift', // This needs to be updated to get actual title
     start: startDate.toISOString(),
     end: endDate.toISOString(),
-    pattern: shiftOption.pattern
+    pattern: shiftOption.pattern,
+    status: shift.status,
+    notes: shift.notes,
+    shiftOptionId: '0' // This needs to be updated to get actual shift option id
   }
 }

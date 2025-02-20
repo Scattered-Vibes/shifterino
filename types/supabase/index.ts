@@ -1,55 +1,159 @@
-import { Database as GeneratedDatabase } from './database'
+import type { Database } from './database'
 
-export type Database = GeneratedDatabase
+// Database type exports
+export type { Database } from './database'
 
-export type Tables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row']
-export type Enums<T extends keyof Database['public']['Enums']> = Database['public']['Enums'][T]
+// Table types
+export type Tables = Database['public']['Tables']
+export type Enums = Database['public']['Enums']
 
-// Strongly typed tables
-export type Employee = Tables<'employees'>
-export type ShiftOption = Tables<'shift_options'>
-export type IndividualShift = Tables<'individual_shifts'>
-export type TimeOffRequest = Tables<'time_off_requests'>
-export type AssignedShift = Tables<'assigned_shifts'>
-export type StaffingRequirement = Tables<'staffing_requirements'>
+// Helper types for table operations
+export type TableRow<T extends keyof Tables> = Tables[T]['Row']
+export type TableInsert<T extends keyof Tables> = Tables[T]['Insert']
+export type TableUpdate<T extends keyof Tables> = Tables[T]['Update']
 
-// Strongly typed enums
-export type EmployeeRole = Enums<'employee_role'>
-export type ShiftStatus = Enums<'shift_status'>
-export type TimeOffStatus = Enums<'time_off_status'>
+// Enum types from database
+export type EmployeeRole = Enums['employee_role']
+export type ShiftPattern = Enums['shift_pattern']
+export type ShiftCategory = Enums['shift_category']
+export type ShiftStatus = Enums['shift_status']
+export type TimeOffStatus = Enums['time_off_status']
+export type LogSeverity = Enums['log_severity']
 
-// Helper types for common operations
-export type EmployeeWithAuth = Employee & {
-  auth_user?: {
-    email: string
-    role: EmployeeRole
+// Supabase specific types
+export interface SupabaseConfig {
+  auth?: {
+    autoRefreshToken?: boolean
+    persistSession?: boolean
+    detectSessionInUrl?: boolean
+    flowType?: 'implicit' | 'pkce'
+  }
+  global?: {
+    headers?: Record<string, string>
+  }
+  cookies?: {
+    name?: string
+    lifetime?: number
+    domain?: string
+    sameSite?: 'lax' | 'strict' | 'none'
+    secure?: boolean
   }
 }
 
-export type AssignedShiftWithEmployee = AssignedShift & {
-  employee: Employee
-  shift_option: ShiftOption
+// Auth types
+export interface AuthUser {
+  id: string
+  email: string
+  role: EmployeeRole
+  employee_id?: string
+  metadata: {
+    first_name?: string
+    last_name?: string
+    shift_pattern?: ShiftPattern
+  }
+  created_at: string
+  updated_at: string
 }
 
-export type TimeOffRequestWithEmployee = TimeOffRequest & {
-  employee: Employee
-  reviewer?: Employee
+export interface AuthSession {
+  user: AuthUser
+  access_token: string
+  refresh_token: string
+  expires_at: number
 }
 
-// Database function return types
-export type GetEmployeeResult = EmployeeWithAuth | null
-export type GetAssignedShiftsResult = AssignedShiftWithEmployee[]
-export type GetTimeOffRequestsResult = TimeOffRequestWithEmployee[]
+// Realtime types
+export interface RealtimePayload<T = unknown> {
+  new: T
+  old: T | null
+  errors: null | Error[]
+  commit_timestamp: string
+  eventType: 'INSERT' | 'UPDATE' | 'DELETE'
+  schema: string
+  table: string
+}
 
-// Validation types
-export interface ValidationError {
+export interface RealtimeChannel {
+  subscribe: <T>(callback: (payload: RealtimePayload<T>) => void) => void
+  unsubscribe: () => void
+  on: <T>(
+    event: 'INSERT' | 'UPDATE' | 'DELETE',
+    callback: (payload: RealtimePayload<T>) => void
+  ) => RealtimeChannel
+}
+
+export interface RealtimeClient {
+  channel: (name: string) => RealtimeChannel
+  on: <T>(event: string, callback: (payload: T) => void) => void
+  disconnect: () => void
+}
+
+// Database operation types
+export type DBResult<T> = {
+  data: T
+  error: null
+  status: number
+  statusText: string
+} | {
+  data: null
+  error: {
+    message: string
+    details: string
+    hint?: string
+    code: string
+  }
+  status: number
+  statusText: string
+}
+
+export type DBQueryResult<T> = Promise<DBResult<T>>
+
+// Table specific types
+export type EmployeeRow = TableRow<'employees'>
+export type ShiftOptionRow = TableRow<'shift_options'>
+export type ScheduleRow = TableRow<'schedules'>
+export type TimeOffRequestRow = TableRow<'time_off_requests'>
+export type StaffingRequirementRow = TableRow<'staffing_requirements'>
+export type ShiftSwapRequestRow = TableRow<'shift_swap_requests'>
+export type IndividualShiftRow = TableRow<'individual_shifts'>
+export type SchedulingLogRow = TableRow<'scheduling_logs'>
+export type ShiftPatternRuleRow = TableRow<'shift_pattern_rules'>
+export type SystemSettingRow = TableRow<'system_settings'>
+
+// Join types
+export interface EmployeeWithShifts extends EmployeeRow {
+  shifts: IndividualShiftRow[]
+}
+
+export interface ShiftWithEmployee extends IndividualShiftRow {
+  employee: EmployeeRow
+  shift_option: ShiftOptionRow
+}
+
+// Utility types
+export type WithTimestamps<T> = T & {
+  created_at: string
+  updated_at: string
+}
+
+export type WithOptionalTimestamps<T> = T & {
+  created_at?: string
+  updated_at?: string
+}
+
+// Error types
+export interface SupabaseError extends Error {
   code: string
+  details: string
+  hint?: string
   message: string
-  details?: unknown
 }
 
-export interface ValidationResult<T> {
-  success: boolean
-  data?: T
-  error?: ValidationError
+export type ErrorWithContext = {
+  error: SupabaseError
+  context: {
+    operation: string
+    table?: string
+    data?: unknown
+  }
 } 

@@ -1,29 +1,73 @@
-import type { ShiftEvent, ShiftPatternType } from '@/types/scheduling/shift'
+import type { ShiftEvent } from '@/types/scheduling/shift'
+import type { ShiftPatternConfig } from '@/types/shift-patterns'
+import type { Database } from '@/types/supabase/database'
 
 const HOURS_IN_MS = 3600000
 const DAY_IN_MS = 86400000
 
-interface ShiftPattern {
-  name: ShiftPatternType
-  shifts: {
-    duration: number // in hours
-    count: number
-  }[]
+type DbShiftPattern = Database['public']['Enums']['shift_pattern']
+const VALID_PATTERNS = ['4x10', '3x12_plus_4'] as const
+
+interface ConversionResult {
+  pattern: DbShiftPattern
+  wasConverted: boolean
+  originalPattern?: string
 }
 
-export const SHIFT_PATTERNS: Record<ShiftPatternType, ShiftPattern> = {
-  PATTERN_A: {
-    name: 'PATTERN_A',
-    shifts: [{ duration: 10, count: 4 }] // Four 10-hour shifts
+export const SHIFT_PATTERNS: Record<DbShiftPattern, ShiftPatternConfig> = {
+  '4x10': {
+    name: '4x10',
+    shifts: [{ duration: 10, count: 4 }],
+    totalHours: 40,
+    consecutiveDays: 4
   },
-  PATTERN_B: {
-    name: 'PATTERN_B',
+  '3x12_plus_4': {
+    name: '3x12_plus_4',
     shifts: [
-      { duration: 12, count: 3 }, // Three 12-hour shifts
-      { duration: 4, count: 1 }   // One 4-hour shift
-    ]
+      { duration: 12, count: 3 },
+      { duration: 4, count: 1 }
+    ],
+    totalHours: 40,
+    consecutiveDays: 4
   }
 }
+
+export function validateShiftPatternFormat(pattern: string): ConversionResult {
+  // Early return if pattern is already valid
+  if (VALID_PATTERNS.includes(pattern as DbShiftPattern)) {
+    return {
+      pattern: pattern as DbShiftPattern,
+      wasConverted: false
+    }
+  }
+
+  // Convert legacy formats
+  let convertedPattern: DbShiftPattern
+  switch (pattern) {
+    case '4_10':
+      convertedPattern = '4x10'
+      break
+    case '3_12_4':
+    case '3_12_plus_4':
+      convertedPattern = '3x12_plus_4'
+      break
+    default:
+      convertedPattern = '4x10' // Default to 4x10 for unknown patterns
+  }
+
+  return {
+    pattern: convertedPattern,
+    wasConverted: true,
+    originalPattern: pattern
+  }
+}
+
+export function isValidShiftPattern(pattern: string): pattern is DbShiftPattern {
+  return VALID_PATTERNS.includes(pattern as DbShiftPattern)
+}
+
+export const shiftPatterns = VALID_PATTERNS
+export type { DbShiftPattern as ShiftPattern }
 
 export function validateShiftPattern(
   shift: ShiftEvent,
@@ -48,9 +92,9 @@ export function validateShiftPattern(
 
   // Validate based on pattern type
   switch (pattern.name) {
-    case 'PATTERN_A':
+    case '4x10':
       return validatePatternA(sortedShifts)
-    case 'PATTERN_B':
+    case '3x12_plus_4':
       return validatePatternB(sortedShifts)
     default:
       return false
