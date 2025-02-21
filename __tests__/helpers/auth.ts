@@ -1,168 +1,100 @@
-import { vi } from 'vitest'
-import { createClient } from '@/lib/supabase/server'
-import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Database } from '@/types/supabase/database'
+import { vi } from 'vitest';
+import type { User, AuthError } from '@supabase/supabase-js';
+import type { Session } from '@supabase/supabase-js';
 
-// Mock user data
-export const mockUser = {
+export const mockSupabaseUser: User = {
   id: 'test-user-id',
+  app_metadata: { provider: 'email', role: 'dispatcher' },
+  user_metadata: {},
+  aud: 'authenticated',
+  created_at: new Date().toISOString(),
   email: 'test@example.com',
-  role: 'user',
-  created_at: new Date().toISOString()
-}
+  phone: '',
+  role: 'authenticated',
+  updated_at: new Date().toISOString(),
+  confirmed_at: new Date().toISOString(),
+  last_sign_in_at: new Date().toISOString(),
+  email_confirmed_at: new Date().toISOString(),
+  phone_confirmed_at: undefined,
+  identities: [],
+  factors: [],
+} as User;
 
-// Mock session data
-export const mockSession = {
-  access_token: 'test-token',
+export const mockSession: Session = {
+  access_token: 'test-access-token',
   refresh_token: 'test-refresh-token',
-  expires_at: Date.now() + 3600000,
-  user: mockUser
-}
+  expires_in: 3600,
+  expires_at: Math.floor(Date.now() / 1000) + 3600,
+  token_type: 'bearer',
+  user: mockSupabaseUser,
+} as Session;
 
-// Mock error type
-interface AuthError {
-  message: string
-  status?: number
-}
+export const mockAuthError: AuthError = {
+  name: 'AuthApiError',
+  status: 400,
+  message: 'Invalid login credentials',
+} as AuthError;
 
-// Mock Supabase responses
-export const mockSupabaseResponses = {
-  success: {
-    user: {
-      data: { user: mockUser },
-      error: null
-    },
-    session: {
-      data: { session: mockSession },
-      error: null
-    },
-    login: {
-      data: { user: mockUser, session: mockSession },
-      error: null
-    }
-  },
-  error: {
-    auth: {
-      data: { user: null, session: null },
-      error: { message: 'Invalid credentials', status: 401 }
-    }
-  }
-}
-
-interface AuthMockOptions {
-  authenticated?: boolean
-  error?: AuthError | null
-}
-
-// Auth setup helper
-export const mockSupabaseAuth = () => ({
+export const mockSupabase = {
   auth: {
     signInWithPassword: vi.fn().mockImplementation(({ email, password }) => {
       if (email === 'test@example.com' && password === 'password123') {
         return Promise.resolve({
-          data: {
-            user: mockUser,
-            session: mockSession
-          },
-          error: null
-        })
+          data: { user: mockSupabaseUser, session: mockSession },
+          error: null,
+        });
       }
       return Promise.resolve({
         data: { user: null, session: null },
-        error: { message: 'Invalid login credentials' }
-      })
+        error: mockAuthError,
+      });
     }),
-    getUser: vi.fn().mockImplementation(() => {
-      return Promise.resolve({
-        data: { user: mockUser },
-        error: null
-      })
+    getUser: vi.fn().mockResolvedValue({
+      data: { user: mockSupabaseUser },
+      error: null,
     }),
-    getSession: vi.fn().mockImplementation(() => {
-      return Promise.resolve({
-        data: { session: mockSession },
-        error: null
-      })
+    getSession: vi.fn().mockResolvedValue({ 
+      data: { session: mockSession }, 
+      error: null 
     }),
-    signOut: vi.fn().mockImplementation(() => {
-      return Promise.resolve({ error: null })
-    })
-  }
-})
-
-export const setupAuthMocks = ({ authenticated = false, error = null }: AuthMockOptions = {}) => {
-  const mockSupabase = mockSupabaseAuth()
-  
-  if (error) {
-    mockSupabase.auth.signInWithPassword.mockRejectedValue(error)
-    mockSupabase.auth.getUser.mockRejectedValue(error)
-    mockSupabase.auth.getSession.mockRejectedValue(error)
-    return mockSupabase
-  }
-
-  if (!authenticated) {
-    mockSupabase.auth.getUser.mockResolvedValue({
-      data: { user: null },
-      error: null
-    })
-    mockSupabase.auth.getSession.mockResolvedValue({
-      data: { session: null },
-      error: null
-    })
-  }
-
-  return mockSupabase
-}
-
-// Mock Next.js router
-export const mockRouter = {
-  push: vi.fn(),
-  replace: vi.fn(),
-  refresh: vi.fn(),
-  back: vi.fn(),
-  forward: vi.fn(),
-  prefetch: vi.fn()
-}
-
-vi.mock('next/navigation', () => ({
-  useRouter: () => mockRouter,
-  redirect: (path: string) => {
-    const response = new Response(null, {
-      status: 307,
-      headers: { Location: path }
-    })
-    return response
+    signOut: vi.fn().mockResolvedValue({ error: null }),
   },
-  revalidatePath: (path: string) => {
-    // Implementation of revalidatePath
-  }
-}))
-
-vi.mock('@supabase/supabase-js', () => ({
-  createClient: vi.fn()
-}))
+  from: vi.fn().mockReturnValue({
+    select: vi.fn().mockReturnThis(),
+    insert: vi.fn().mockReturnThis(),
+    update: vi.fn().mockReturnThis(),
+    delete: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    single: vi.fn().mockResolvedValue({ data: null, error: null }),
+  }),
+};
 
 // Mock cookies store
 export const mockCookies = {
   get: vi.fn(),
   set: vi.fn(),
-  delete: vi.fn()
-}
+  delete: vi.fn(),
+  getAll: vi.fn(),
+};
 
-// Helper to simulate form submission
+// Mock headers
+export const mockHeaders = {
+  get: vi.fn(),
+  set: vi.fn(),
+  delete: vi.fn(),
+  append: vi.fn(),
+  entries: vi.fn().mockReturnValue([]),
+  forEach: vi.fn(),
+};
+
+// Helper for form data creation
 export function createFormData(data: Record<string, string>) {
-  const formData = new FormData()
-  Object.entries(data).forEach(([key, value]) => {
-    formData.append(key, value)
-  })
-  return formData
+  const formData = new FormData();
+  Object.entries(data).forEach(([key, value]) => formData.append(key, value));
+  return formData;
 }
 
-// Helper to wait for state updates
-export async function waitForStateUpdate() {
-  await new Promise(resolve => setTimeout(resolve, 0))
+// Helper for async state updates
+export async function waitForStateUpdate(timeout = 100) {
+  await new Promise(resolve => setTimeout(resolve, timeout));
 }
-
-// Test utilities for auth components
-export const mockRedirect = vi.fn()
-export const mockRevalidatePath = vi.fn() 

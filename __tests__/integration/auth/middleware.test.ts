@@ -1,109 +1,70 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { NextRequest, NextResponse } from 'next/server'
+import { vi, describe, test, expect, beforeEach } from 'vitest'
+import { NextResponse, NextRequest } from 'next/server'
 import { middleware } from '@/middleware'
-import { setupAuthMocks } from '../../helpers/auth'
+import { mockAuthSession } from '../../helpers/auth-mocks'
+import { createServerClient } from '@supabase/ssr'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Database } from '@/types/supabase'
+
+// Create a mock Supabase client
+const mockGetSession = vi.fn()
+const mockSupabaseClient = {
+  auth: {
+    getSession: mockGetSession,
+    getUser: vi.fn(),
+    signInWithPassword: vi.fn(),
+    signOut: vi.fn(),
+  },
+} as unknown as SupabaseClient<Database>
+
+// Mock createServerClient
+vi.mock('@supabase/ssr', () => ({
+  createServerClient: vi.fn(() => mockSupabaseClient)
+}))
 
 describe('Auth Middleware', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // Reset default mock behavior
+    mockGetSession.mockReturnValue(Promise.resolve(mockAuthSession()))
   })
 
-  it('allows access to public routes when unauthenticated', async () => {
-    setupAuthMocks({ authenticated: false })
+  test('allows access to public routes', async () => {
     const request = new NextRequest(new URL('http://localhost:3000/login'))
     const response = await middleware(request)
-
-    expect(response instanceof NextResponse).toBe(true)
-    expect(response.headers.get('location')).toBeNull()
+    expect(response).toBeInstanceOf(NextResponse)
+    expect(response.status).toBe(200)
   })
 
-  it('redirects unauthenticated users from protected routes to login', async () => {
-    setupAuthMocks({ authenticated: false })
-    const request = new NextRequest(new URL('http://localhost:3000/overview'))
+  test('redirects unauthenticated users from protected routes', async () => {
+    const request = new NextRequest(new URL('http://localhost:3000/dashboard'))
     const response = await middleware(request)
-
-    expect(response.status).toBe(307)
-    expect(response.headers.get('location')).toBe('http://localhost:3000/login?redirectTo=/overview')
+    expect(response?.headers.get('location')).toBe('/login')
+    expect(response.status).toBe(302)
   })
 
-  it('redirects authenticated users from public routes to overview', async () => {
-    setupAuthMocks({ authenticated: true })
-    const request = new NextRequest(new URL('http://localhost:3000/login'))
-    const response = await middleware(request)
+  test('allows authenticated users to access protected routes', async () => {
+    const mockUser = { id: '123', email: 'test@example.com' }
+    mockGetSession.mockReturnValueOnce(Promise.resolve(mockAuthSession(mockUser)))
 
-    expect(response.status).toBe(307)
-    expect(response.headers.get('location')).toBe('http://localhost:3000/overview')
+    const request = new NextRequest(new URL('http://localhost:3000/dashboard'))
+    const response = await middleware(request)
+    expect(response).toBeInstanceOf(NextResponse)
+    expect(response?.headers.get('location')).toBeNull()
+    expect(response.status).toBe(200)
   })
 
-  it('allows authenticated users to access protected routes', async () => {
-    setupAuthMocks({ authenticated: true })
-    const request = new NextRequest(new URL('http://localhost:3000/overview'))
-    const response = await middleware(request)
+  test('handles auth errors gracefully', async () => {
+    mockGetSession.mockReturnValueOnce(Promise.reject(new Error('Auth error')))
 
-    expect(response instanceof NextResponse).toBe(true)
-    expect(response.headers.get('location')).toBeNull()
+    const request = new NextRequest(new URL('http://localhost:3000/dashboard'))
+    const response = await middleware(request)
+    expect(response?.headers.get('location')).toBe('/login')
   })
 
-  it('preserves query parameters in redirectTo', async () => {
-    setupAuthMocks({ authenticated: false })
-    const request = new NextRequest(
-      new URL('http://localhost:3000/overview?tab=settings&view=profile')
-    )
+  test('preserves query parameters when redirecting', async () => {
+    const request = new NextRequest(new URL('http://localhost:3000/dashboard?foo=bar'))
     const response = await middleware(request)
-
-    expect(response.status).toBe(307)
-    expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/login?redirectTo=/overview?tab=settings&view=profile'
-    )
-  })
-
-  it('skips middleware for API routes', async () => {
-    const request = new NextRequest(new URL('http://localhost:3000/api/auth/callback'))
-    const response = await middleware(request)
-
-    expect(response instanceof NextResponse).toBe(true)
-    expect(response.headers.get('location')).toBeNull()
-  })
-
-  it('skips middleware for static files', async () => {
-    const request = new NextRequest(new URL('http://localhost:3000/favicon.ico'))
-    const response = await middleware(request)
-
-    expect(response instanceof NextResponse).toBe(true)
-    expect(response.headers.get('location')).toBeNull()
-  })
-
-  it('handles auth errors gracefully', async () => {
-    setupAuthMocks({ 
-      authenticated: false, 
-      error: { message: 'Auth service unavailable', status: 503 }
-    })
-    const request = new NextRequest(new URL('http://localhost:3000/overview'))
-    const response = await middleware(request)
-
-    expect(response.status).toBe(307)
-    expect(response.headers.get('location')).toBe('http://localhost:3000/login?redirectTo=/overview')
-  })
-
-  it('preserves cookies in the response', async () => {
-    setupAuthMocks({ authenticated: true })
-    const request = new NextRequest(new URL('http://localhost:3000/overview'))
-    const cookieValue = 'some-value'
-    request.cookies.set('some-cookie', cookieValue)
-    
-    const response = await middleware(request)
-    
-    const cookie = response.cookies.get('some-cookie')
-    expect(cookie?.value).toBe(cookieValue)
-  })
-
-  it('handles non-GET requests correctly', async () => {
-    const request = new NextRequest(new URL('http://localhost:3000/api/data'), {
-      method: 'POST'
-    })
-    const response = await middleware(request)
-
-    expect(response instanceof NextResponse).toBe(true)
-    expect(response.headers.get('location')).toBeNull()
+    expect(response?.headers.get('location')).toBe('/login?foo=bar')
   })
 }) 

@@ -1,59 +1,119 @@
-import { PostgrestError } from '@supabase/supabase-js'
+import { PostgrestError, AuthError } from '@supabase/supabase-js'
 import { type ValidationError } from '@/types/scheduling/common'
 
-export const ErrorCode = {
-  UNKNOWN: 'UNKNOWN',
-  NOT_FOUND: 'NOT_FOUND',
-  UNAUTHORIZED: 'UNAUTHORIZED',
-  FORBIDDEN: 'FORBIDDEN',
-  VALIDATION: 'VALIDATION',
-  DATABASE: 'DATABASE',
-  INVALID_SCHEDULE_PERIOD: 'INVALID_SCHEDULE_PERIOD',
-  NO_EMPLOYEES_FOUND: 'NO_EMPLOYEES_FOUND',
-  NO_SHIFT_OPTIONS: 'NO_SHIFT_OPTIONS',
-  NO_STAFFING_REQUIREMENTS: 'NO_STAFFING_REQUIREMENTS',
-  INSUFFICIENT_STAFF: 'INSUFFICIENT_STAFF',
-  RATE_LIMIT: 'RATE_LIMIT',
-  SERVER_ERROR: 'SERVER_ERROR',
-  INVALID_CREDENTIALS: 'INVALID_CREDENTIALS',
-  USER_NOT_FOUND: 'USER_NOT_FOUND',
-  SESSION_EXPIRED: 'SESSION_EXPIRED',
-  DB_ERROR: 'DB_ERROR',
-  DB_QUERY_ERROR: 'DB_QUERY_ERROR',
-  DB_CONNECTION_ERROR: 'DB_CONNECTION_ERROR',
-  DB_CONSTRAINT_ERROR: 'DB_CONSTRAINT_ERROR',
-  DB_VALIDATION_ERROR: 'DB_VALIDATION_ERROR',
-  API_ERROR: 'API_ERROR',
-  API_REQUEST_ERROR: 'API_REQUEST_ERROR',
-  API_RESPONSE_ERROR: 'API_RESPONSE_ERROR',
-  API_VALIDATION_ERROR: 'API_VALIDATION_ERROR',
-  VALIDATION_ERROR: 'VALIDATION_ERROR',
-  INVALID_INPUT: 'INVALID_INPUT',
-  INVALID_STATE: 'INVALID_STATE',
-  CONFLICT: 'CONFLICT',
-  SCHEDULE_CONFLICT: 'SCHEDULE_CONFLICT',
-  INVALID_SHIFT_PATTERN: 'INVALID_SHIFT_PATTERN',
-  OVERTIME_LIMIT_EXCEEDED: 'OVERTIME_LIMIT_EXCEEDED',
-  UNKNOWN_ERROR: 'UNKNOWN_ERROR',
-  NOT_IMPLEMENTED: 'NOT_IMPLEMENTED',
-  OPERATION_FAILED: 'OPERATION_FAILED'
-} as const
-
-export type ErrorCodeType = typeof ErrorCode[keyof typeof ErrorCode]
+export enum ErrorCode {
+  UNAUTHORIZED = 'UNAUTHORIZED',
+  NOT_FOUND = 'NOT_FOUND',
+  VALIDATION_ERROR = 'VALIDATION_ERROR',
+  DATABASE_ERROR = 'DATABASE_ERROR',
+  RATE_LIMIT = 'RATE_LIMIT',
+  INTERNAL_ERROR = 'INTERNAL_ERROR'
+}
 
 export class AppError extends Error {
-  code: ErrorCodeType
-  details?: Record<string, unknown>
-
-  constructor(message: string, code: ErrorCodeType, details?: Record<string, unknown>) {
+  constructor(
+    message: string,
+    public code: ErrorCode,
+    public status: number = 500,
+    public cause?: unknown
+  ) {
     super(message)
     this.name = 'AppError'
-    this.code = code
-    this.details = details
   }
 }
 
-export function handleError(error: unknown): { message: string; code: ErrorCodeType } {
+type ToastFunction = (options: { title: string; description: string; variant?: 'default' | 'destructive' }) => void
+
+export async function handleClientError<T>(
+  operation: () => Promise<T>,
+  toast: ToastFunction,
+  customErrorMap?: Record<string, string>
+): Promise<T | null> {
+  try {
+    return await operation()
+  } catch (err) {
+    const error = err as Error
+    console.error('Client operation failed:', error)
+    
+    let message = 'An unexpected error occurred'
+    
+    if (error instanceof AppError) {
+      message = error.message
+    } else if (error instanceof AuthError) {
+      message = 'Authentication error: ' + error.message
+    } else if (error instanceof PostgrestError) {
+      message = customErrorMap?.[error.code] || error.message
+    } else if (error instanceof Error) {
+      message = error.message
+    }
+    
+    toast({
+      title: 'Error',
+      description: message,
+      variant: 'destructive'
+    })
+    
+    return null
+  }
+}
+
+export async function handleServerError<T>(
+  operation: () => Promise<T>,
+  defaultMessage = 'An internal server error occurred'
+): Promise<Response> {
+  try {
+    const result = await operation()
+    return Response.json(result)
+  } catch (err) {
+    const error = err as Error
+    console.error('Server operation failed:', error)
+    
+    let status = 500
+    let message = defaultMessage
+    
+    if (error instanceof AppError) {
+      status = error.status
+      message = error.message
+    } else if (error instanceof AuthError) {
+      status = 401
+      message = 'Authentication failed: ' + error.message
+    } else if (error instanceof PostgrestError) {
+      status = 400
+      message = error.message
+    } else if (error instanceof Error) {
+      message = error.message
+    }
+    
+    return Response.json(
+      { error: message },
+      { status }
+    )
+  }
+}
+
+export function createErrorMap(errors: Record<string, string>): Record<string, string> {
+  return {
+    '23505': 'A record with this information already exists.',
+    '23503': 'This operation would violate referential integrity.',
+    '23514': 'This operation would violate a check constraint.',
+    ...errors
+  }
+}
+
+// Helper to determine if an error is a specific type
+export function isPostgrestError(error: unknown): error is PostgrestError {
+  return error instanceof PostgrestError
+}
+
+export function isAuthError(error: unknown): error is AuthError {
+  return error instanceof AuthError
+}
+
+export function isAppError(error: unknown): error is AppError {
+  return error instanceof AppError
+}
+
+export function handleError(error: unknown): { message: string; code: ErrorCode } {
   console.error('Error:', error)
 
   if (error instanceof AppError) {
@@ -71,7 +131,7 @@ export function handleError(error: unknown): { message: string; code: ErrorCodeT
           if (error.message.includes('schema')) {
             return {
               message: 'Database configuration error. Please contact support.',
-              code: ErrorCode.DB_ERROR
+              code: ErrorCode.DATABASE_ERROR
             }
           }
           return {
@@ -81,7 +141,7 @@ export function handleError(error: unknown): { message: string; code: ErrorCodeT
         case 401:
           return {
             message: 'Invalid email or password',
-            code: ErrorCode.INVALID_CREDENTIALS
+            code: ErrorCode.UNAUTHORIZED
           }
         case 422:
           return {
@@ -97,12 +157,12 @@ export function handleError(error: unknown): { message: string; code: ErrorCodeT
           if (error.message.includes('schema')) {
             return {
               message: 'Database configuration error. Please contact support.',
-              code: ErrorCode.DB_ERROR
+              code: ErrorCode.DATABASE_ERROR
             }
           }
           return {
             message: 'An unexpected server error occurred.',
-            code: ErrorCode.SERVER_ERROR
+            code: ErrorCode.INTERNAL_ERROR
           }
       }
     }
@@ -110,162 +170,85 @@ export function handleError(error: unknown): { message: string; code: ErrorCodeT
     if (error.message.includes('Invalid login credentials')) {
       return {
         message: 'Invalid email or password',
-        code: ErrorCode.INVALID_CREDENTIALS
+        code: ErrorCode.UNAUTHORIZED
       }
     }
 
     if (error.message.includes('schema')) {
       return {
         message: 'Database configuration error. Please contact support.',
-        code: ErrorCode.DB_ERROR
+        code: ErrorCode.DATABASE_ERROR
       }
     }
 
     return {
       message: error.message,
-      code: ErrorCode.UNKNOWN
+      code: ErrorCode.INTERNAL_ERROR
     }
   }
 
   return {
     message: 'An unexpected error occurred',
-    code: ErrorCode.UNKNOWN
+    code: ErrorCode.INTERNAL_ERROR
   }
 }
 
 export function handleValidationError(
   _errors: ValidationError[],
   _context?: Record<string, unknown>
-): { message: string; code: ErrorCodeType } {
+): { message: string; code: ErrorCode } {
   return {
     message: 'Validation failed',
-    code: ErrorCode.VALIDATION
+    code: ErrorCode.VALIDATION_ERROR
   }
 }
 
 export function assertNonNullable<T>(
   value: T | null | undefined,
   message: string,
-  code: ErrorCodeType,
+  code: ErrorCode,
   context?: Record<string, unknown>
 ): asserts value is T {
   if (value === null || value === undefined) {
-    throw new AppError(message, code, context)
+    throw new AppError(message, code, 500, context)
   }
 }
 
-export function isAppError(error: unknown): error is AppError {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'code' in error &&
-    'message' in error &&
-    typeof error.code === 'string' &&
-    typeof error.message === 'string'
-  )
-}
-
-export function isSupabaseError(error: unknown): error is PostgrestError {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'code' in error &&
-    'message' in error &&
-    'details' in error &&
-    'hint' in error
-  )
-}
-
-export function mapSupabaseError(error: PostgrestError): { message: string; code: ErrorCodeType } {
-  return {
-    message: error.message,
-    code: ErrorCode.SERVER_ERROR
-  }
-}
-
-export function getUserFriendlyMessage(code: ErrorCodeType): string {
+export function getUserFriendlyMessage(code: ErrorCode): string {
   switch (code) {
     // Authentication errors
-    case ErrorCode.INVALID_CREDENTIALS:
-      return 'Invalid username or password.'
-    case ErrorCode.USER_NOT_FOUND:
-      return 'User not found.'
     case ErrorCode.UNAUTHORIZED:
       return 'You need to be logged in to perform this action.'
-    case ErrorCode.FORBIDDEN:
-      return 'You do not have sufficient permissions to perform this action.'
-    case ErrorCode.SESSION_EXPIRED:
-      return 'Your session has expired. Please log in again.'
+    case ErrorCode.INTERNAL_ERROR:
+      return 'An unexpected error occurred. Please try again later.'
 
     // Database errors
-    case ErrorCode.DB_ERROR:
+    case ErrorCode.DATABASE_ERROR:
       return 'A database error occurred. Please try again later.'
-    case ErrorCode.DB_QUERY_ERROR:
-      return 'Error retrieving data from the database.'
-    case ErrorCode.DB_CONNECTION_ERROR:
-      return 'Could not connect to the database.'
-    case ErrorCode.DB_CONSTRAINT_ERROR:
-      return 'The operation violates database constraints.'
-    case ErrorCode.DB_VALIDATION_ERROR:
-      return 'Invalid data provided.'
 
-    // API errors
-    case ErrorCode.API_ERROR:
-      return 'An API error occurred. Please try again.'
-    case ErrorCode.API_REQUEST_ERROR:
-      return 'Error making API request.'
-    case ErrorCode.API_RESPONSE_ERROR:
-      return 'Invalid response from API.'
-    case ErrorCode.API_VALIDATION_ERROR:
-      return 'API validation failed.'
-
-    // Business logic errors
+    // Validation errors
     case ErrorCode.VALIDATION_ERROR:
       return 'Please check your input and try again.'
-    case ErrorCode.INVALID_INPUT:
-      return 'Invalid input provided.'
-    case ErrorCode.INVALID_STATE:
-      return 'Operation cannot be performed in current state.'
-    case ErrorCode.CONFLICT:
-      return 'This action conflicts with existing data.'
 
-    // Schedule-specific errors
-    case ErrorCode.SCHEDULE_CONFLICT:
-      return 'Schedule conflict detected.'
-    case ErrorCode.INSUFFICIENT_STAFF:
-      return 'Insufficient staff for the schedule.'
-    case ErrorCode.INVALID_SHIFT_PATTERN:
-      return 'Invalid shift pattern.'
-    case ErrorCode.OVERTIME_LIMIT_EXCEEDED:
-      return 'Overtime limit exceeded.'
+    // Rate limit errors
+    case ErrorCode.RATE_LIMIT:
+      return 'Too many attempts. Please try again later.'
 
     // Generic errors
-    case ErrorCode.UNKNOWN_ERROR:
-      return 'An unknown error occurred. Please try again.'
-    case ErrorCode.NOT_IMPLEMENTED:
-      return 'This feature is not implemented yet.'
-    case ErrorCode.OPERATION_FAILED:
-      return 'Operation failed. Please try again.'
-    case ErrorCode.SERVER_ERROR:
-      return 'An unexpected error occurred. Please try again later.'
     default:
       return 'An unexpected error occurred.'
   }
 }
 
-export function getHttpStatus(code: ErrorCodeType): number {
+export function getHttpStatus(code: ErrorCode): number {
   switch (code) {
-    case ErrorCode.VALIDATION:
+    case ErrorCode.VALIDATION_ERROR:
       return 400
     case ErrorCode.UNAUTHORIZED:
       return 401
-    case ErrorCode.FORBIDDEN:
-      return 403
-    case ErrorCode.NOT_FOUND:
-      return 404
     case ErrorCode.RATE_LIMIT:
       return 429
-    case ErrorCode.SERVER_ERROR:
+    case ErrorCode.DATABASE_ERROR:
       return 500
     default:
       return 500

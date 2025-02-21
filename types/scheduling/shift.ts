@@ -1,6 +1,5 @@
 import type { Employee } from '../models/employee'
 import type { Database } from '../supabase/database'
-import type { ShiftPattern } from '../shift-patterns'
 
 type Tables = Database['public']['Tables']
 type Enums = Database['public']['Enums']
@@ -8,7 +7,7 @@ type Enums = Database['public']['Enums']
 /**
  * Represents the type of shift pattern an employee can work
  */
-export type ShiftPatternType = ShiftPattern
+export type ShiftPatternType = Enums['shift_pattern']
 
 /**
  * Represents the possible statuses for a shift

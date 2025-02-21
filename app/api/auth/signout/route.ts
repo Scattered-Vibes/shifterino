@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { handleError } from '@/lib/utils/error-handler'
+import { createServerClient } from '@/lib/supabase/index'
+import { createApiResponse, handleApiError } from '@/lib/api/utils'
+
+export const dynamic = 'force-dynamic'
 
 export async function POST() {
   try {
-    const supabase = createClient()
+    const supabase = createServerClient()
     
     // Get current user before signing out
     const { data: { user }, error: userError } = await supabase.auth.getUser()
@@ -31,13 +33,9 @@ export async function POST() {
       }
     }
     
-    return NextResponse.json({ message: 'Signed out successfully' })
+    return createApiResponse({ message: 'Signed out successfully' })
   } catch (error) {
-    const appError = handleError(error)
-    return NextResponse.json(
-      { error: appError.message },
-      { status: 500 }
-    )
+    return handleApiError(error, 'sign out')
   }
 }
 
@@ -56,12 +54,19 @@ export async function DELETE() {
 
 // Handle OPTIONS requests for CORS
 export async function OPTIONS() {
+  const allowedOrigin = process.env.NEXT_PUBLIC_APP_URL
+  
+  if (!allowedOrigin) {
+    return new NextResponse(null, { status: 500 })
+  }
+  
   return new NextResponse(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': process.env.NEXT_PUBLIC_DOMAIN || '*',
+      'Access-Control-Allow-Origin': allowedOrigin,
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Max-Age': '86400'
     },
   })
 }

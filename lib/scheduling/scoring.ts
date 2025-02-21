@@ -2,70 +2,114 @@ import { parseISO, differenceInHours } from 'date-fns'
 import type {
   Employee,
   ShiftEvent,
-  GenerationContext
+  GenerationContext,
+  ShiftCategory
 } from '@/types/scheduling/schedule'
 import type { GenerationContext as ShiftPattern } from '@/types/scheduling/schedule'
 import { startOfWeek } from 'date-fns'
 import { SHIFT_PATTERNS } from '@/types/shift-patterns'
 
+/**
+ * Core scoring factors for shift assignment
+ */
 interface ScoreFactors {
-  hoursBalance: number      // How well this balances weekly hours
-  patternAdherence: number  // How well this follows the employee's pattern
-  preferenceMatch: number   // How well this matches employee preferences
-  skillMatch: number        // How well skills match requirements
-  fairnessScore: number     // Distribution of desirable/undesirable shifts
+  hoursBalance: number    // Weekly hours balance (0-1)
+  preference: number      // Shift preference match (0-1)
+  restPeriod: number     // Rest period compliance (0-1)
 }
 
 const SCORE_WEIGHTS = {
-  hoursBalance: 0.3,      // 30% weight for hours balance
-  patternAdherence: 0.25, // 25% weight for pattern adherence
-  preferenceMatch: 0.2,   // 20% weight for preference matching
-  skillMatch: 0.15,       // 15% weight for skill matching
-  fairnessScore: 0.1      // 10% weight for fairness
+  hoursBalance: 0.4,    // 40% weight for hours balance
+  preference: 0.4,      // 40% weight for preference matching
+  restPeriod: 0.2       // 20% weight for rest periods
 }
 
 /**
  * Calculates a score for assigning an employee to a shift
- * Higher scores indicate better matches
+ * Returns a normalized score between 0-1 where higher is better
  */
 export function calculateShiftScore(
   employee: Employee,
   shift: ShiftEvent,
   context: GenerationContext
 ): number {
-  let score = 0
-
-  // Base score for all employees
-  score += 10
-
-  // Prefer employees with fewer hours this week
-  const weeklyHours = getEmployeeWeeklyHours(context.weeklyHours, employee.id, shift.start)
-  score += (40 - weeklyHours) * 0.5
-
-  // Prefer employees following their pattern
-  if (shift.pattern === employee.shift_pattern) {
-    score += 5
+  // Calculate individual factors
+  const factors = {
+    hoursBalance: calculateHoursBalance(employee, shift, context),
+    preference: calculatePreference(employee, shift),
+    restPeriod: calculateRestPeriod(employee, shift, context)
   }
 
-  // Prefer supervisors for supervisor-required shifts
-  if (employee.role === 'supervisor') {
-    score += 3
-  }
+  // Calculate weighted sum
+  const score = Object.entries(SCORE_WEIGHTS).reduce((total, [factor, weight]) => {
+    return total + (factors[factor as keyof ScoreFactors] * weight)
+  }, 0)
 
-  // Consider consecutive shifts
+  return Math.min(Math.max(score, 0), 1) // Normalize to 0-1
+}
+
+/**
+ * Calculate score based on weekly hours balance (0-1)
+ */
+function calculateHoursBalance(
+  employee: Employee,
+  shift: ShiftEvent,
+  context: GenerationContext
+): number {
+  const weeklyHours = getEmployeeWeeklyHours(context.weeklyHours, employee.id, shift.date)
+  const shiftHours = differenceInHours(parseISO(shift.end), parseISO(shift.start))
+  const projectedHours = weeklyHours + shiftHours
+  const targetHours = employee.weekly_hours_cap
+
+  // Perfect score at target hours
+  if (projectedHours === targetHours) return 1
+
+  // Penalize over/under hours
+  const hoursDiff = Math.abs(targetHours - projectedHours)
+  return Math.max(0, 1 - (hoursDiff / 20)) // Lose 0.05 per hour difference
+}
+
+/**
+ * Calculate score based on shift preference match (0-1)
+ */
+function calculatePreference(
+  employee: Employee,
+  shift: ShiftEvent
+): number {
+  if (!employee.preferred_shift_category) return 1
+
+  const shiftHour = parseISO(shift.start).getHours()
+  const shiftCategory: ShiftCategory = 
+    (shiftHour >= 5 && shiftHour < 15) ? 'DAY' :
+    (shiftHour >= 13 && shiftHour < 23) ? 'SWING' : 'NIGHT'
+
+  return shiftCategory === employee.preferred_shift_category ? 1 : 0.5
+}
+
+/**
+ * Calculate score based on rest period compliance (0-1)
+ */
+function calculateRestPeriod(
+  employee: Employee,
+  shift: ShiftEvent,
+  context: GenerationContext
+): number {
   const pattern = context.shiftPatterns[employee.id]
-  if (pattern.lastShiftEnd) {
-    const lastEnd = parseISO(pattern.lastShiftEnd)
-    const currentStart = parseISO(shift.start)
-    const hoursBetween = differenceInHours(currentStart, lastEnd)
+  if (!pattern?.lastShiftEnd) return 1
 
-    // Prefer shifts that maintain proper rest periods
-    if (hoursBetween >= 8 && hoursBetween <= 16) {
-      score += 2
-    }
-  }
+  const hoursBetween = differenceInHours(
+    parseISO(shift.start),
+    parseISO(pattern.lastShiftEnd)
+  )
 
-  return score
+  // Ideal rest period: 10-14 hours
+  if (hoursBetween >= 10 && hoursBetween <= 14) return 1
+  
+  // Minimum rest period: 8 hours
+  if (hoursBetween < 8) return 0
+  
+  // Gradually reduce score for longer gaps
+  return Math.max(0, 1 - ((hoursBetween - 14) / 24))
 }
 
 function getEmployeeWeeklyHours(

@@ -8,7 +8,6 @@ import { generateLogMessage } from '@/lib/utils/logging'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import type { Employee, EmployeeRole, ShiftPattern } from '@/types/models/employee'
-import { AppError as CustomAppError } from '@/lib/utils/error-handler'
 
 export type UserRole = Employee['role']
 
@@ -16,11 +15,19 @@ export type UserRole = Employee['role']
 export interface AuthenticatedUser {
   userId: string
   employeeId: string
-  role: string
+  role: UserRole
   email: string
   isNewUser: boolean
   firstName: string
   lastName: string
+  team_id: string
+  user_metadata?: {
+    first_name: string
+    last_name: string
+    role: UserRole
+    employee_id?: string
+    [key: string]: any
+  }
 }
 
 // Get the server-side Supabase client
@@ -113,7 +120,7 @@ export async function requireAuth(): Promise<AuthenticatedUser> {
 
     if (employeeError || !employee) {
       console.error(`[requireAuth:${requestId}] Failed to fetch employee data:`, employeeError)
-      throw new CustomAppError('Failed to fetch employee data', 'DATABASE', employeeError)
+      throw new AppError('Failed to fetch employee data', ErrorCode.DATABASE)
     }
 
     console.log(`[requireAuth:${requestId}] Authentication successful`, {
@@ -129,7 +136,14 @@ export async function requireAuth(): Promise<AuthenticatedUser> {
       email: employee.email,
       isNewUser: false,
       firstName: employee.first_name,
-      lastName: employee.last_name
+      lastName: employee.last_name,
+      team_id: employee.team_id || '',
+      user_metadata: {
+        first_name: employee.first_name,
+        last_name: employee.last_name,
+        role: employee.role,
+        employee_id: employee.id
+      }
     }
   } catch (error) {
     console.error(`[requireAuth:${requestId}] Unexpected error:`, error)
@@ -388,34 +402,26 @@ function mapShiftPattern(pattern: string): 'pattern_a' | 'pattern_b' | 'custom' 
 
 const testUsers = [
   {
-    email: 'test.manager@example.com',
-    password: 'Manager@123',
+    email: 'manager@example.com',
+    password: 'Password@123',
     firstName: 'Test',
     lastName: 'Manager',
     role: 'manager' as const,
     shiftPattern: '4x10' as const
   },
   {
-    email: 'test.supervisor@example.com',
-    password: 'Supervisor@123',
+    email: 'supervisor@example.com',
+    password: 'Password@123',
     firstName: 'Test',
     lastName: 'Supervisor',
     role: 'supervisor' as const,
-    shiftPattern: '4x10' as const
-  },
-  {
-    email: 'test.dispatcher1@example.com',
-    password: 'Dispatcher@123',
-    firstName: 'Test',
-    lastName: 'Dispatcher1',
-    role: 'dispatcher' as const,
     shiftPattern: '3x12_plus_4' as const
   },
   {
-    email: 'test.dispatcher2@example.com',
-    password: 'Dispatcher@123',
+    email: 'dispatcher@example.com',
+    password: 'Password@123',
     firstName: 'Test',
-    lastName: 'Dispatcher2',
+    lastName: 'Dispatcher',
     role: 'dispatcher' as const,
     shiftPattern: '4x10' as const
   }
@@ -494,6 +500,8 @@ export async function createTestUsers() {
           overtime_hours: 0,
           profile_incomplete: false,
           preferred_shift_category,
+          organization_id: '00000000-0000-0000-0000-000000000002',
+          team_id: '00000000-0000-0000-0000-000000000001',
           created_at: now,
           updated_at: now,
           created_by: userData.id,

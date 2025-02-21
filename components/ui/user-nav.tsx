@@ -1,6 +1,7 @@
 'use client'
 
-import { useSupabase } from '@/app/providers/SupabaseContext'
+import { useSupabase } from '@/app/providers/supabase-provider'
+import { Button } from './button'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,99 +9,75 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
-import { signOut } from '@/lib/auth/actions'
-import { useFormState } from 'react-dom'
-import { Icons } from '@/components/ui/icons'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import type { UserRole } from '@/types/models/employee'
+} from './dropdown-menu'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
+import { toast } from 'sonner'
+import { Avatar, AvatarFallback, AvatarImage } from './avatar'
 
 interface UserNavProps {
-  name: string
-  email: string
-  role: UserRole
+  name?: string
+  email?: string
+  avatarUrl?: string
 }
 
-export function UserNav({ name, email, role }: UserNavProps) {
-  const { user, employee, isLoading, error } = useSupabase()
-  const [state, formAction] = useFormState(signOut, null)
-  
-  console.log('[UserNav] Render state:', { user: !!user, employee: !!employee, isLoading, error })
-  
-  if (isLoading) {
-    return (
-      <div className="h-8 w-8 flex items-center justify-center">
-        <Icons.spinner className="h-4 w-4 animate-spin" />
-      </div>
-    )
-  }
+export function UserNav({ name, email, avatarUrl }: UserNavProps) {
+  const supabase = useSupabase()
+  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(false)
 
-  if (error) {
-    console.error('[UserNav] Error:', error)
-    return null
+  const handleSignOut = async () => {
+    try {
+      setIsLoading(true)
+      const { error } = await supabase.auth.signOut()
+      if (error) throw error
+      
+      router.push('/login')
+      router.refresh()
+      toast.success('Signed out successfully')
+    } catch (error) {
+      console.error('Sign out error:', error)
+      toast.error('Error signing out. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
   }
-
-  if (!user) {
-    console.log('[UserNav] No user, returning null')
-    return null
-  }
-
-  const initials = name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
+        <Button 
+          variant="ghost" 
+          size="icon" 
           className="relative h-8 w-8 rounded-full"
+          disabled={isLoading}
         >
           <Avatar className="h-8 w-8">
-            <AvatarImage 
-              src={user?.user_metadata?.avatar_url || ''} 
-              alt={name} 
-            />
-            <AvatarFallback>{initials}</AvatarFallback>
+            <AvatarImage src={avatarUrl} alt={name || 'User avatar'} />
+            <AvatarFallback>{name?.charAt(0) || '?'}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel className="font-normal">
-          <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{name}</p>
-            <p className="text-xs leading-none text-muted-foreground">
-              {email}
-            </p>
-            <p className="text-xs leading-none text-muted-foreground capitalize">
-              {role}
-            </p>
-          </div>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        {state?.error && (
-          <Alert variant="destructive" className="mb-2">
-            <AlertDescription>
-              {state.error.message}
-            </AlertDescription>
-          </Alert>
+        <DropdownMenuLabel>My Account</DropdownMenuLabel>
+        {name && (
+          <DropdownMenuLabel className="font-normal">
+            {name}
+          </DropdownMenuLabel>
         )}
-        <form action={formAction}>
-          <DropdownMenuItem asChild>
-            <Button 
-              type="submit" 
-              variant="ghost" 
-              className="w-full justify-start"
-            >
-              Sign out
-            </Button>
-          </DropdownMenuItem>
-        </form>
+        {email && (
+          <DropdownMenuLabel className="font-normal text-sm text-muted-foreground">
+            {email}
+          </DropdownMenuLabel>
+        )}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem 
+          onClick={handleSignOut}
+          disabled={isLoading}
+          className="cursor-pointer"
+        >
+          {isLoading ? 'Signing out...' : 'Sign out'}
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )

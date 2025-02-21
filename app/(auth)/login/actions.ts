@@ -1,96 +1,112 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
-import { generateLogMessage } from '@/lib/utils/logging'
+import { AppError, ErrorCode } from '@/lib/utils/error-handler'
 
-interface LoginState {
-  error?: {
-    message: string
-  }
-  success?: boolean
-  redirectTo?: string
-}
-
-interface Inputs {
-  email: string
-  password: string
-  redirectTo?: string
-}
-
-const log = (message: string, data?: Record<string, any>) => {
-  generateLogMessage({
-    action: 'login',
-    message,
-    data
-  })
-}
-
-export async function login(
-  prevState: LoginState | null,
-  formData: FormData | Inputs
-): Promise<LoginState> {
-  const actionId = Math.random().toString(36).slice(2)
-  log('Starting login action', { actionId })
+export async function login(formData: FormData) {
+  const requestId = Math.random().toString(36).substring(7)
+  console.log(`[login:${requestId}] Starting login attempt`)
 
   try {
     const supabase = createClient()
-    const rawFormData = formData instanceof FormData ? Object.fromEntries(formData) : formData
-    const email = rawFormData.email as string
-    const password = rawFormData.password as string
-    const redirectTo = (rawFormData.redirectTo as string) || '/overview'
+    const email = formData.get('email') as string
+    const password = formData.get('password') as string
+    const redirectTo = (formData.get('redirectTo') as string) || '/overview'
 
+    // Validate input
     if (!email || !password) {
-      return { error: { message: 'Email and password are required.' } }
+      console.error(`[login:${requestId}] Missing credentials`)
+      return { error: 'Email and password are required' }
     }
 
+    // Log initial state
+    const cookiesBefore = cookies().getAll()
+    console.log(`[login:${requestId}] Initial state:`, {
+      email,
+      redirectTo,
+      cookieCount: cookiesBefore.length,
+      cookieNames: cookiesBefore.map(c => c.name),
+      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL
+    })
+
+    // Attempt login
+    console.log(`[login:${requestId}] Calling signInWithPassword`)
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
 
     if (error) {
-      log('Login failed', { error: error.message, actionId })
-      return { error: { message: error.message } }
+      console.error(`[login:${requestId}] Login failed:`, {
+        error: error.message,
+        code: error.status,
+        name: error.name
+      })
+      return { error: error.message }
     }
 
-    if (!data?.user || !data.session) {
-      return { error: { message: 'No user or session data returned from authentication.' } }
+    if (!data.session) {
+      console.error(`[login:${requestId}] No session established`)
+      return { error: 'Authentication failed - no session established' }
     }
 
-    log('Login successful', { userId: data.user.id, email: data.user.email, actionId })
+    // Verify session was established
+    console.log(`[login:${requestId}] Verifying session`)
+    const { data: { session: verifySession }, error: verifyError } = await supabase.auth.getSession()
+    
+    if (verifyError || !verifySession) {
+      console.error(`[login:${requestId}] Session verification failed:`, {
+        error: verifyError?.message,
+        hasSession: !!verifySession
+      })
+      return { error: 'Session verification failed' }
+    }
 
-    // Ensure session cookies are set
-    const { access_token, refresh_token } = data.session
-    const cookieStore = cookies()
-    cookieStore.set({
-      name: 'sb-access-token',
-      value: access_token,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/'
+    // Log final state with cookie changes
+    const cookiesAfter = cookies().getAll()
+    const addedCookies = cookiesAfter
+      .filter(c => !cookiesBefore.find(bc => bc.name === c.name))
+      .map(c => c.name)
+
+    console.log(`[login:${requestId}] Login successful:`, {
+      userId: data.session.user.id,
+      email: data.session.user.email,
+      expiresAt: new Date(data.session.expires_at! * 1000).toISOString(),
+      cookieChanges: {
+        before: cookiesBefore.map(c => c.name),
+        after: cookiesAfter.map(c => c.name),
+        added: addedCookies
+      }
     })
-    cookieStore.set({
-      name: 'sb-refresh-token',
-      value: refresh_token,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/'
+
+    // Ensure cookies are set before redirect
+    if (addedCookies.length === 0) {
+      console.error(`[login:${requestId}] No auth cookies were set`)
+      return { error: 'Session cookies not established' }
+    }
+    
+    // Check user metadata and role
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    if (userError) {
+      console.error(`[login:${requestId}] Failed to get user details:`, userError)
+      return { error: 'Failed to get user details' }
+    }
+
+    // Log user role and metadata
+    console.log(`[login:${requestId}] User details:`, {
+      role: user?.role,
+      metadata: user?.user_metadata
     })
-
-    revalidatePath('/', 'layout')
-
-    // Return state for client-side redirect
-    return { success: true, redirectTo }
+    
+    console.log(`[login:${requestId}] Redirecting to:`, redirectTo)
+    redirect(redirectTo)
   } catch (error) {
-    log('Unexpected error during login', { error, actionId })
-    return { 
-      error: { 
-        message: error instanceof Error ? error.message : 'An unexpected error occurred.' 
-      } 
-    }
+    console.error(`[login:${requestId}] Unexpected error:`, {
+      error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined
+    })
+    return { error: 'An unexpected error occurred during login' }
   }
 } 

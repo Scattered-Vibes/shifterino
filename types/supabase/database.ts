@@ -7,155 +7,220 @@ export type Json =
   | Json[]
 
 export type Database = {
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          operationName?: string
+          query?: string
+          variables?: Json
+          extensions?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
-      assigned_shifts: {
+      audit_logs: {
+        Row: {
+          action: string
+          changed_data: Json | null
+          created_at: string
+          id: string
+          record_id: string | null
+          table_name: string
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          changed_data?: Json | null
+          created_at?: string
+          id?: string
+          record_id?: string | null
+          table_name: string
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          changed_data?: Json | null
+          created_at?: string
+          id?: string
+          record_id?: string | null
+          table_name?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      department_members: {
         Row: {
           created_at: string
-          created_by: string | null
-          date: string
-          employee_id: string
-          id: string
-          shift_id: string
-          updated_at: string
-          updated_by: string | null
+          department_id: string
+          user_id: string
         }
         Insert: {
           created_at?: string
-          created_by?: string | null
-          date: string
-          employee_id: string
-          id?: string
-          shift_id: string
-          updated_at?: string
-          updated_by?: string | null
+          department_id: string
+          user_id: string
         }
         Update: {
           created_at?: string
-          created_by?: string | null
-          date?: string
-          employee_id?: string
-          id?: string
-          shift_id?: string
-          updated_at?: string
-          updated_by?: string | null
+          department_id?: string
+          user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "assigned_shifts_shift_id_fkey"
-            columns: ["shift_id"]
+            foreignKeyName: "department_members_department_id_fkey"
+            columns: ["department_id"]
             isOneToOne: false
-            referencedRelation: "shifts"
+            referencedRelation: "departments"
             referencedColumns: ["id"]
           },
         ]
       }
-      auth_logs: {
+      departments: {
         Row: {
-          auth_id: string | null
           created_at: string
-          details: Json | null
-          email: string
-          error_message: string | null
           id: string
-          ip_address: string | null
-          success: boolean
-          user_agent: string | null
+          manager_id: string | null
+          name: string
+          organization_id: string
+          updated_at: string
         }
         Insert: {
-          auth_id?: string | null
           created_at?: string
-          details?: Json | null
-          email: string
-          error_message?: string | null
           id?: string
-          ip_address?: string | null
-          success?: boolean
-          user_agent?: string | null
+          manager_id?: string | null
+          name: string
+          organization_id: string
+          updated_at?: string
         }
         Update: {
-          auth_id?: string | null
           created_at?: string
-          details?: Json | null
-          email?: string
-          error_message?: string | null
           id?: string
-          ip_address?: string | null
-          success?: boolean
-          user_agent?: string | null
+          manager_id?: string | null
+          name?: string
+          organization_id?: string
+          updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "departments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       employees: {
         Row: {
-          auth_id: string | null
-          created_at: string
+          auth_id: string
+          created_at: string | null
           created_by: string | null
-          default_weekly_hours: number
+          default_shift_end: string | null
+          default_shift_start: string | null
+          default_weekly_hours: number | null
+          department_id: string | null
           email: string
-          first_name: string | null
+          first_name: string
           id: string
-          last_name: string | null
-          max_overtime_hours: number
+          last_name: string
+          max_overtime_hours: number | null
+          organization_id: string
           overtime_hours: number
           preferred_shift_category:
             | Database["public"]["Enums"]["shift_category"]
             | null
           profile_incomplete: boolean
           role: Database["public"]["Enums"]["employee_role"]
-          shift_pattern: Database["public"]["Enums"]["shift_pattern"]
+          shift_pattern: Database["public"]["Enums"]["shift_pattern_type"]
           team_id: string | null
-          updated_at: string
+          updated_at: string | null
           updated_by: string | null
-          weekly_hours_cap: number
+          weekly_hours_cap: number | null
         }
         Insert: {
-          auth_id?: string | null
-          created_at?: string
+          auth_id: string
+          created_at?: string | null
           created_by?: string | null
-          default_weekly_hours?: number
+          default_shift_end?: string | null
+          default_shift_start?: string | null
+          default_weekly_hours?: number | null
+          department_id?: string | null
           email: string
-          first_name?: string | null
+          first_name: string
           id?: string
-          last_name?: string | null
-          max_overtime_hours?: number
+          last_name: string
+          max_overtime_hours?: number | null
+          organization_id: string
           overtime_hours?: number
           preferred_shift_category?:
             | Database["public"]["Enums"]["shift_category"]
             | null
           profile_incomplete?: boolean
           role: Database["public"]["Enums"]["employee_role"]
-          shift_pattern?: Database["public"]["Enums"]["shift_pattern"]
+          shift_pattern: Database["public"]["Enums"]["shift_pattern_type"]
           team_id?: string | null
-          updated_at?: string
+          updated_at?: string | null
           updated_by?: string | null
-          weekly_hours_cap?: number
+          weekly_hours_cap?: number | null
         }
         Update: {
-          auth_id?: string | null
-          created_at?: string
+          auth_id?: string
+          created_at?: string | null
           created_by?: string | null
-          default_weekly_hours?: number
+          default_shift_end?: string | null
+          default_shift_start?: string | null
+          default_weekly_hours?: number | null
+          department_id?: string | null
           email?: string
-          first_name?: string | null
+          first_name?: string
           id?: string
-          last_name?: string | null
-          max_overtime_hours?: number
+          last_name?: string
+          max_overtime_hours?: number | null
+          organization_id?: string
           overtime_hours?: number
           preferred_shift_category?:
             | Database["public"]["Enums"]["shift_category"]
             | null
           profile_incomplete?: boolean
           role?: Database["public"]["Enums"]["employee_role"]
-          shift_pattern?: Database["public"]["Enums"]["shift_pattern"]
+          shift_pattern?: Database["public"]["Enums"]["shift_pattern_type"]
           team_id?: string | null
-          updated_at?: string
+          updated_at?: string | null
           updated_by?: string | null
-          weekly_hours_cap?: number
+          weekly_hours_cap?: number | null
         }
         Relationships: [
           {
-            foreignKeyName: "employees_team_id_fkey"
+            foreignKeyName: "employees_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_team_fk"
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
@@ -163,415 +228,599 @@ export type Database = {
           },
         ]
       }
-      holidays: {
+      messages: {
         Row: {
+          content: string
           created_at: string
-          created_by: string | null
-          date: string
-          description: string | null
+          from_user_id: string
           id: string
-          is_observed: boolean | null
-          name: string
-          type: Database["public"]["Enums"]["holiday_type"]
-          updated_at: string
-          updated_by: string | null
+          to_user_id: string
         }
         Insert: {
+          content: string
           created_at?: string
-          created_by?: string | null
-          date: string
-          description?: string | null
+          from_user_id: string
           id?: string
-          is_observed?: boolean | null
-          name: string
-          type: Database["public"]["Enums"]["holiday_type"]
-          updated_at?: string
-          updated_by?: string | null
+          to_user_id: string
         }
         Update: {
+          content?: string
           created_at?: string
-          created_by?: string | null
-          date?: string
-          description?: string | null
+          from_user_id?: string
           id?: string
-          is_observed?: boolean | null
-          name?: string
-          type?: Database["public"]["Enums"]["holiday_type"]
-          updated_at?: string
-          updated_by?: string | null
+          to_user_id?: string
         }
         Relationships: []
       }
-      individual_shifts: {
+      notifications: {
         Row: {
-          actual_end_time: string | null
-          actual_hours_worked: number | null
-          actual_start_time: string | null
-          break_duration_minutes: number | null
-          break_end_time: string | null
-          break_start_time: string | null
           created_at: string
-          created_by: string | null
-          date: string
-          employee_id: string
-          fatigue_level: number | null
+          data: Json | null
           id: string
-          is_overtime: boolean | null
-          is_regular_schedule: boolean | null
-          notes: string | null
-          schedule_conflict_notes: string | null
-          schedule_period_id: string | null
-          shift_option_id: string
-          shift_score: number | null
-          status: Database["public"]["Enums"]["shift_status"]
-          supervisor_approved_at: string | null
-          supervisor_approved_by: string | null
-          updated_at: string
-          updated_by: string | null
+          is_read: boolean
+          message: string
+          type: Database["public"]["Enums"]["notification_type"]
+          user_id: string
         }
         Insert: {
-          actual_end_time?: string | null
-          actual_hours_worked?: number | null
-          actual_start_time?: string | null
-          break_duration_minutes?: number | null
-          break_end_time?: string | null
-          break_start_time?: string | null
           created_at?: string
-          created_by?: string | null
-          date: string
-          employee_id: string
-          fatigue_level?: number | null
+          data?: Json | null
           id?: string
-          is_overtime?: boolean | null
-          is_regular_schedule?: boolean | null
-          notes?: string | null
-          schedule_conflict_notes?: string | null
-          schedule_period_id?: string | null
-          shift_option_id: string
-          shift_score?: number | null
-          status?: Database["public"]["Enums"]["shift_status"]
-          supervisor_approved_at?: string | null
-          supervisor_approved_by?: string | null
-          updated_at?: string
-          updated_by?: string | null
+          is_read?: boolean
+          message: string
+          type: Database["public"]["Enums"]["notification_type"]
+          user_id: string
         }
         Update: {
-          actual_end_time?: string | null
-          actual_hours_worked?: number | null
-          actual_start_time?: string | null
-          break_duration_minutes?: number | null
-          break_end_time?: string | null
-          break_start_time?: string | null
           created_at?: string
-          created_by?: string | null
-          date?: string
-          employee_id?: string
-          fatigue_level?: number | null
+          data?: Json | null
           id?: string
-          is_overtime?: boolean | null
-          is_regular_schedule?: boolean | null
-          notes?: string | null
-          schedule_conflict_notes?: string | null
-          schedule_period_id?: string | null
-          shift_option_id?: string
-          shift_score?: number | null
-          status?: Database["public"]["Enums"]["shift_status"]
-          supervisor_approved_at?: string | null
-          supervisor_approved_by?: string | null
+          is_read?: boolean
+          message?: string
+          type?: Database["public"]["Enums"]["notification_type"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      organizations: {
+        Row: {
+          contact_info: Json
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          contact_info?: Json
+          created_at?: string
+          id?: string
+          name: string
           updated_at?: string
-          updated_by?: string | null
+        }
+        Update: {
+          contact_info?: Json
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      permissions: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      role_permissions: {
+        Row: {
+          created_at: string
+          permission_id: string
+          role_id: string
+        }
+        Insert: {
+          created_at?: string
+          permission_id: string
+          role_id: string
+        }
+        Update: {
+          created_at?: string
+          permission_id?: string
+          role_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "individual_shifts_schedule_period_id_fkey"
-            columns: ["schedule_period_id"]
+            foreignKeyName: "role_permissions_permission_id_fkey"
+            columns: ["permission_id"]
             isOneToOne: false
-            referencedRelation: "schedule_periods"
+            referencedRelation: "permissions"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "individual_shifts_shift_option_id_fkey"
-            columns: ["shift_option_id"]
+            foreignKeyName: "role_permissions_role_id_fkey"
+            columns: ["role_id"]
             isOneToOne: false
-            referencedRelation: "shift_options"
+            referencedRelation: "roles"
             referencedColumns: ["id"]
           },
         ]
       }
-      on_call_assignments: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          employee_id: string
-          end_time: string
-          id: string
-          notes: string | null
-          start_time: string
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          employee_id: string
-          end_time: string
-          id?: string
-          notes?: string | null
-          start_time: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          employee_id?: string
-          end_time?: string
-          id?: string
-          notes?: string | null
-          start_time?: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: []
-      }
-      schedule_periods: {
+      roles: {
         Row: {
           created_at: string
           created_by: string | null
           description: string | null
-          end_date: string
           id: string
-          start_date: string
-          status: Database["public"]["Enums"]["schedule_status"]
+          level: number | null
+          name: string
+          permissions: Json | null
           updated_at: string
           updated_by: string | null
+          weekly_hour_limit: number | null
         }
         Insert: {
           created_at?: string
           created_by?: string | null
           description?: string | null
-          end_date: string
           id?: string
-          start_date: string
-          status?: Database["public"]["Enums"]["schedule_status"]
+          level?: number | null
+          name: string
+          permissions?: Json | null
           updated_at?: string
           updated_by?: string | null
+          weekly_hour_limit?: number | null
         }
         Update: {
           created_at?: string
           created_by?: string | null
           description?: string | null
-          end_date?: string
           id?: string
-          start_date?: string
-          status?: Database["public"]["Enums"]["schedule_status"]
+          level?: number | null
+          name?: string
+          permissions?: Json | null
           updated_at?: string
           updated_by?: string | null
+          weekly_hour_limit?: number | null
         }
         Relationships: []
+      }
+      scheduled_reports: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          last_run_at: string | null
+          next_run_at: string | null
+          organization_id: string
+          recipients: string[]
+          report_parameters: Json | null
+          report_type: string
+          schedule_cron: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_run_at?: string | null
+          next_run_at?: string | null
+          organization_id: string
+          recipients: string[]
+          report_parameters?: Json | null
+          report_type: string
+          schedule_cron: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_run_at?: string | null
+          next_run_at?: string | null
+          organization_id?: string
+          recipients?: string[]
+          report_parameters?: Json | null
+          report_type?: string
+          schedule_cron?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_reports_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      schedules: {
+        Row: {
+          created_at: string
+          end_date: string
+          id: string
+          is_published: boolean
+          name: string
+          organization_id: string
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          end_date: string
+          id?: string
+          is_published?: boolean
+          name: string
+          organization_id: string
+          start_date: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          end_date?: string
+          id?: string
+          is_published?: boolean
+          name?: string
+          organization_id?: string
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedules_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shift_assignments: {
+        Row: {
+          assigned_at: string
+          id: string
+          shift_id: string
+          status: Database["public"]["Enums"]["shift_assignment_status"]
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          id?: string
+          shift_id: string
+          status?: Database["public"]["Enums"]["shift_assignment_status"]
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          id?: string
+          shift_id?: string
+          status?: Database["public"]["Enums"]["shift_assignment_status"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_assignments_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       shift_options: {
         Row: {
           category: Database["public"]["Enums"]["shift_category"]
           created_at: string
-          created_by: string | null
           duration_hours: number
           end_time: string
           id: string
-          is_overnight: boolean
           name: string
           start_time: string
           updated_at: string
-          updated_by: string | null
         }
         Insert: {
           category: Database["public"]["Enums"]["shift_category"]
           created_at?: string
-          created_by?: string | null
           duration_hours: number
           end_time: string
           id?: string
-          is_overnight?: boolean
           name: string
           start_time: string
           updated_at?: string
-          updated_by?: string | null
         }
         Update: {
           category?: Database["public"]["Enums"]["shift_category"]
           created_at?: string
-          created_by?: string | null
           duration_hours?: number
           end_time?: string
           id?: string
-          is_overnight?: boolean
           name?: string
           start_time?: string
           updated_at?: string
-          updated_by?: string | null
         }
         Relationships: []
       }
-      shift_swap_requests: {
+      shift_requirements: {
         Row: {
-          approved_at: string | null
-          approved_by: string | null
           created_at: string
-          created_by: string | null
+          day_of_week: Database["public"]["Enums"]["day_of_week"]
+          department_id: string | null
+          end_time: string
           id: string
-          notes: string | null
-          proposed_shift_id: string | null
-          receiving_employee_id: string
-          requesting_employee_id: string
-          requesting_shift_id: string
-          status: string
+          organization_id: string
+          required_count: number
+          role_id: string | null
+          start_time: string
           updated_at: string
-          updated_by: string | null
         }
         Insert: {
-          approved_at?: string | null
-          approved_by?: string | null
           created_at?: string
-          created_by?: string | null
+          day_of_week: Database["public"]["Enums"]["day_of_week"]
+          department_id?: string | null
+          end_time: string
           id?: string
-          notes?: string | null
-          proposed_shift_id?: string | null
-          receiving_employee_id: string
-          requesting_employee_id: string
-          requesting_shift_id: string
-          status?: string
+          organization_id: string
+          required_count: number
+          role_id?: string | null
+          start_time: string
           updated_at?: string
-          updated_by?: string | null
         }
         Update: {
-          approved_at?: string | null
-          approved_by?: string | null
           created_at?: string
-          created_by?: string | null
+          day_of_week?: Database["public"]["Enums"]["day_of_week"]
+          department_id?: string | null
+          end_time?: string
           id?: string
-          notes?: string | null
-          proposed_shift_id?: string | null
-          receiving_employee_id?: string
-          requesting_employee_id?: string
-          requesting_shift_id?: string
-          status?: string
+          organization_id?: string
+          required_count?: number
+          role_id?: string | null
+          start_time?: string
           updated_at?: string
-          updated_by?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "shift_swap_requests_proposed_shift_id_fkey"
-            columns: ["proposed_shift_id"]
+            foreignKeyName: "shift_requirements_department_id_fkey"
+            columns: ["department_id"]
             isOneToOne: false
-            referencedRelation: "individual_shifts"
+            referencedRelation: "departments"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "shift_swap_requests_requesting_shift_id_fkey"
-            columns: ["requesting_shift_id"]
+            foreignKeyName: "shift_requirements_organization_id_fkey"
+            columns: ["organization_id"]
             isOneToOne: false
-            referencedRelation: "individual_shifts"
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_requirements_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shift_swaps: {
+        Row: {
+          assignment_id: string
+          created_at: string
+          id: string
+          manager_id: string | null
+          reason: string
+          status: Database["public"]["Enums"]["shift_swap_status"]
+          to_user_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          assignment_id: string
+          created_at?: string
+          id?: string
+          manager_id?: string | null
+          reason: string
+          status?: Database["public"]["Enums"]["shift_swap_status"]
+          to_user_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assignment_id?: string
+          created_at?: string
+          id?: string
+          manager_id?: string | null
+          reason?: string
+          status?: Database["public"]["Enums"]["shift_swap_status"]
+          to_user_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_swaps_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "shift_assignments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shift_tasks: {
+        Row: {
+          assigned_to: string
+          created_at: string
+          id: string
+          shift_id: string
+          status: Database["public"]["Enums"]["shift_task_status"]
+          task_name: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to: string
+          created_at?: string
+          id?: string
+          shift_id: string
+          status?: Database["public"]["Enums"]["shift_task_status"]
+          task_name: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string
+          created_at?: string
+          id?: string
+          shift_id?: string
+          status?: Database["public"]["Enums"]["shift_task_status"]
+          task_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_tasks_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
             referencedColumns: ["id"]
           },
         ]
       }
       shifts: {
         Row: {
-          category: Database["public"]["Enums"]["shift_category"]
           created_at: string
-          created_by: string | null
-          duration_hours: number
+          date: string
+          department_id: string | null
           end_time: string
           id: string
-          is_overnight: boolean
-          name: string
+          is_auto_generated: boolean
+          is_published: boolean
+          schedule_id: string
+          shift_type: string | null
           start_time: string
           updated_at: string
-          updated_by: string | null
         }
         Insert: {
-          category: Database["public"]["Enums"]["shift_category"]
           created_at?: string
-          created_by?: string | null
-          duration_hours: number
+          date: string
+          department_id?: string | null
           end_time: string
           id?: string
-          is_overnight?: boolean
-          name: string
+          is_auto_generated?: boolean
+          is_published?: boolean
+          schedule_id: string
+          shift_type?: string | null
           start_time: string
           updated_at?: string
-          updated_by?: string | null
         }
         Update: {
-          category?: Database["public"]["Enums"]["shift_category"]
           created_at?: string
-          created_by?: string | null
-          duration_hours?: number
+          date?: string
+          department_id?: string | null
           end_time?: string
           id?: string
-          is_overnight?: boolean
-          name?: string
+          is_auto_generated?: boolean
+          is_published?: boolean
+          schedule_id?: string
+          shift_type?: string | null
           start_time?: string
           updated_at?: string
-          updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "shifts_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shifts_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "schedules"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       staffing_requirements: {
         Row: {
           created_at: string
-          created_by: string | null
-          day_of_week: number
+          end_time: string
           id: string
-          is_holiday: boolean | null
+          min_employees: number
           min_supervisors: number
-          min_total_staff: number
-          name: string
-          override_reason: string | null
-          schedule_period_id: string | null
-          time_block_end: string
-          time_block_start: string
+          start_time: string
+          team_id: string
           updated_at: string
-          updated_by: string | null
         }
         Insert: {
           created_at?: string
-          created_by?: string | null
-          day_of_week?: number
+          end_time: string
           id?: string
-          is_holiday?: boolean | null
+          min_employees: number
           min_supervisors?: number
-          min_total_staff: number
-          name: string
-          override_reason?: string | null
-          schedule_period_id?: string | null
-          time_block_end: string
-          time_block_start: string
+          start_time: string
+          team_id: string
           updated_at?: string
-          updated_by?: string | null
         }
         Update: {
           created_at?: string
-          created_by?: string | null
-          day_of_week?: number
+          end_time?: string
           id?: string
-          is_holiday?: boolean | null
+          min_employees?: number
           min_supervisors?: number
-          min_total_staff?: number
-          name?: string
-          override_reason?: string | null
-          schedule_period_id?: string | null
-          time_block_end?: string
-          time_block_start?: string
+          start_time?: string
+          team_id?: string
           updated_at?: string
-          updated_by?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "staffing_requirements_schedule_period_id_fkey"
-            columns: ["schedule_period_id"]
+            foreignKeyName: "staffing_requirements_team_id_fkey"
+            columns: ["team_id"]
             isOneToOne: false
-            referencedRelation: "schedule_periods"
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      system_settings: {
+        Row: {
+          created_at: string
+          id: string
+          key: string
+          organization_id: string | null
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key: string
+          organization_id?: string | null
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key?: string
+          organization_id?: string | null
+          updated_at?: string
+          value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "system_settings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -579,75 +828,129 @@ export type Database = {
       teams: {
         Row: {
           created_at: string
-          created_by: string | null
           description: string | null
           id: string
           name: string
           updated_at: string
-          updated_by: string | null
         }
         Insert: {
           created_at?: string
-          created_by?: string | null
           description?: string | null
           id?: string
           name: string
           updated_at?: string
-          updated_by?: string | null
         }
         Update: {
           created_at?: string
-          created_by?: string | null
           description?: string | null
           id?: string
           name?: string
           updated_at?: string
-          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      time_off_balances: {
+        Row: {
+          accrued: number
+          allocated: number
+          id: string
+          type: string
+          updated_at: string
+          used: number
+          user_id: string
+        }
+        Insert: {
+          accrued?: number
+          allocated: number
+          id?: string
+          type: string
+          updated_at?: string
+          used?: number
+          user_id: string
+        }
+        Update: {
+          accrued?: number
+          allocated?: number
+          id?: string
+          type?: string
+          updated_at?: string
+          used?: number
+          user_id?: string
         }
         Relationships: []
       }
       time_off_requests: {
         Row: {
+          approved_by: string | null
           created_at: string
-          created_by: string | null
-          employee_id: string
           end_date: string
           id: string
-          notes: string | null
-          reason: string
+          reason: string | null
           start_date: string
-          status: Database["public"]["Enums"]["time_off_status"]
-          type: string
+          status: Database["public"]["Enums"]["time_off_request_status"]
           updated_at: string
-          updated_by: string | null
+          user_id: string
+        }
+        Insert: {
+          approved_by?: string | null
+          created_at?: string
+          end_date: string
+          id?: string
+          reason?: string | null
+          start_date: string
+          status?: Database["public"]["Enums"]["time_off_request_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          approved_by?: string | null
+          created_at?: string
+          end_date?: string
+          id?: string
+          reason?: string | null
+          start_date?: string
+          status?: Database["public"]["Enums"]["time_off_request_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_availability: {
+        Row: {
+          created_at: string
+          day_of_week: Database["public"]["Enums"]["day_of_week"]
+          effective_end_date: string | null
+          effective_start_date: string | null
+          end_time: string
+          id: string
+          is_recurring: boolean
+          start_time: string
+          updated_at: string
+          user_id: string
         }
         Insert: {
           created_at?: string
-          created_by?: string | null
-          employee_id: string
-          end_date: string
+          day_of_week: Database["public"]["Enums"]["day_of_week"]
+          effective_end_date?: string | null
+          effective_start_date?: string | null
+          end_time: string
           id?: string
-          notes?: string | null
-          reason: string
-          start_date: string
-          status?: Database["public"]["Enums"]["time_off_status"]
-          type: string
+          is_recurring?: boolean
+          start_time: string
           updated_at?: string
-          updated_by?: string | null
+          user_id: string
         }
         Update: {
           created_at?: string
-          created_by?: string | null
-          employee_id?: string
-          end_date?: string
+          day_of_week?: Database["public"]["Enums"]["day_of_week"]
+          effective_end_date?: string | null
+          effective_start_date?: string | null
+          end_time?: string
           id?: string
-          notes?: string | null
-          reason?: string
-          start_date?: string
-          status?: Database["public"]["Enums"]["time_off_status"]
-          type?: string
+          is_recurring?: boolean
+          start_time?: string
           updated_at?: string
-          updated_by?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -656,104 +959,68 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      check_shift_overlap_for_employee: {
+      day_of_week_to_int: {
         Args: {
-          p_employee_id: string
-          p_shift_id: string
-          p_date: string
-          p_assigned_shift_id?: string
+          day: Database["public"]["Enums"]["day_of_week"]
         }
-        Returns: boolean
+        Returns: number
       }
-      check_time_off_overlap: {
+      execute_sql: {
         Args: {
-          p_employee_id: string
-          p_start_date: string
-          p_end_date: string
-          p_request_id?: string
-        }
-        Returns: boolean
-      }
-      create_assigned_shift_and_individual_shift: {
-        Args: {
-          p_employee_id: string
-          p_shift_id: string
-          p_date: string
-        }
-        Returns: string
-      }
-      create_individual_shift: {
-        Args: {
-          p_employee_id: string
-          p_shift_option_id: string
-          p_schedule_period_id: string
-          p_date: string
-        }
-        Returns: string
-      }
-      get_auth_role: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      get_current_schedule_period: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          id: string
-          start_date: string
-          end_date: string
-          status: Database["public"]["Enums"]["schedule_status"]
-          description: string
-        }[]
-      }
-      get_employee_id: {
-        Args: {
-          p_auth_id: string
-        }
-        Returns: string
-      }
-      get_employee_shift_pattern: {
-        Args: {
-          p_auth_id: string
-        }
-        Returns: string
-      }
-      get_shift_options_by_pattern: {
-        Args: {
-          p_shift_pattern: string
-        }
-        Returns: {
-          id: string
-          name: string
-          category: Database["public"]["Enums"]["shift_category"]
-          start_time: string
-          end_time: string
-          duration_hours: number
-          is_overnight: boolean
-        }[]
-      }
-      publish_schedule_period: {
-        Args: {
-          p_schedule_period_id: string
+          query: string
         }
         Returns: undefined
       }
-      update_time_off_request_status: {
+      get_team_members: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          employee_id: string
+        }[]
+      }
+      int_to_day_of_week: {
         Args: {
-          p_request_id: string
-          p_new_status: Database["public"]["Enums"]["time_off_status"]
-          p_notes?: string
+          day_num: number
         }
+        Returns: Database["public"]["Enums"]["day_of_week"]
+      }
+      is_manager: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_supervisor_or_above: {
+        Args: Record<PropertyKey, never>
         Returns: boolean
       }
     }
     Enums: {
+      day_of_week:
+        | "SUNDAY"
+        | "MONDAY"
+        | "TUESDAY"
+        | "WEDNESDAY"
+        | "THURSDAY"
+        | "FRIDAY"
+        | "SATURDAY"
       employee_role: "dispatcher" | "supervisor" | "manager"
-      holiday_type: "FEDERAL" | "COMPANY" | "OTHER"
-      schedule_status: "draft" | "published" | "archived"
+      notification_type:
+        | "SHIFT_ASSIGNED"
+        | "SHIFT_CHANGED"
+        | "TIME_OFF_REQUESTED"
+        | "TIME_OFF_APPROVED"
+        | "TIME_OFF_REJECTED"
+        | "MESSAGE_RECEIVED"
+        | "SYSTEM_ALERT"
+        | "SHIFT_SWAP_REQUESTED"
+        | "SHIFT_SWAP_APPROVED"
+        | "SHIFT_SWAP_REJECTED"
+        | "MINIMUM_STAFFING_ALERT"
+        | "SUPERVISOR_REQUIRED_ALERT"
+      shift_assignment_status: "ASSIGNED" | "SWAPPED" | "CANCELLED"
       shift_category: "early" | "day" | "swing" | "graveyard"
-      shift_pattern: "4x10" | "3x12_plus_4"
-      shift_status: "scheduled" | "completed" | "cancelled"
-      time_off_status: "pending" | "approved" | "rejected"
+      shift_pattern_type: "4x10" | "3x12_plus_4"
+      shift_swap_status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED"
+      shift_task_status: "NOT_STARTED" | "IN_PROGRESS" | "DONE"
+      time_off_request_status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -857,3 +1124,4 @@ export type CompositeTypes<
   : PublicCompositeTypeNameOrOptions extends keyof PublicSchema["CompositeTypes"]
     ? PublicSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
+

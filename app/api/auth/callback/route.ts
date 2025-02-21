@@ -1,7 +1,15 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { handleError, AppError, ErrorCode } from '@/lib/utils/error-handler'
+import { createServerClient } from '@/lib/supabase/index'
+import { handleApiError } from '@/lib/api/utils'
 import { headers } from 'next/headers'
+
+export const dynamic = 'force-dynamic'
+
+const SECURITY_HEADERS = {
+  'X-Frame-Options': 'DENY',
+  'X-Content-Type-Options': 'nosniff',
+  'Referrer-Policy': 'strict-origin-when-cross-origin'
+}
 
 /**
  * GET authentication callback handler.
@@ -51,7 +59,7 @@ export async function GET(request: Request) {
     }
 
     console.log(`[auth:${requestId}] Exchanging code for session`)
-    const supabase = createClient()
+    const supabase = createServerClient()
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
     
     if (error) {
@@ -83,7 +91,6 @@ export async function GET(request: Request) {
         })
       
       if (logError) {
-        // Log but don't throw - this shouldn't block the auth flow
         console.error(`[auth:${requestId}] Failed to log authentication:`, logError)
       }
     }
@@ -91,68 +98,30 @@ export async function GET(request: Request) {
     const response = NextResponse.redirect(`${requestUrl.origin}/overview`)
     
     // Add security headers
-    response.headers.set('X-Frame-Options', 'DENY')
-    response.headers.set('X-Content-Type-Options', 'nosniff')
-    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+    Object.entries(SECURITY_HEADERS).forEach(([key, value]) => {
+      response.headers.set(key, value)
+    })
     
     return response
   } catch (error) {
     console.error(`[auth:${requestId}] Auth callback error:`, error)
     
-    try {
-      const message = error instanceof Error ? error.message : 'Unexpected error in auth callback'
-      throw new AppError(
-        message,
-        ErrorCode.UNAUTHORIZED,
-        { cause: error }
-      )
-    } catch (appError) {
-      if (appError instanceof AppError) {
-        const errorCode = appError.code === 'UNAUTHORIZED' ? 'auth_error' :
-                         appError.code === 'VALIDATION' ? 'invalid_request' :
-                         appError.code === 'NOT_FOUND' ? 'missing_code' :
-                         'server_error'
-        
-        const requestUrl = new URL(request.url)
-        const redirectTo = appError.code === 'FORBIDDEN' ? 
-          process.env.NEXT_PUBLIC_APP_URL : 
-          requestUrl.origin
-        
-        // Include more error details in redirect
-        const searchParams = new URLSearchParams({
-          error: errorCode,
-          message: appError.message,
-          request_id: requestId
-        })
-        
-        const response = NextResponse.redirect(
-          `${redirectTo}/login?${searchParams.toString()}`
-        )
-        
-        // Add security headers
-        response.headers.set('X-Frame-Options', 'DENY')
-        response.headers.set('X-Content-Type-Options', 'nosniff')
-        response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
-        
-        return response
-      }
-      
-      const searchParams = new URLSearchParams({
-        error: 'server_error',
-        request_id: requestId
-      })
-      
-      const response = NextResponse.redirect(
-        `${new URL(request.url).origin}/login?${searchParams.toString()}`
-      )
-      
-      // Add security headers
-      response.headers.set('X-Frame-Options', 'DENY')
-      response.headers.set('X-Content-Type-Options', 'nosniff')
-      response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
-      
-      return response
-    }
+    const searchParams = new URLSearchParams({
+      error: 'auth_error',
+      message: error instanceof Error ? error.message : 'Unexpected error in auth callback',
+      request_id: requestId
+    })
+    
+    const response = NextResponse.redirect(
+      `${new URL(request.url).origin}/login?${searchParams.toString()}`
+    )
+    
+    // Add security headers
+    Object.entries(SECURITY_HEADERS).forEach(([key, value]) => {
+      response.headers.set(key, value)
+    })
+    
+    return response
   }
 }
 
@@ -210,13 +179,11 @@ export async function OPTIONS() {
   return new NextResponse(null, {
     status: 204,
     headers: {
+      ...SECURITY_HEADERS,
       'Access-Control-Allow-Origin': allowedOrigin,
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      'Access-Control-Max-Age': '86400',
-      'X-Frame-Options': 'DENY',
-      'X-Content-Type-Options': 'nosniff',
-      'Referrer-Policy': 'strict-origin-when-cross-origin'
+      'Access-Control-Max-Age': '86400'
     },
   })
 }

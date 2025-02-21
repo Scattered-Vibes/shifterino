@@ -1,23 +1,22 @@
 // app/(dashboard)/layout.tsx (should be correct already)
-import { requireAuth } from '@/lib/auth/server'
-import { DashboardClientLayout } from './DashboardClientLayout'
-import type { UserRole } from '@/types/models/employee'
+import { ReactNode } from "react"
+import { BaseLayout } from "@/components/layouts/BaseLayout"
 
-export default async function DashboardLayout({
+export const metadata = {
+  title: "Dashboard - Shifterino",
+  description: "Dispatch scheduling system dashboard",
+}
+
+export default function DashboardLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: ReactNode
 }) {
-  const auth = await requireAuth()
-  
   return (
-    <DashboardClientLayout 
-      userRole={auth.role as UserRole}
-      firstName={auth.firstName}
-      lastName={auth.lastName}
-      email={auth.email}
-    >
-      {children}
-    </DashboardClientLayout>
+    <BaseLayout className="min-h-screen bg-background">
+      <div className="container mx-auto p-4">
+        {children}
+      </div>
+    </BaseLayout>
   )
 }

@@ -4,13 +4,17 @@ import * as React from 'react'
 import { cn } from '@/lib/utils'
 
 interface LoadingProps extends React.HTMLAttributes<HTMLDivElement> {
+  message?: string
+  variant?: 'inline' | 'fullscreen'
+  align?: 'start' | 'center' | 'end'
   size?: 'sm' | 'md' | 'lg'
-  fullScreen?: boolean
 }
 
 export function Loading({ 
-  size = 'md', 
-  fullScreen = false,
+  message = 'Loading...',
+  variant,
+  align = 'center',
+  size = 'md',
   className,
   ...props 
 }: LoadingProps) {
@@ -21,21 +25,24 @@ export function Loading({
   }
 
   return (
-    <div
+    <div 
       className={cn(
         'flex items-center justify-center',
-        fullScreen && 'fixed inset-0 bg-background/80 backdrop-blur-sm',
+        variant === 'inline' && 'inline-flex',
+        variant === 'fullscreen' && 'fixed inset-0 bg-background/80',
+        align === 'start' && 'items-start',
+        align === 'end' && 'items-end',
         className
       )}
       {...props}
     >
-      <div
+      <div 
         className={cn(
           'animate-spin rounded-full border-2 border-current border-t-transparent text-primary',
           sizeClasses[size]
         )}
       >
-        <span className="sr-only">Loading...</span>
+        <span className="sr-only" role="status">{message}</span>
       </div>
     </div>
   )
@@ -62,8 +69,9 @@ export function TableLoading() {
   return (
     <Loading
       className="min-h-[200px]"
-      text="Loading data..."
+      message="Loading data..."
       size="md"
+      variant="inline"
     />
   )
 }
@@ -72,8 +80,9 @@ export function FormLoading() {
   return (
     <Loading
       className="min-h-[100px]"
-      text="Loading form..."
+      message="Loading form..."
       size="sm"
+      variant="inline"
     />
   )
 }
@@ -82,8 +91,9 @@ export function ButtonLoading() {
   return (
     <Loading
       size="sm"
-      text={null}
-      centered={false}
+      message="Loading..."
+      variant="inline"
+      align="center"
       className="inline-flex items-center"
     />
   )
@@ -93,8 +103,8 @@ export function InlineLoading() {
   return (
     <Loading
       size="sm"
-      text={null}
-      centered={false}
+      variant="inline"
+      align="center"
       className="inline-flex items-center"
     />
   )

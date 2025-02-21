@@ -22,62 +22,24 @@ const DEFAULT_PARAMS: GeneticParams = {
   elitismCount: 5
 }
 
-export async function optimizeSchedule(
-  employees: Employee[],
-  shiftOptions: ShiftOption[],
-  requirements: StaffingRequirement[],
-  params: Partial<GeneticParams> = {}
-): Promise<Schedule[]> {
-  const geneticParams = { ...DEFAULT_PARAMS, ...params }
-  
-  // Initialize population
-  let population = await initializePopulation(
-    employees,
-    shiftOptions,
-    requirements,
-    geneticParams.populationSize
+/**
+ * NOTE: This is a placeholder for future genetic algorithm implementation.
+ * Currently, the basic scheduling is handled by the generate.ts module.
+ * 
+ * Future Implementation Plan:
+ * 1. Population: Generate multiple schedule candidates
+ * 2. Fitness: Use simplified scoring (hours, preference, rest)
+ * 3. Selection: Tournament selection of best schedules
+ * 4. Crossover: Combine good schedules
+ * 5. Mutation: Random changes to maintain diversity
+ * 
+ * @throws {Error} Not implemented
+ */
+export function optimizeSchedule(): never {
+  throw new Error(
+    'Genetic algorithm optimization not implemented. ' +
+    'Basic scheduling is handled by generate.ts'
   )
-
-  // Evolution loop
-  for (let generation = 0; generation < geneticParams.generations; generation++) {
-    // Evaluate fitness
-    population = await evaluatePopulation(population)
-
-    // Sort by fitness
-    population.sort((a, b) => b.fitness - a.fitness)
-
-    // Check if we've reached optimal solution
-    if (population[0].fitness === 1) {
-      return population[0].schedule
-    }
-
-    // Create next generation
-    const nextGeneration: Individual[] = []
-
-    // Elitism
-    for (let i = 0; i < geneticParams.elitismCount; i++) {
-      nextGeneration.push(population[i])
-    }
-
-    // Crossover and mutation
-    while (nextGeneration.length < geneticParams.populationSize) {
-      const parent1 = selectParent(population)
-      const parent2 = selectParent(population)
-      
-      let child = crossover(parent1, parent2)
-      
-      if (Math.random() < geneticParams.mutationRate) {
-        child = await mutate(child, employees, shiftOptions)
-      }
-      
-      nextGeneration.push(child)
-    }
-
-    population = nextGeneration
-  }
-
-  // Return best solution
-  return population[0].schedule
 }
 
 async function initializePopulation(

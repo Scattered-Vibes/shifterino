@@ -2,7 +2,25 @@
 -- Inserts initial data after migrations are applied.
 -- This should only contain static data that is not user-specific.
 
--- Insert default shift options
+-- Insert default organization (must be first due to foreign key constraints)
+INSERT INTO public.organizations (
+  id,
+  name,
+  contact_info
+)
+VALUES (
+  '00000000-0000-0000-0000-000000000002',
+  '911 Dispatch Center',
+  '{"address": "123 Emergency St", "phone": "555-0911", "email": "admin@911dispatch.com"}'::jsonb
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- Create default team
+INSERT INTO public.teams (id, name, description)
+VALUES ('00000000-0000-0000-0000-000000000001', '911 Dispatch', 'Main dispatch team')
+ON CONFLICT (id) DO NOTHING;
+
+-- Insert shift options
 INSERT INTO public.shift_options (id, name, category, start_time, end_time, duration_hours)
 VALUES
     (uuid_generate_v4(), 'Early 4', 'early'::shift_category, '05:00', '09:00', 4),
@@ -19,12 +37,7 @@ VALUES
     (uuid_generate_v4(), 'Night 12', 'graveyard'::shift_category, '17:00', '05:00', 12)
 ON CONFLICT (name) DO NOTHING;
 
--- Create default team
-INSERT INTO public.teams (id, name, description)
-VALUES ('00000000-0000-0000-0000-000000000001', '911 Dispatch', 'Main dispatch team')
-ON CONFLICT (id) DO NOTHING;
-
--- Insert default staffing requirements
+-- Insert staffing requirements
 INSERT INTO public.staffing_requirements (id, team_id, start_time, end_time, min_employees, min_supervisors)
 VALUES
     (uuid_generate_v4(), '00000000-0000-0000-0000-000000000001', '05:00', '09:00', 6, 1),

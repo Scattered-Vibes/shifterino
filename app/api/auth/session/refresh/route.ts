@@ -1,7 +1,9 @@
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import { createServerClient } from '@/lib/supabase/index'
+import { createApiResponse, handleApiError } from '@/lib/api/utils'
 
-import { createClient } from '@/lib/supabase/server'
+export const dynamic = 'force-dynamic'
 
 const COOKIE_OPTIONS = {
   path: '/',
@@ -14,7 +16,7 @@ const COOKIE_OPTIONS = {
 export async function GET() {
   try {
     const cookieStore = cookies()
-    const supabase = createClient()
+    const supabase = createServerClient()
 
     // Note: We use getSession here (instead of getUser) because we specifically need
     // the session tokens for refreshing. This is one of the few legitimate uses of getSession.
@@ -25,14 +27,11 @@ export async function GET() {
 
     if (error) {
       console.error('Session refresh error:', error)
-      return NextResponse.json(
-        { error: 'Failed to refresh session' },
-        { status: 401 }
-      )
+      throw error
     }
 
     if (!session) {
-      return NextResponse.json({ error: 'No active session' }, { status: 401 })
+      throw new Error('No active session')
     }
 
     // Get new session with refreshed tokens
@@ -41,19 +40,13 @@ export async function GET() {
 
     if (refreshError) {
       console.error('Token refresh error:', refreshError)
-      return NextResponse.json(
-        { error: 'Failed to refresh tokens' },
-        { status: 401 }
-      )
+      throw refreshError
     }
 
     const { session: newSession } = refreshData
 
     if (!newSession) {
-      return NextResponse.json(
-        { error: 'Failed to create new session' },
-        { status: 401 }
-      )
+      throw new Error('Failed to create new session')
     }
 
     // Update session cookies with consistent settings
@@ -76,17 +69,32 @@ export async function GET() {
       console.error('Error logging session refresh:', logError)
     }
 
-    return NextResponse.json({
+    return createApiResponse({
       user: newSession.user,
       expires_at: newSession.expires_at,
     })
   } catch (error) {
-    console.error('Unexpected error during session refresh:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'refresh session', 401)
   }
+}
+
+// Handle OPTIONS requests for CORS
+export async function OPTIONS() {
+  const allowedOrigin = process.env.NEXT_PUBLIC_APP_URL
+  
+  if (!allowedOrigin) {
+    return new NextResponse(null, { status: 500 })
+  }
+  
+  return new NextResponse(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': allowedOrigin,
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Max-Age': '86400'
+    },
+  })
 }
 
 // Only allow GET requests

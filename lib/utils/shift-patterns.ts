@@ -110,7 +110,7 @@ function getEmployeeWeekShifts(
   const weekEnd = new Date(weekStart.getTime() + 7 * DAY_IN_MS)
 
   return allShifts.filter(s => 
-    s.employee_id === shift.employee_id &&
+    s.employeeId === shift.employeeId &&
     new Date(s.start) >= weekStart &&
     new Date(s.start) < weekEnd
   )

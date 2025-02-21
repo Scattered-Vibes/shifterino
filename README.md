@@ -24,39 +24,57 @@ A comprehensive scheduling system for 24/7 911 dispatch center operations, built
 .
 ├── app/                                # Next.js 14 app directory
 │   ├── (auth)/                        # Authentication routes and components
-│   │   ├── actions/                   # Auth server actions
-│   │   ├── login/                     # Login page and form
-│   │   ├── signup/                    # Signup flow
-│   │   └── components/                # Shared auth components
-│   ├── (dashboard)/                   # Dashboard routes
-│   │   ├── manage/                    # Schedule management
-│   │   ├── overview/                  # Schedule overview
-│   │   ├── profile/                   # User profile
-│   │   └── requirements/              # Staffing requirements
+│   │   ├── actions/                   # Auth server actions and handlers
+│   │   ├── auth-error/                # Authentication error pages
+│   │   ├── callback/                  # OAuth callback handlers
+│   │   ├── components/                # Shared auth UI components
+│   │   ├── login/                     # Login page with form and actions
+│   │   ├── reset-password/            # Password reset flow
+│   │   ├── signup/                    # Signup flow with email verification
+│   │   └── update-password/           # Password update functionality
+│   ├── (dashboard)/                   # Main application dashboard
+│   │   ├── employees/                 # Employee management
+│   │   ├── manage/                    # Schedule management (swaps, overtime)
+│   │   ├── overview/                  # Schedule overview and analytics
+│   │   ├── profile/                   # User profile management
+│   │   ├── requirements/              # Staffing requirements configuration
+│   │   ├── schedules/                 # Schedule views (calendar/list)
+│   │   ├── settings/                  # Application settings
+│   │   ├── shift-options/             # Shift pattern management
+│   │   └── time-off/                  # Time-off request management
 │   ├── api/                           # API route handlers
 │   ├── hooks/                         # Custom React hooks
-│   │   ├── client/                    # Client-side hooks
-│   │   └── server/                    # Server-side hooks
-│   └── layout.tsx                     # Root layout
-├── components/                        # Shared components
+│   │   ├── client/                    # Client-side hooks (state, UI)
+│   │   └── server/                    # Server-side data hooks
+│   ├── lib/                           # Shared utilities and helpers
+│   │   ├── scheduling/                # Core scheduling algorithms
+│   │   ├── supabase/                  # Supabase client instances
+│   │   └── validations/               # Zod schema validations
+│   └── layout.tsx                     # Root application layout
+├── components/                        # Shared UI components
 │   └── ui/                           # Shadcn UI components
-├── lib/                              # Core utilities
-│   ├── schedule/                     # Schedule logic
-│   ├── supabase/                     # Supabase client/server
-│   └── validations/                  # Schema validation
-├── providers/                        # React context providers
-├── types/                           # TypeScript types
-│   ├── models/                      # Data models
-│   ├── scheduling/                  # Schedule types
-│   └── supabase/                    # Generated DB types
-├── supabase/                        # Supabase config
-│   ├── migrations/                  # Database migrations
-│   ├── functions/                   # Edge functions
-│   └── tests/                       # Database tests
+├── providers/                        # Application context providers
+│   ├── auth-provider.tsx             # Authentication context
+│   └── supabase-provider.tsx         # Supabase client context
+├── public/                           # Static assets
+├── scripts/                          # Database setup and seeding
+├── supabase/                         # Supabase configuration
+│   ├── migrations/                  # Database schema migrations
+│   ├── seed.sql                     # Initial test data
+│   ├── config.toml                 # Local Supabase config
+│   └── tests/                       # Database constraint tests
+├── types/                           # TypeScript definitions
+│   ├── models/                      # Database model types
+│   ├── scheduling/                  # Scheduling domain types
+│   └── supabase/                    # Generated database types
+├── utils/                           # Utility functions
+│   ├── scheduling/                  # Schedule generation helpers
+│   ├── staffing/                    # Staffing requirement checks
+│   └── time-off/                    # Time-off conflict detection
 └── __tests__/                       # Test suites
-    ├── e2e/                         # End-to-end tests
-    ├── integration/                 # Integration tests
-    └── unit/                        # Unit tests
+    ├── e2e/                         # Playwright end-to-end tests
+    ├── integration/                 # Integration test suites
+    └── unit/                        # Component/utility unit tests
 ```
 
 ## Application Summary

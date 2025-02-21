@@ -1,20 +1,32 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import type { Database } from '@/types/supabase/database'
-import type { ResponseCookie } from 'next/dist/compiled/@edge-runtime/cookies'
+import type { CookieOptions } from '@supabase/ssr'
 import { AppError, ErrorCode } from '@/lib/utils/error-handler'
-import { CookieOptions } from '@supabase/ssr'
 
-// Validate required environment variables
+// Validate environment variables
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-  throw new Error('Missing env.NEXT_PUBLIC_SUPABASE_URL')
+  throw new AppError(
+    'Missing env.NEXT_PUBLIC_SUPABASE_URL',
+    ErrorCode.INTERNAL_ERROR,
+    500
+  )
 }
 if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-  throw new Error('Missing env.NEXT_PUBLIC_SUPABASE_ANON_KEY')
+  throw new AppError(
+    'Missing env.NEXT_PUBLIC_SUPABASE_ANON_KEY',
+    ErrorCode.INTERNAL_ERROR,
+    500
+  )
 }
 
-// Cookie configuration
-const COOKIE_NAME = 'sb-localhost-auth-token'
+const COOKIE_OPTIONS: CookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax',
+  path: '/',
+  maxAge: 60 * 60 * 24 * 7 // 7 days
+}
 
 /**
  * Creates a Supabase client for server components and Route Handlers.
@@ -23,6 +35,7 @@ const COOKIE_NAME = 'sb-localhost-auth-token'
  */
 export function createClient() {
   const cookieStore = cookies()
+  const requestId = Math.random().toString(36).substring(7)
   
   return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -30,35 +43,45 @@ export function createClient() {
     {
       cookies: {
         get(name: string) {
-          return cookieStore.get(name)?.value
-        },
-        set(name: string, value: string, options: any) {
           try {
-            cookieStore.set({
-              name,
-              value,
-              httpOnly: true,
-              secure: process.env.NODE_ENV === 'production',
-              sameSite: 'lax',
-              path: '/',
-              ...options
-            })
+            const cookie = cookieStore.get(name)
+            return cookie?.value
           } catch (error) {
-            console.error('Error setting cookie:', error)
+            console.error(`[supabase:${requestId}] Error getting cookie:`, {
+              name,
+              error: error instanceof Error ? error.message : error
+            })
+            return undefined
           }
         },
-        remove(name: string, options: any) {
+        set(name: string, value: string, options: CookieOptions) {
           try {
-            cookieStore.delete({
-              name,
-              path: '/',
-              ...options
-            })
+            const mergedOptions = { ...COOKIE_OPTIONS, ...options }
+            cookieStore.set({ name, value, ...mergedOptions })
           } catch (error) {
-            console.error('Error removing cookie:', error)
+            console.error(`[supabase:${requestId}] Error setting cookie:`, {
+              name,
+              error: error instanceof Error ? error.message : error
+            })
+          }
+        },
+        remove(name: string, options: CookieOptions) {
+          try {
+            const mergedOptions = { ...COOKIE_OPTIONS, ...options }
+            cookieStore.set({ name, value: '', ...mergedOptions, maxAge: 0 })
+          } catch (error) {
+            console.error(`[supabase:${requestId}] Error removing cookie:`, {
+              name,
+              error: error instanceof Error ? error.message : error
+            })
           }
         },
       },
+      auth: {
+        detectSessionInUrl: true,
+        flowType: 'pkce',
+        debug: process.env.NODE_ENV === 'development'
+      }
     }
   )
 }
@@ -78,7 +101,8 @@ export async function getUser() {
     if (error) {
       console.error(`[getUser:${requestId}] Auth error:`, {
         message: error.message,
-        status: error.status
+        status: error.status,
+        code: error.name
       })
       return null
     }
@@ -90,7 +114,8 @@ export async function getUser() {
 
     console.log(`[getUser:${requestId}] User found:`, {
       id: user.id,
-      email: user.email
+      email: user.email,
+      lastSignIn: user.last_sign_in_at
     })
     
     return user
@@ -110,31 +135,63 @@ export async function refreshSession() {
   const requestId = Math.random().toString(36).substring(7)
   console.log(`[refreshSession:${requestId}] Starting session refresh check`)
   
-  const supabase = createClient()
-  const { data: { session }, error } = await supabase.auth.getSession()
-  
-  if (error) {
-    console.error(`[refreshSession:${requestId}] Session check error:`, {
-      message: error.message,
-      status: error.status
-    })
-    return { data: { session: null }, error }
-  }
-  
-  if (session?.expires_at) {
-    const expiresAt = new Date(session.expires_at * 1000)
-    const now = new Date()
+  try {
+    const supabase = createClient()
+    const { data: { session }, error } = await supabase.auth.getSession()
     
-    // Only refresh if token is close to expiring (within 5 minutes)
-    if ((expiresAt.getTime() - now.getTime()) < 5 * 60 * 1000) {
-      console.log(`[refreshSession:${requestId}] Session near expiry, refreshing`)
-      return await supabase.auth.refreshSession()
+    if (error) {
+      console.error(`[refreshSession:${requestId}] Session check error:`, {
+        message: error.message,
+        status: error.status,
+        code: error.name
+      })
+      throw new AppError('Failed to get session', ErrorCode.UNAUTHORIZED)
     }
     
-    console.log(`[refreshSession:${requestId}] Session valid, no refresh needed`)
+    if (!session) {
+      console.log(`[refreshSession:${requestId}] No session found`)
+      return { data: { session: null }, error: null }
+    }
+    
+    if (session.expires_at) {
+      const expiresAt = new Date(session.expires_at * 1000)
+      const now = new Date()
+      const timeUntilExpiry = expiresAt.getTime() - now.getTime()
+      
+      console.log(`[refreshSession:${requestId}] Session status:`, {
+        expiresAt: expiresAt.toISOString(),
+        timeUntilExpiry: Math.floor(timeUntilExpiry / 1000 / 60) + ' minutes',
+        needsRefresh: timeUntilExpiry < 5 * 60 * 1000
+      })
+      
+      // Only refresh if token is close to expiring (within 5 minutes)
+      if (timeUntilExpiry < 5 * 60 * 1000) {
+        console.log(`[refreshSession:${requestId}] Refreshing session`)
+        const refreshResult = await supabase.auth.refreshSession()
+        
+        if (refreshResult.error) {
+          console.error(`[refreshSession:${requestId}] Refresh failed:`, {
+            error: refreshResult.error.message,
+            code: refreshResult.error.name
+          })
+        } else {
+          console.log(`[refreshSession:${requestId}] Session refreshed successfully`)
+        }
+        
+        return refreshResult
+      }
+    }
+    
+    return { data: { session }, error: null }
+  } catch (error) {
+    console.error(`[refreshSession:${requestId}] Unexpected error:`, 
+      error instanceof Error ? error.message : error
+    )
+    return { 
+      data: { session: null }, 
+      error: error instanceof AppError ? error : new AppError('Failed to refresh session', ErrorCode.UNAUTHORIZED)
+    }
   }
-  
-  return { data: { session }, error: null }
 }
 
 // Re-export types that might be needed by consumers

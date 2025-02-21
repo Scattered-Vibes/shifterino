@@ -1,114 +1,149 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { UserAuthForm } from '@/app/(auth)/components/user-auth-form'
-import { setupAuthMocks, mockRouter } from '../../helpers/auth'
+import { mockRouter, mockSupabaseAuth, mockSession, mockSupabaseResponses } from '../../helpers/auth'
+import { cookies } from 'next/headers'
+import { renderWithProviders } from '../../helpers/test-utils'
+import userEvent from '@testing-library/user-event'
 
-describe('Login Flow Integration', () => {
+// Mock next/headers
+vi.mock('next/headers', () => ({
+  cookies: vi.fn(() => ({
+    get: vi.fn(),
+    set: vi.fn(),
+    delete: vi.fn()
+  }))
+}))
+
+// Mock next/navigation
+vi.mock('next/navigation', () => ({
+  redirect: vi.fn(),
+  useRouter: () => mockRouter
+}))
+
+describe('Login Component', () => {
+  const mockSupabase = mockSupabaseAuth()
+
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
-  it('successfully logs in with valid credentials', async () => {
-    const mockSupabase = setupAuthMocks({ authenticated: true })
-    const user = userEvent.setup()
+  describe('UI Behavior', () => {
+    it('renders form elements correctly', () => {
+      renderWithProviders(<UserAuthForm />)
+      
+      expect(screen.getByLabelText(/email/i)).toBeInTheDocument()
+      expect(screen.getByLabelText(/password/i)).toBeInTheDocument()
+      expect(screen.getByTestId('submit-button')).toBeInTheDocument()
+    })
 
-    render(<UserAuthForm />)
+    it('shows loading state during submission', async () => {
+      const { user } = renderWithProviders(<UserAuthForm />)
 
-    await user.type(screen.getByLabelText(/email/i), 'test@example.com')
-    await user.type(screen.getByLabelText(/password/i), 'password123')
-    await user.click(screen.getByRole('button', { name: /sign in/i }))
-
-    await waitFor(() => {
-      expect(mockSupabase.auth.signInWithPassword).toHaveBeenCalledWith({
-        email: 'test@example.com',
-        password: 'password123'
+      await user.type(screen.getByLabelText(/email/i), 'test@example.com')
+      await user.type(screen.getByLabelText(/password/i), 'password123')
+      
+      // Mock the pending state
+      vi.mock('react-dom', async () => {
+        const actual = await vi.importActual('react-dom')
+        return {
+          ...actual,
+          useFormStatus: () => ({ pending: true })
+        }
       })
-      expect(mockRouter.replace).toHaveBeenCalledWith('/overview')
+
+      await user.click(screen.getByTestId('submit-button'))
+      expect(screen.getByTestId('spinner')).toBeInTheDocument()
+    })
+
+    it('preserves form state during submission', async () => {
+      const { user } = renderWithProviders(<UserAuthForm />)
+      
+      const emailInput = screen.getByLabelText(/email/i)
+      const passwordInput = screen.getByLabelText(/password/i)
+      
+      await user.type(emailInput, 'test@example.com')
+      await user.type(passwordInput, 'password123')
+      await user.click(screen.getByTestId('submit-button'))
+
+      expect(emailInput).toHaveValue('test@example.com')
+      expect(passwordInput).toHaveValue('password123')
+    })
+
+    it('validates required fields', async () => {
+      const { user } = renderWithProviders(<UserAuthForm />)
+      await user.click(screen.getByTestId('submit-button'))
+
+      expect(screen.getByLabelText(/email/i)).toBeInvalid()
+      expect(screen.getByLabelText(/password/i)).toBeInvalid()
     })
   })
 
-  it('displays error message for invalid credentials', async () => {
-    const mockSupabase = setupAuthMocks({ authenticated: false })
-    const user = userEvent.setup()
+  describe('Authentication Flow', () => {
+    it('handles successful login', async () => {
+      const { user } = renderWithProviders(<UserAuthForm />)
 
-    render(<UserAuthForm />)
+      await user.type(screen.getByLabelText(/email/i), 'test@example.com')
+      await user.type(screen.getByLabelText(/password/i), 'password123')
+      await user.click(screen.getByTestId('submit-button'))
 
-    await user.type(screen.getByLabelText(/email/i), 'wrong@example.com')
-    await user.type(screen.getByLabelText(/password/i), 'wrongpassword')
-    await user.click(screen.getByRole('button', { name: /sign in/i }))
+      await waitFor(() => {
+        expect(mockSupabase.auth.signInWithPassword).toHaveBeenCalledWith({
+          email: 'test@example.com',
+          password: 'password123'
+        })
+      })
 
-    await waitFor(() => {
-      expect(screen.getByText(/invalid login credentials/i)).toBeInTheDocument()
-      expect(mockRouter.replace).not.toHaveBeenCalled()
+      await waitFor(() => {
+        expect(mockRouter.push).toHaveBeenCalledWith('/dashboard')
+      })
+
+      const cookieStore = cookies()
+      expect(cookieStore.set).toHaveBeenCalledWith('sb-session', expect.any(String), {
+        httpOnly: true,
+        secure: expect.any(Boolean),
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7
+      })
+    })
+
+    it('handles invalid credentials', async () => {
+      const { user } = renderWithProviders(<UserAuthForm />)
+
+      await user.type(screen.getByLabelText(/email/i), 'wrong@example.com')
+      await user.type(screen.getByLabelText(/password/i), 'wrongpass')
+      await user.click(screen.getByTestId('submit-button'))
+
+      await waitFor(() => {
+        expect(screen.getByRole('alert')).toHaveTextContent('Invalid login credentials')
+      })
     })
   })
 
-  it('displays network error message when auth service is down', async () => {
-    setupAuthMocks({ 
-      authenticated: false,
-      error: { message: 'Auth service unavailable', status: 503 }
+  describe('Error Handling', () => {
+    it('handles network errors', async () => {
+      // Mock a network error
+      vi.mocked(mockSupabase.auth.signInWithPassword).mockRejectedValueOnce(
+        new Error('Network error')
+      )
+
+      const { user } = renderWithProviders(<UserAuthForm />)
+
+      await user.type(screen.getByLabelText(/email/i), 'test@example.com')
+      await user.type(screen.getByLabelText(/password/i), 'password123')
+      await user.click(screen.getByTestId('submit-button'))
+
+      await waitFor(() => {
+        expect(screen.getByRole('alert')).toHaveTextContent('Network error')
+      })
     })
-    const user = userEvent.setup()
 
-    render(<UserAuthForm />)
+    it('handles missing credentials', async () => {
+      const { user } = renderWithProviders(<UserAuthForm />)
+      await user.click(screen.getByTestId('submit-button'))
 
-    await user.type(screen.getByLabelText(/email/i), 'test@example.com')
-    await user.type(screen.getByLabelText(/password/i), 'password123')
-    await user.click(screen.getByRole('button', { name: /sign in/i }))
-
-    await waitFor(() => {
-      expect(screen.getByText(/auth service unavailable/i)).toBeInTheDocument()
-      expect(mockRouter.replace).not.toHaveBeenCalled()
+      expect(screen.getByLabelText(/email/i)).toBeInvalid()
+      expect(screen.getByLabelText(/password/i)).toBeInvalid()
     })
-  })
-
-  it('validates required fields', async () => {
-    const user = userEvent.setup()
-    render(<UserAuthForm />)
-
-    await user.click(screen.getByRole('button', { name: /sign in/i }))
-
-    await waitFor(() => {
-      expect(screen.getByText(/please enter your email/i)).toBeInTheDocument()
-      expect(screen.getByText(/please enter your password/i)).toBeInTheDocument()
-    })
-  })
-
-  it('redirects to custom path when provided', async () => {
-    const mockSupabase = setupAuthMocks({ authenticated: true })
-    const user = userEvent.setup()
-    const customRedirect = '/dashboard/settings'
-
-    render(<UserAuthForm redirectTo={customRedirect} />)
-
-    await user.type(screen.getByLabelText(/email/i), 'test@example.com')
-    await user.type(screen.getByLabelText(/password/i), 'password123')
-    await user.click(screen.getByRole('button', { name: /sign in/i }))
-
-    await waitFor(() => {
-      expect(mockSupabase.auth.signInWithPassword).toHaveBeenCalled()
-      expect(mockRouter.replace).toHaveBeenCalledWith(customRedirect)
-    })
-  })
-
-  it('disables form fields and shows loading spinner while submitting', async () => {
-    setupAuthMocks({ authenticated: true })
-    const user = userEvent.setup()
-
-    render(<UserAuthForm />)
-
-    const emailInput = screen.getByLabelText(/email/i)
-    const passwordInput = screen.getByLabelText(/password/i)
-    const submitButton = screen.getByRole('button', { name: /sign in/i })
-
-    await user.type(emailInput, 'test@example.com')
-    await user.type(passwordInput, 'password123')
-    await user.click(submitButton)
-
-    expect(emailInput).toBeDisabled()
-    expect(passwordInput).toBeDisabled()
-    expect(submitButton).toBeDisabled()
-    expect(screen.getByRole('status')).toBeInTheDocument()
   })
 }) 

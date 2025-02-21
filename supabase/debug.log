@@ -1,0 +1,778 @@
+Supabase CLI 2.12.1
+2025/02/21 09:13:55 DNS Start: {Host:api.supabase.com}
+2025/02/21 09:13:55 DNS Start: {Host:api.supabase.com}
+2025/02/21 09:13:55 DNS Done: {Addrs:[{IP:2606:4700:10::ac43:17c7 Zone:} {IP:2606:4700:10::6816:3fc Zone:} {IP:2606:4700:10::6816:2fc Zone:} {IP:172.67.23.199 Zone:} {IP:104.22.3.252 Zone:} {IP:104.22.2.252 Zone:}] Err:<nil> Coalesced:true}
+2025/02/21 09:13:55 DNS Done: {Addrs:[{IP:2606:4700:10::ac43:17c7 Zone:} {IP:2606:4700:10::6816:3fc Zone:} {IP:2606:4700:10::6816:2fc Zone:} {IP:172.67.23.199 Zone:} {IP:104.22.3.252 Zone:} {IP:104.22.2.252 Zone:}] Err:<nil> Coalesced:true}
+2025/02/21 09:13:55 Connect Start: tcp [2606:4700:10::ac43:17c7]:443
+2025/02/21 09:13:55 Connect Start: tcp [2606:4700:10::ac43:17c7]:443
+2025/02/21 09:13:55 Connect Done: tcp [2606:4700:10::ac43:17c7]:443
+2025/02/21 09:13:55 TLS Start
+2025/02/21 09:13:55 Connect Done: tcp [2606:4700:10::ac43:17c7]:443
+2025/02/21 09:13:55 TLS Start
+2025/02/21 09:13:55 TLS Done: {Version:772 HandshakeComplete:true DidResume:false CipherSuite:4865 NegotiatedProtocol:h2 NegotiatedProtocolIsMutual:true ServerName:api.supabase.com PeerCertificates:[0x140003e6588 0x140003e7088 0x140003e7608] VerifiedChains:[[0x140003e8688 0x140003e8c08 0x1400052f608]] SignedCertificateTimestamps:[] OCSPResponse:[48 130 1 19 10 1 0 160 130 1 12 48 130 1 8 6 9 43 6 1 5 5 7 48 1 1 4 129 250 48 129 247 48 129 158 162 22 4 20 144 119 146 53 103 196 255 168 204 169 230 123 217 128 121 123 204 147 249 56 24 15 50 48 50 53 48 50 50 48 49 52 50 57 50 49 90 48 115 48 113 48 73 48 9 6 5 43 14 3 2 26 5 0 4 20 185 190 213 241 166 30 64 178 65 150 176 194 158 126 26 157 139 252 181 32 4 20 144 119 146 53 103 196 255 168 204 169 230 123 217 128 121 123 204 147 249 56 2 16 109 41 8 108 133 17 152 236 19 86 81 173 95 141 67 235 128 0 24 15 50 48 50 53 48 50 50 48 49 52 50 57 50 49 90 160 17 24 15 50 48 50 53 48 50 50 55 49 51 50 57 50 48 90 48 10 6 8 42 134 72 206 61 4 3 2 3 72 0 48 69 2 32 104 99 124 73 163 9 15 239 139 102 56 181 63 52 182 76 236 234 250 113 243 9 111 5 220 35 136 28 70 174 221 122 2 33 0 245 72 0 49 195 8 219 43 101 150 78 70 101 37 222 171 6 185 170 26 166 164 5 13 192 57 101 80 85 177 224 194] TLSUnique:[] ECHAccepted:false ekm:0x100e74720 testingOnlyDidHRR:false testingOnlyCurveID:25497}
+2025/02/21 09:13:55 Sent Header: :authority [api.supabase.com]
+2025/02/21 09:13:55 Sent Header: :method [GET]
+2025/02/21 09:13:55 Sent Header: :path [/v1/projects/dvnzmtowppsbfxkwgnod/api-keys?reveal=false]
+2025/02/21 09:13:55 Sent Header: :scheme [https]
+2025/02/21 09:13:55 Sent Header: authorization [Bearer sbp_fa8fb29d9888ac4af289bf4e0ef4d8aacbbca203]
+2025/02/21 09:13:55 Sent Header: user-agent [SupabaseCLI/2.12.1]
+2025/02/21 09:13:55 Sent Header: accept-encoding [gzip]
+2025/02/21 09:13:55 Send Done
+2025/02/21 09:13:55 Sent Header: :authority [api.supabase.com]
+2025/02/21 09:13:55 Sent Header: :method [GET]
+2025/02/21 09:13:55 Sent Header: :path [/v1/projects]
+2025/02/21 09:13:55 Sent Header: :scheme [https]
+2025/02/21 09:13:55 Sent Header: authorization [Bearer sbp_fa8fb29d9888ac4af289bf4e0ef4d8aacbbca203]
+2025/02/21 09:13:55 Sent Header: user-agent [SupabaseCLI/2.12.1]
+2025/02/21 09:13:55 Sent Header: accept-encoding [gzip]
+2025/02/21 09:13:55 Send Done
+2025/02/21 09:13:55 TLS Done: {Version:772 HandshakeComplete:true DidResume:false CipherSuite:4865 NegotiatedProtocol:h2 NegotiatedProtocolIsMutual:true ServerName:api.supabase.com PeerCertificates:[0x140003e6588 0x140003e7088 0x140003e7608] VerifiedChains:[[0x14000456688 0x14000457188 0x14000457708]] SignedCertificateTimestamps:[] OCSPResponse:[48 130 1 19 10 1 0 160 130 1 12 48 130 1 8 6 9 43 6 1 5 5 7 48 1 1 4 129 250 48 129 247 48 129 158 162 22 4 20 144 119 146 53 103 196 255 168 204 169 230 123 217 128 121 123 204 147 249 56 24 15 50 48 50 53 48 50 50 48 49 52 50 57 50 49 90 48 115 48 113 48 73 48 9 6 5 43 14 3 2 26 5 0 4 20 185 190 213 241 166 30 64 178 65 150 176 194 158 126 26 157 139 252 181 32 4 20 144 119 146 53 103 196 255 168 204 169 230 123 217 128 121 123 204 147 249 56 2 16 109 41 8 108 133 17 152 236 19 86 81 173 95 141 67 235 128 0 24 15 50 48 50 53 48 50 50 48 49 52 50 57 50 49 90 160 17 24 15 50 48 50 53 48 50 50 55 49 51 50 57 50 48 90 48 10 6 8 42 134 72 206 61 4 3 2 3 72 0 48 69 2 32 104 99 124 73 163 9 15 239 139 102 56 181 63 52 182 76 236 234 250 113 243 9 111 5 220 35 136 28 70 174 221 122 2 33 0 245 72 0 49 195 8 219 43 101 150 78 70 101 37 222 171 6 185 170 26 166 164 5 13 192 57 101 80 85 177 224 194] TLSUnique:[] ECHAccepted:false ekm:0x100e74720 testingOnlyDidHRR:false testingOnlyCurveID:25497}
+2025/02/21 09:13:55 Recv First Byte
+2025/02/21 09:13:55 Recv First Byte
+2025/02/21 09:13:55 DNS Start: {Host:dvnzmtowppsbfxkwgnod.supabase.co}
+2025/02/21 09:13:55 DNS Start: {Host:dvnzmtowppsbfxkwgnod.supabase.co}
+2025/02/21 09:13:55 DNS Start: {Host:dvnzmtowppsbfxkwgnod.supabase.co}
+2025/02/21 09:13:55 DNS Done: {Addrs:[{IP:104.18.38.10 Zone:} {IP:172.64.149.246 Zone:}] Err:<nil> Coalesced:true}
+2025/02/21 09:13:55 Connect Start: tcp 104.18.38.10:443
+2025/02/21 09:13:55 DNS Done: {Addrs:[{IP:104.18.38.10 Zone:} {IP:172.64.149.246 Zone:}] Err:<nil> Coalesced:true}
+2025/02/21 09:13:55 DNS Done: {Addrs:[{IP:104.18.38.10 Zone:} {IP:172.64.149.246 Zone:}] Err:<nil> Coalesced:true}
+2025/02/21 09:13:55 Connect Start: tcp 104.18.38.10:443
+2025/02/21 09:13:55 Connect Start: tcp 104.18.38.10:443
+2025/02/21 09:13:55 Connect Done: tcp 104.18.38.10:443
+2025/02/21 09:13:55 Connect Done: tcp 104.18.38.10:443
+2025/02/21 09:13:55 TLS Start
+2025/02/21 09:13:55 TLS Start
+2025/02/21 09:13:55 Connect Done: tcp 104.18.38.10:443
+2025/02/21 09:13:55 TLS Start
+2025/02/21 09:13:56 TLS Done: {Version:772 HandshakeComplete:true DidResume:false CipherSuite:4865 NegotiatedProtocol:h2 NegotiatedProtocolIsMutual:true ServerName:dvnzmtowppsbfxkwgnod.supabase.co PeerCertificates:[0x140002a3708 0x140003e7088 0x140003e7608] VerifiedChains:[[0x14000307088 0x14000308108 0x14000372588]] SignedCertificateTimestamps:[] OCSPResponse:[48 130 1 20 10 1 0 160 130 1 13 48 130 1 9 6 9 43 6 1 5 5 7 48 1 1 4 129 251 48 129 248 48 129 159 162 22 4 20 144 119 146 53 103 196 255 168 204 169 230 123 217 128 121 123 204 147 249 56 24 15 50 48 50 53 48 50 49 55 48 55 50 49 48 54 90 48 116 48 114 48 74 48 9 6 5 43 14 3 2 26 5 0 4 20 185 190 213 241 166 30 64 178 65 150 176 194 158 126 26 157 139 252 181 32 4 20 144 119 146 53 103 196 255 168 204 169 230 123 217 128 121 123 204 147 249 56 2 17 0 238 69 135 255 8 171 13 9 17 71 48 77 248 216 254 47 128 0 24 15 50 48 50 53 48 50 49 55 48 55 50 49 48 54 90 160 17 24 15 50 48 50 53 48 50 50 52 48 54 50 49 48 53 90 48 10 6 8 42 134 72 206 61 4 3 2 3 72 0 48 69 2 33 0 191 233 1 223 81 45 64 203 246 77 201 36 244 80 187 198 231 186 138 251 73 217 163 31 196 92 173 94 122 149 43 182 2 32 96 218 153 148 13 195 67 151 62 68 255 74 238 217 227 192 36 89 163 133 123 167 21 8 222 212 78 194 54 5 42 228] TLSUnique:[] ECHAccepted:false ekm:0x100e74720 testingOnlyDidHRR:false testingOnlyCurveID:25497}
+2025/02/21 09:13:56 Sent Header: :authority [dvnzmtowppsbfxkwgnod.supabase.co]
+2025/02/21 09:13:56 Sent Header: :method [GET]
+2025/02/21 09:13:56 Sent Header: :path [/rest/v1/]
+2025/02/21 09:13:56 Sent Header: :scheme [https]
+2025/02/21 09:13:56 Sent Header: apikey [eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2bnptdG93cHBzYmZ4a3dnbm9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzg1MzMxMTIsImV4cCI6MjA1NDEwOTExMn0.PyxzSKcXHErfD7hefWaF91bjlNw3VoQBrxPxE1exZVY]
+2025/02/21 09:13:56 Sent Header: user-agent [SupabaseCLI/2.12.1]
+2025/02/21 09:13:56 Sent Header: accept-encoding [gzip]
+2025/02/21 09:13:56 Send Done
+2025/02/21 09:13:56 Sent Header: :authority [dvnzmtowppsbfxkwgnod.supabase.co]
+2025/02/21 09:13:56 Sent Header: :method [GET]
+2025/02/21 09:13:56 Sent Header: :path [/storage/v1/version]
+2025/02/21 09:13:56 Sent Header: :scheme [https]
+2025/02/21 09:13:56 Sent Header: apikey [eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2bnptdG93cHBzYmZ4a3dnbm9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzg1MzMxMTIsImV4cCI6MjA1NDEwOTExMn0.PyxzSKcXHErfD7hefWaF91bjlNw3VoQBrxPxE1exZVY]
+2025/02/21 09:13:56 Sent Header: user-agent [SupabaseCLI/2.12.1]
+2025/02/21 09:13:56 Sent Header: accept-encoding [gzip]
+2025/02/21 09:13:56 Send Done
+2025/02/21 09:13:56 Sent Header: :authority [dvnzmtowppsbfxkwgnod.supabase.co]
+2025/02/21 09:13:56 Sent Header: :method [GET]
+2025/02/21 09:13:56 Sent Header: :path [/auth/v1/health]
+2025/02/21 09:13:56 Sent Header: :scheme [https]
+2025/02/21 09:13:56 Sent Header: apikey [eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2bnptdG93cHBzYmZ4a3dnbm9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzg1MzMxMTIsImV4cCI6MjA1NDEwOTExMn0.PyxzSKcXHErfD7hefWaF91bjlNw3VoQBrxPxE1exZVY]
+2025/02/21 09:13:56 Sent Header: user-agent [SupabaseCLI/2.12.1]
+2025/02/21 09:13:56 Sent Header: accept-encoding [gzip]
+2025/02/21 09:13:56 Send Done
+2025/02/21 09:13:56 TLS Done: {Version:772 HandshakeComplete:true DidResume:false CipherSuite:4865 NegotiatedProtocol:h2 NegotiatedProtocolIsMutual:true ServerName:dvnzmtowppsbfxkwgnod.supabase.co PeerCertificates:[0x140002a3708 0x140003e7088 0x140003e7608] VerifiedChains:[[0x14000774008 0x14000774588 0x14000774b08]] SignedCertificateTimestamps:[] OCSPResponse:[48 130 1 20 10 1 0 160 130 1 13 48 130 1 9 6 9 43 6 1 5 5 7 48 1 1 4 129 251 48 129 248 48 129 159 162 22 4 20 144 119 146 53 103 196 255 168 204 169 230 123 217 128 121 123 204 147 249 56 24 15 50 48 50 53 48 50 49 55 48 55 50 49 48 54 90 48 116 48 114 48 74 48 9 6 5 43 14 3 2 26 5 0 4 20 185 190 213 241 166 30 64 178 65 150 176 194 158 126 26 157 139 252 181 32 4 20 144 119 146 53 103 196 255 168 204 169 230 123 217 128 121 123 204 147 249 56 2 17 0 238 69 135 255 8 171 13 9 17 71 48 77 248 216 254 47 128 0 24 15 50 48 50 53 48 50 49 55 48 55 50 49 48 54 90 160 17 24 15 50 48 50 53 48 50 50 52 48 54 50 49 48 53 90 48 10 6 8 42 134 72 206 61 4 3 2 3 72 0 48 69 2 33 0 191 233 1 223 81 45 64 203 246 77 201 36 244 80 187 198 231 186 138 251 73 217 163 31 196 92 173 94 122 149 43 182 2 32 96 218 153 148 13 195 67 151 62 68 255 74 238 217 227 192 36 89 163 133 123 167 21 8 222 212 78 194 54 5 42 228] TLSUnique:[] ECHAccepted:false ekm:0x100e74720 testingOnlyDidHRR:false testingOnlyCurveID:25497}
+2025/02/21 09:13:56 TLS Done: {Version:772 HandshakeComplete:true DidResume:false CipherSuite:4865 NegotiatedProtocol:h2 NegotiatedProtocolIsMutual:true ServerName:dvnzmtowppsbfxkwgnod.supabase.co PeerCertificates:[0x140002a3708 0x140003e7088 0x140003e7608] VerifiedChains:[[0x140006ea008 0x140006ea588 0x140006eab08]] SignedCertificateTimestamps:[] OCSPResponse:[48 130 1 20 10 1 0 160 130 1 13 48 130 1 9 6 9 43 6 1 5 5 7 48 1 1 4 129 251 48 129 248 48 129 159 162 22 4 20 144 119 146 53 103 196 255 168 204 169 230 123 217 128 121 123 204 147 249 56 24 15 50 48 50 53 48 50 49 55 48 55 50 49 48 54 90 48 116 48 114 48 74 48 9 6 5 43 14 3 2 26 5 0 4 20 185 190 213 241 166 30 64 178 65 150 176 194 158 126 26 157 139 252 181 32 4 20 144 119 146 53 103 196 255 168 204 169 230 123 217 128 121 123 204 147 249 56 2 17 0 238 69 135 255 8 171 13 9 17 71 48 77 248 216 254 47 128 0 24 15 50 48 50 53 48 50 49 55 48 55 50 49 48 54 90 160 17 24 15 50 48 50 53 48 50 50 52 48 54 50 49 48 53 90 48 10 6 8 42 134 72 206 61 4 3 2 3 72 0 48 69 2 33 0 191 233 1 223 81 45 64 203 246 77 201 36 244 80 187 198 231 186 138 251 73 217 163 31 196 92 173 94 122 149 43 182 2 32 96 218 153 148 13 195 67 151 62 68 255 74 238 217 227 192 36 89 163 133 123 167 21 8 222 212 78 194 54 5 42 228] TLSUnique:[] ECHAccepted:false ekm:0x100e74720 testingOnlyDidHRR:false testingOnlyCurveID:25497}
+2025/02/21 09:13:56 Recv First Byte
+2025/02/21 09:13:56 Recv First Byte
+2025/02/21 09:13:56 Recv First Byte
+[?25l2025/02/21 09:13:56 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:13:56 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:13:56 Send Done
+2025/02/21 09:13:56 Recv First Byte
+2025/02/21 09:13:56 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:13:56 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:13:56 Send Done
+⣽ Starting database from backup...[0D2025/02/21 09:13:56 Recv First Byte
+2025/02/21 09:13:56 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:13:56 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:13:56 Sent Header: Content-Length [271]
+2025/02/21 09:13:56 Sent Header: Content-Type [application/json]
+2025/02/21 09:13:56 Send Done
+2025/02/21 09:13:56 Recv First Byte
+2025/02/21 09:13:56 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:13:56 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:13:56 Sent Header: Content-Length [127]
+2025/02/21 09:13:56 Sent Header: Content-Type [application/json]
+2025/02/21 09:13:56 Send Done
+2025/02/21 09:13:56 Recv First Byte
+2025/02/21 09:13:56 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:13:56 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:13:56 Sent Header: Content-Length [131]
+2025/02/21 09:13:56 Sent Header: Content-Type [application/json]
+2025/02/21 09:13:56 Send Done
+[0D[2K⣻ Starting database from backup...[0D2025/02/21 09:13:56 Recv First Byte
+2025/02/21 09:13:56 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:13:56 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:13:56 Sent Header: Content-Length [12714]
+2025/02/21 09:13:56 Sent Header: Content-Type [application/json]
+2025/02/21 09:13:56 Send Done
+2025/02/21 09:13:56 Recv First Byte
+2025/02/21 09:13:56 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:13:56 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:13:56 Sent Header: Content-Length [0]
+2025/02/21 09:13:56 Send Done
+[0D[2K⢿ Starting database from backup...[0D2025/02/21 09:13:56 Recv First Byte
+2025/02/21 09:13:56 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:13:56 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:13:56 Send Done
+2025/02/21 09:13:56 Recv First Byte
+[0D[2K⡿ Starting database from backup...[0D[0D[2K⣟ Starting database from backup...[0D[0D[2K⣯ Starting database from backup...[0D[0D[2K⣷ Starting database from backup...[0D[0D[2K⣾ Starting database from backup...[0D[0D[2K⣽ Starting database from backup...[0D[0D[2K⣻ Starting database from backup...[0D[0D[2K⢿ Starting database from backup...[0D[0D[2K⡿ Starting database from backup...[0D[0D[2K⣟ Starting database from backup...[0D2025/02/21 09:13:57 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:13:57 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:13:57 Send Done
+2025/02/21 09:13:57 Recv First Byte
+[0D[2K⣯ Starting database from backup...[0D[0D[2K⣷ Starting database from backup...[0D[0D[2K⣾ Starting database from backup...[0D[0D[2K⣽ Starting database from backup...[0D[0D[2K⣻ Starting database from backup...[0D[0D[2K⢿ Starting database from backup...[0D[0D[2K⡿ Starting database from backup...[0D[0D[2K⣟ Starting database from backup...[0D[0D[2K⣯ Starting database from backup...[0D[0D[2K⣷ Starting database from backup...[0D2025/02/21 09:13:58 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:13:58 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:13:58 Send Done
+2025/02/21 09:13:58 Recv First Byte
+[0D[2K⣾ Starting database from backup...[0D[0D[2K⣽ Starting database from backup...[0D[0D[2K⣻ Starting database from backup...[0D[0D[2K⢿ Starting database from backup...[0D[0D[2K⡿ Starting database from backup...[0D[0D[2K⣟ Starting database from backup...[0D[0D[2K⣯ Starting database from backup...[0D[0D[2K⣷ Starting database from backup...[0D[0D[2K⣾ Starting database from backup...[0D[0D[2K⣽ Starting database from backup...[0D2025/02/21 09:13:59 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:13:59 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:13:59 Send Done
+2025/02/21 09:13:59 Recv First Byte
+[0D[2K⣻ Starting database from backup...[0D[0D[2K⢿ Starting database from backup...[0D[0D[2K⡿ Starting database from backup...[0D[0D[2K⣟ Starting database from backup...[0D[0D[2K⣯ Starting database from backup...[0D[0D[2K⣷ Starting database from backup...[0D[0D[2K⣾ Starting database from backup...[0D[0D[2K⣽ Starting database from backup...[0D[0D[2K⣻ Starting database from backup...[0D[0D[2K⢿ Starting database from backup...[0D2025/02/21 09:14:00 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:00 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:00 Send Done
+2025/02/21 09:14:00 Recv First Byte
+[0D[2K⡿ Starting database from backup...[0D[0D[2K⣟ Starting database from backup...[0D[0D[2K⣯ Starting database from backup...[0D[0D[2K⣷ Starting database from backup...[0D[0D[2K⣾ Starting database from backup...[0D[0D[2K⣽ Starting database from backup...[0D[0D[2K⣻ Starting database from backup...[0D[0D[2K⢿ Starting database from backup...[0D[0D[2K⡿ Starting database from backup...[0D[0D[2K⣟ Starting database from backup...[0D2025/02/21 09:14:01 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:01 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:01 Send Done
+2025/02/21 09:14:01 Recv First Byte
+[0D[2K⣯ Starting database from backup...[0D[0D[2K⣷ Starting database from backup...[0D[0D[2K⣾ Starting database from backup...[0D[0D[2K⣽ Starting database from backup...[0D[0D[2K⣻ Starting database from backup...[0D[0D[2K⢿ Starting database from backup...[0D[0D[2K⡿ Starting database from backup...[0D[0D[2K⣟ Starting database from backup...[0D[0D[2K⣯ Starting database from backup...[0D[0D[2K⣷ Starting database from backup...[0D2025/02/21 09:14:02 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:02 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:02 Send Done
+2025/02/21 09:14:02 Recv First Byte
+[0D[2K⣾ Starting database from backup...[0D[0D[2K⣽ Starting database from backup...[0D[0D[2K⣻ Starting database from backup...[0D[0D[2K⢿ Starting database from backup...[0D[0D[2K⡿ Starting database from backup...[0D[0D[2K⣟ Starting database from backup...[0D[0D[2K⣯ Starting database from backup...[0D[0D[2K⣷ Starting database from backup...[0D[0D[2K⣾ Starting database from backup...[0D[0D[2K⣽ Starting database from backup...[0D2025/02/21 09:14:03 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:03 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:03 Send Done
+2025/02/21 09:14:03 Recv First Byte
+[0D[2K⣻ Starting database from backup...[0D[0D[2K⢿ Starting database from backup...[0D[0D[2K⡿ Starting database from backup...[0D[0D[2K⣟ Starting database from backup...[0D[0D[2K⣯ Starting database from backup...[0D[0D[2K⣷ Starting database from backup...[0D[0D[2K⣾ Starting database from backup...[0D[0D[2K⣽ Starting database from backup...[0D[0D[2K⣻ Starting database from backup...[0D[0D[2K⢿ Starting database from backup...[0D2025/02/21 09:14:04 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:04 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:04 Send Done
+2025/02/21 09:14:04 Recv First Byte
+[0D[2K⡿ Starting database from backup...[0D[0D[2K⣟ Starting database from backup...[0D[0D[2K⣯ Starting database from backup...[0D[0D[2K⣷ Starting database from backup...[0D[0D[2K⣾ Starting database from backup...[0D[0D[2K⣽ Starting database from backup...[0D[0D[2K⣻ Starting database from backup...[0D[0D[2K⢿ Starting database from backup...[0D[0D[2K⡿ Starting database from backup...[0D[0D[2K⣟ Starting database from backup...[0D2025/02/21 09:14:05 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:05 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:05 Send Done
+2025/02/21 09:14:05 Recv First Byte
+[0D[2K⣯ Starting database from backup...[0D[0D[2K⣷ Starting database from backup...[0D[0D[2K⣾ Starting database from backup...[0D[0D[2K⣽ Starting database from backup...[0D[0D[2K⣻ Starting database from backup...[0D[0D[2K⢿ Starting database from backup...[0D[0D[2K⡿ Starting database from backup...[0D[0D[2K⣟ Starting database from backup...[0D[0D[2K⣯ Starting database from backup...[0D[0D[2K⣷ Starting database from backup...[0D2025/02/21 09:14:06 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:06 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:06 Send Done
+2025/02/21 09:14:06 Recv First Byte
+2025/02/21 09:14:06 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:06 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:06 Send Done
+2025/02/21 09:14:06 Recv First Byte
+2025/02/21 09:14:06 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:06 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:06 Sent Header: Content-Length [271]
+2025/02/21 09:14:06 Sent Header: Content-Type [application/json]
+2025/02/21 09:14:06 Send Done
+2025/02/21 09:14:06 Recv First Byte
+2025/02/21 09:14:06 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:06 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:06 Sent Header: Content-Length [2856]
+2025/02/21 09:14:06 Sent Header: Content-Type [application/json]
+2025/02/21 09:14:06 Send Done
+[0D[2K⣷ Starting containers...[0D[0D[2K⣾ Starting containers...[0D2025/02/21 09:14:06 Recv First Byte
+2025/02/21 09:14:06 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:06 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:06 Sent Header: Content-Length [0]
+2025/02/21 09:14:06 Send Done
+[0D[2K⣽ Starting containers...[0D2025/02/21 09:14:06 Recv First Byte
+WARNING: analytics requires mounting default docker socket: /var/run/docker.sock
+2025/02/21 09:14:06 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:06 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:06 Send Done
+2025/02/21 09:14:06 Recv First Byte
+2025/02/21 09:14:06 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:06 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:06 Sent Header: Content-Length [271]
+2025/02/21 09:14:06 Sent Header: Content-Type [application/json]
+2025/02/21 09:14:06 Send Done
+2025/02/21 09:14:06 Recv First Byte
+2025/02/21 09:14:06 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:06 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:06 Sent Header: Content-Length [9654]
+2025/02/21 09:14:06 Sent Header: Content-Type [application/json]
+2025/02/21 09:14:06 Send Done
+2025/02/21 09:14:06 Recv First Byte
+2025/02/21 09:14:06 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:06 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:06 Sent Header: Content-Length [0]
+2025/02/21 09:14:06 Send Done
+[0D[2K⣻ Starting containers...[0D2025/02/21 09:14:06 Recv First Byte
+2025/02/21 09:14:06 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:06 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:06 Send Done
+2025/02/21 09:14:06 Recv First Byte
+2025/02/21 09:14:06 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:06 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:06 Sent Header: Content-Length [271]
+2025/02/21 09:14:06 Sent Header: Content-Type [application/json]
+2025/02/21 09:14:06 Send Done
+2025/02/21 09:14:06 Recv First Byte
+2025/02/21 09:14:06 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:06 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:06 Sent Header: Content-Length [13657]
+2025/02/21 09:14:06 Sent Header: Content-Type [application/json]
+2025/02/21 09:14:06 Send Done
+2025/02/21 09:14:06 Recv First Byte
+2025/02/21 09:14:06 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:06 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:06 Sent Header: Content-Length [0]
+2025/02/21 09:14:06 Send Done
+[0D[2K⢿ Starting containers...[0D2025/02/21 09:14:06 Recv First Byte
+2025/02/21 09:14:06 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:06 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:06 Send Done
+2025/02/21 09:14:07 Recv First Byte
+2025/02/21 09:14:07 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:07 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:07 Sent Header: Content-Length [271]
+2025/02/21 09:14:07 Sent Header: Content-Type [application/json]
+2025/02/21 09:14:07 Send Done
+2025/02/21 09:14:07 Recv First Byte
+2025/02/21 09:14:07 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:07 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:07 Sent Header: Content-Length [4606]
+2025/02/21 09:14:07 Sent Header: Content-Type [application/json]
+2025/02/21 09:14:07 Send Done
+2025/02/21 09:14:07 Recv First Byte
+2025/02/21 09:14:07 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:07 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:07 Sent Header: Content-Length [0]
+2025/02/21 09:14:07 Send Done
+[0D[2K⡿ Starting containers...[0D2025/02/21 09:14:07 Recv First Byte
+2025/02/21 09:14:07 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:07 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:07 Send Done
+2025/02/21 09:14:07 Recv First Byte
+2025/02/21 09:14:07 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:07 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:07 Sent Header: Content-Length [271]
+2025/02/21 09:14:07 Sent Header: Content-Type [application/json]
+2025/02/21 09:14:07 Send Done
+2025/02/21 09:14:07 Recv First Byte
+2025/02/21 09:14:07 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:07 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:07 Sent Header: Content-Length [133]
+2025/02/21 09:14:07 Sent Header: Content-Type [application/json]
+2025/02/21 09:14:07 Send Done
+2025/02/21 09:14:07 Recv First Byte
+2025/02/21 09:14:07 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:07 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:07 Sent Header: Content-Length [133]
+2025/02/21 09:14:07 Sent Header: Content-Type [application/json]
+2025/02/21 09:14:07 Send Done
+2025/02/21 09:14:07 Recv First Byte
+[0D[2K⣟ Starting containers...[0D2025/02/21 09:14:07 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:07 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:07 Sent Header: Content-Length [2028]
+2025/02/21 09:14:07 Sent Header: Content-Type [application/json]
+2025/02/21 09:14:07 Send Done
+2025/02/21 09:14:07 Recv First Byte
+2025/02/21 09:14:07 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:07 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:07 Sent Header: Content-Length [0]
+2025/02/21 09:14:07 Send Done
+[0D[2K⣯ Starting containers...[0D2025/02/21 09:14:07 Recv First Byte
+2025/02/21 09:14:07 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:07 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:07 Send Done
+2025/02/21 09:14:07 Recv First Byte
+2025/02/21 09:14:07 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:07 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:07 Sent Header: Content-Length [271]
+2025/02/21 09:14:07 Sent Header: Content-Type [application/json]
+2025/02/21 09:14:07 Send Done
+2025/02/21 09:14:07 Recv First Byte
+2025/02/21 09:14:07 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:07 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:07 Sent Header: Content-Length [2867]
+2025/02/21 09:14:07 Sent Header: Content-Type [application/json]
+2025/02/21 09:14:07 Send Done
+2025/02/21 09:14:07 Recv First Byte
+2025/02/21 09:14:07 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:07 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:07 Sent Header: Content-Length [0]
+2025/02/21 09:14:07 Send Done
+[0D[2K⣷ Starting containers...[0D2025/02/21 09:14:07 Recv First Byte
+2025/02/21 09:14:07 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:07 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:07 Send Done
+2025/02/21 09:14:07 Recv First Byte
+2025/02/21 09:14:07 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:07 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:07 Sent Header: Content-Length [271]
+2025/02/21 09:14:07 Sent Header: Content-Type [application/json]
+2025/02/21 09:14:07 Send Done
+2025/02/21 09:14:07 Recv First Byte
+2025/02/21 09:14:07 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:07 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:07 Sent Header: Content-Length [2298]
+2025/02/21 09:14:07 Sent Header: Content-Type [application/json]
+2025/02/21 09:14:07 Send Done
+2025/02/21 09:14:07 Recv First Byte
+2025/02/21 09:14:07 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:07 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:07 Sent Header: Content-Length [0]
+2025/02/21 09:14:07 Send Done
+[0D[2K⣾ Starting containers...[0D2025/02/21 09:14:07 Recv First Byte
+2025/02/21 09:14:07 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:07 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:07 Send Done
+2025/02/21 09:14:07 Recv First Byte
+2025/02/21 09:14:07 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:07 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:07 Sent Header: Content-Length [271]
+2025/02/21 09:14:07 Sent Header: Content-Type [application/json]
+2025/02/21 09:14:07 Send Done
+2025/02/21 09:14:07 Recv First Byte
+2025/02/21 09:14:07 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:07 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:07 Sent Header: Content-Length [132]
+2025/02/21 09:14:07 Sent Header: Content-Type [application/json]
+2025/02/21 09:14:07 Send Done
+2025/02/21 09:14:07 Recv First Byte
+2025/02/21 09:14:07 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:07 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:07 Sent Header: Content-Length [3345]
+2025/02/21 09:14:07 Sent Header: Content-Type [application/json]
+2025/02/21 09:14:07 Send Done
+[0D[2K⣽ Starting containers...[0D2025/02/21 09:14:07 Recv First Byte
+2025/02/21 09:14:07 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:07 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:07 Sent Header: Content-Length [0]
+2025/02/21 09:14:07 Send Done
+[0D[2K⣻ Starting containers...[0D2025/02/21 09:14:07 Recv First Byte
+2025/02/21 09:14:07 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:07 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:07 Send Done
+2025/02/21 09:14:07 Recv First Byte
+2025/02/21 09:14:07 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:07 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:07 Sent Header: Content-Length [271]
+2025/02/21 09:14:07 Sent Header: Content-Type [application/json]
+2025/02/21 09:14:07 Send Done
+2025/02/21 09:14:07 Recv First Byte
+2025/02/21 09:14:07 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:07 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:07 Sent Header: Content-Length [10677]
+2025/02/21 09:14:07 Sent Header: Content-Type [application/json]
+2025/02/21 09:14:07 Send Done
+2025/02/21 09:14:07 Recv First Byte
+2025/02/21 09:14:07 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:07 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:07 Sent Header: Content-Length [0]
+2025/02/21 09:14:07 Send Done
+[0D[2K⢿ Starting containers...[0D2025/02/21 09:14:07 Recv First Byte
+2025/02/21 09:14:07 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:07 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:07 Send Done
+2025/02/21 09:14:07 Recv First Byte
+2025/02/21 09:14:07 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:07 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:07 Sent Header: Content-Length [271]
+2025/02/21 09:14:07 Sent Header: Content-Type [application/json]
+2025/02/21 09:14:07 Send Done
+2025/02/21 09:14:07 Recv First Byte
+2025/02/21 09:14:07 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:07 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:07 Sent Header: Content-Length [2287]
+2025/02/21 09:14:07 Sent Header: Content-Type [application/json]
+2025/02/21 09:14:07 Send Done
+2025/02/21 09:14:07 Recv First Byte
+2025/02/21 09:14:07 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:07 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:07 Sent Header: Content-Length [0]
+2025/02/21 09:14:07 Send Done
+[0D[2K⡿ Starting containers...[0D2025/02/21 09:14:07 Recv First Byte
+2025/02/21 09:14:07 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:07 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:07 Send Done
+2025/02/21 09:14:07 Recv First Byte
+2025/02/21 09:14:07 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:07 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:07 Sent Header: Content-Length [271]
+2025/02/21 09:14:07 Sent Header: Content-Type [application/json]
+2025/02/21 09:14:07 Send Done
+2025/02/21 09:14:07 Recv First Byte
+2025/02/21 09:14:07 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:07 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:07 Sent Header: Content-Length [3004]
+2025/02/21 09:14:07 Sent Header: Content-Type [application/json]
+2025/02/21 09:14:07 Send Done
+[0D[2K⣟ Starting containers...[0D2025/02/21 09:14:07 Recv First Byte
+2025/02/21 09:14:07 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:07 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:07 Sent Header: Content-Length [0]
+2025/02/21 09:14:07 Send Done
+[0D[2K⣯ Starting containers...[0D2025/02/21 09:14:08 Recv First Byte
+2025/02/21 09:14:08 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:08 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:08 Send Done
+2025/02/21 09:14:08 Recv First Byte
+2025/02/21 09:14:08 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:08 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:08 Send Done
+2025/02/21 09:14:08 Recv First Byte
+2025/02/21 09:14:08 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:08 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:08 Send Done
+2025/02/21 09:14:08 Recv First Byte
+2025/02/21 09:14:08 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:08 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:08 Send Done
+2025/02/21 09:14:08 Recv First Byte
+2025/02/21 09:14:08 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:08 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:08 Send Done
+2025/02/21 09:14:08 Recv First Byte
+2025/02/21 09:14:08 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:08 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:08 Send Done
+2025/02/21 09:14:08 Recv First Byte
+2025/02/21 09:14:08 Connect Start: tcp 127.0.0.1:54321
+2025/02/21 09:14:08 Connect Done: tcp 127.0.0.1:54321
+2025/02/21 09:14:08 Sent Header: Host [127.0.0.1:54321]
+2025/02/21 09:14:08 Sent Header: User-Agent [Go-http-client/1.1]
+2025/02/21 09:14:08 Sent Header: Apikey [eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0]
+2025/02/21 09:14:08 Send Done
+[0D[2K⣯ Waiting for health checks...[0D2025/02/21 09:14:08 Recv First Byte
+2025/02/21 09:14:08 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:08 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:08 Send Done
+2025/02/21 09:14:08 Recv First Byte
+2025/02/21 09:14:08 Sent Header: Host [127.0.0.1:54321]
+2025/02/21 09:14:08 Sent Header: User-Agent [Go-http-client/1.1]
+2025/02/21 09:14:08 Sent Header: Apikey [eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0]
+2025/02/21 09:14:08 Send Done
+2025/02/21 09:14:08 Recv First Byte
+2025/02/21 09:14:08 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:08 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:08 Send Done
+2025/02/21 09:14:08 Recv First Byte
+2025/02/21 09:14:08 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:08 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:08 Send Done
+2025/02/21 09:14:08 Recv First Byte
+[0D[2K⣷ Waiting for health checks...[0D[0D[2K⣾ Waiting for health checks...[0D[0D[2K⣽ Waiting for health checks...[0D[0D[2K⣻ Waiting for health checks...[0D[0D[2K⢿ Waiting for health checks...[0D[0D[2K⡿ Waiting for health checks...[0D[0D[2K⣟ Waiting for health checks...[0D[0D[2K⣯ Waiting for health checks...[0D[0D[2K⣷ Waiting for health checks...[0D[0D[2K⣾ Waiting for health checks...[0D2025/02/21 09:14:09 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:09 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:09 Send Done
+2025/02/21 09:14:09 Recv First Byte
+2025/02/21 09:14:09 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:09 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:09 Send Done
+2025/02/21 09:14:09 Recv First Byte
+2025/02/21 09:14:09 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:09 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:09 Send Done
+2025/02/21 09:14:09 Recv First Byte
+2025/02/21 09:14:09 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:09 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:09 Send Done
+2025/02/21 09:14:09 Recv First Byte
+2025/02/21 09:14:09 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:09 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:09 Send Done
+2025/02/21 09:14:09 Recv First Byte
+2025/02/21 09:14:09 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:09 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:09 Send Done
+2025/02/21 09:14:09 Recv First Byte
+2025/02/21 09:14:09 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:09 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:09 Send Done
+2025/02/21 09:14:09 Recv First Byte
+2025/02/21 09:14:09 Sent Header: Host [127.0.0.1:54321]
+2025/02/21 09:14:09 Sent Header: User-Agent [Go-http-client/1.1]
+2025/02/21 09:14:09 Sent Header: Apikey [eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0]
+2025/02/21 09:14:09 Send Done
+2025/02/21 09:14:09 Recv First Byte
+2025/02/21 09:14:09 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:09 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:09 Send Done
+2025/02/21 09:14:09 Recv First Byte
+2025/02/21 09:14:09 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:09 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:09 Send Done
+2025/02/21 09:14:09 Recv First Byte
+[0D[2K⣽ Waiting for health checks...[0D[0D[2K⣻ Waiting for health checks...[0D[0D[2K⢿ Waiting for health checks...[0D[0D[2K⡿ Waiting for health checks...[0D[0D[2K⣟ Waiting for health checks...[0D[0D[2K⣯ Waiting for health checks...[0D[0D[2K⣷ Waiting for health checks...[0D[0D[2K⣾ Waiting for health checks...[0D[0D[2K⣽ Waiting for health checks...[0D[0D[2K⣻ Waiting for health checks...[0D2025/02/21 09:14:10 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:10 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:10 Send Done
+2025/02/21 09:14:10 Recv First Byte
+2025/02/21 09:14:10 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:10 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:10 Send Done
+2025/02/21 09:14:10 Recv First Byte
+2025/02/21 09:14:10 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:10 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:10 Send Done
+2025/02/21 09:14:10 Recv First Byte
+2025/02/21 09:14:10 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:10 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:10 Send Done
+2025/02/21 09:14:10 Recv First Byte
+2025/02/21 09:14:10 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:10 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:10 Send Done
+2025/02/21 09:14:10 Recv First Byte
+2025/02/21 09:14:10 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:10 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:10 Send Done
+2025/02/21 09:14:10 Recv First Byte
+2025/02/21 09:14:10 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:10 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:10 Send Done
+2025/02/21 09:14:10 Recv First Byte
+2025/02/21 09:14:10 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:10 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:10 Send Done
+2025/02/21 09:14:10 Recv First Byte
+2025/02/21 09:14:10 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:10 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:10 Send Done
+2025/02/21 09:14:10 Recv First Byte
+[0D[2K⢿ Waiting for health checks...[0D[0D[2K⡿ Waiting for health checks...[0D[0D[2K⣟ Waiting for health checks...[0D[0D[2K⣯ Waiting for health checks...[0D[0D[2K⣷ Waiting for health checks...[0D[0D[2K⣾ Waiting for health checks...[0D[0D[2K⣽ Waiting for health checks...[0D[0D[2K⣻ Waiting for health checks...[0D[0D[2K⢿ Waiting for health checks...[0D[0D[2K⡿ Waiting for health checks...[0D2025/02/21 09:14:11 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:11 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:11 Send Done
+2025/02/21 09:14:11 Recv First Byte
+2025/02/21 09:14:11 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:11 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:11 Send Done
+2025/02/21 09:14:11 Recv First Byte
+2025/02/21 09:14:11 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:11 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:11 Send Done
+2025/02/21 09:14:11 Recv First Byte
+2025/02/21 09:14:11 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:11 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:11 Send Done
+2025/02/21 09:14:11 Recv First Byte
+2025/02/21 09:14:11 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:11 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:11 Send Done
+2025/02/21 09:14:11 Recv First Byte
+2025/02/21 09:14:11 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:11 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:11 Send Done
+2025/02/21 09:14:11 Recv First Byte
+2025/02/21 09:14:11 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:11 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:11 Send Done
+2025/02/21 09:14:11 Recv First Byte
+2025/02/21 09:14:11 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:11 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:11 Send Done
+2025/02/21 09:14:11 Recv First Byte
+2025/02/21 09:14:11 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:11 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:11 Send Done
+2025/02/21 09:14:11 Recv First Byte
+[0D[2K⣟ Waiting for health checks...[0D[0D[2K⣯ Waiting for health checks...[0D[0D[2K⣷ Waiting for health checks...[0D[0D[2K⣾ Waiting for health checks...[0D[0D[2K⣽ Waiting for health checks...[0D[0D[2K⣻ Waiting for health checks...[0D[0D[2K⢿ Waiting for health checks...[0D[0D[2K⡿ Waiting for health checks...[0D[0D[2K⣟ Waiting for health checks...[0D[0D[2K⣯ Waiting for health checks...[0D2025/02/21 09:14:12 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:12 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:12 Send Done
+2025/02/21 09:14:12 Recv First Byte
+2025/02/21 09:14:12 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:12 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:12 Send Done
+2025/02/21 09:14:12 Recv First Byte
+2025/02/21 09:14:12 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:12 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:12 Send Done
+2025/02/21 09:14:12 Recv First Byte
+2025/02/21 09:14:12 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:12 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:12 Send Done
+2025/02/21 09:14:12 Recv First Byte
+2025/02/21 09:14:12 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:12 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:12 Send Done
+2025/02/21 09:14:12 Recv First Byte
+2025/02/21 09:14:12 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:12 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:12 Send Done
+2025/02/21 09:14:12 Recv First Byte
+2025/02/21 09:14:12 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:12 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:12 Send Done
+2025/02/21 09:14:12 Recv First Byte
+2025/02/21 09:14:12 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:12 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:12 Send Done
+2025/02/21 09:14:12 Recv First Byte
+2025/02/21 09:14:12 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:12 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:12 Send Done
+2025/02/21 09:14:12 Recv First Byte
+[0D[2K⣷ Waiting for health checks...[0D[0D[2K⣾ Waiting for health checks...[0D[0D[2K⣽ Waiting for health checks...[0D[0D[2K⣻ Waiting for health checks...[0D[0D[2K⢿ Waiting for health checks...[0D[0D[2K⡿ Waiting for health checks...[0D[0D[2K⣟ Waiting for health checks...[0D[0D[2K⣯ Waiting for health checks...[0D[0D[2K⣷ Waiting for health checks...[0D[0D[2K⣾ Waiting for health checks...[0D2025/02/21 09:14:13 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:13 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:13 Send Done
+2025/02/21 09:14:13 Recv First Byte
+2025/02/21 09:14:13 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:13 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:13 Send Done
+2025/02/21 09:14:13 Recv First Byte
+2025/02/21 09:14:13 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:13 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:13 Send Done
+2025/02/21 09:14:13 Recv First Byte
+2025/02/21 09:14:13 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:13 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:13 Send Done
+2025/02/21 09:14:13 Recv First Byte
+2025/02/21 09:14:13 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:13 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:13 Send Done
+2025/02/21 09:14:13 Recv First Byte
+2025/02/21 09:14:13 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:13 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:13 Send Done
+2025/02/21 09:14:13 Recv First Byte
+2025/02/21 09:14:13 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:13 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:13 Send Done
+2025/02/21 09:14:13 Recv First Byte
+2025/02/21 09:14:13 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:13 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:13 Send Done
+2025/02/21 09:14:13 Recv First Byte
+[0D[2K⣽ Waiting for health checks...[0D[0D[2K⣻ Waiting for health checks...[0D[0D[2K⢿ Waiting for health checks...[0D[0D[2K⡿ Waiting for health checks...[0D[0D[2K⣟ Waiting for health checks...[0D[0D[2K⣯ Waiting for health checks...[0D[0D[2K⣷ Waiting for health checks...[0D[0D[2K⣾ Waiting for health checks...[0D[0D[2K⣽ Waiting for health checks...[0D[0D[2K⣻ Waiting for health checks...[0D2025/02/21 09:14:14 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:14 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:14 Send Done
+2025/02/21 09:14:14 Recv First Byte
+2025/02/21 09:14:14 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:14 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:14 Send Done
+2025/02/21 09:14:14 Recv First Byte
+2025/02/21 09:14:14 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:14 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:14 Send Done
+2025/02/21 09:14:14 Recv First Byte
+2025/02/21 09:14:14 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:14 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:14 Send Done
+2025/02/21 09:14:14 Recv First Byte
+2025/02/21 09:14:14 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:14 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:14 Send Done
+2025/02/21 09:14:14 Recv First Byte
+2025/02/21 09:14:14 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:14 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:14 Send Done
+2025/02/21 09:14:14 Recv First Byte
+2025/02/21 09:14:14 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:14 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:14 Send Done
+2025/02/21 09:14:14 Recv First Byte
+[0D[2K⢿ Waiting for health checks...[0D[0D[2K⡿ Waiting for health checks...[0D[0D[2K⣟ Waiting for health checks...[0D[0D[2K⣯ Waiting for health checks...[0D[0D[2K⣷ Waiting for health checks...[0D[0D[2K⣾ Waiting for health checks...[0D[0D[2K⣽ Waiting for health checks...[0D[0D[2K⣻ Waiting for health checks...[0D[0D[2K⢿ Waiting for health checks...[0D[0D[2K⡿ Waiting for health checks...[0D2025/02/21 09:14:15 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:15 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:15 Send Done
+2025/02/21 09:14:15 Recv First Byte
+2025/02/21 09:14:15 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:15 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:15 Send Done
+[0D[2K⣟ Waiting for health checks...[0D2025/02/21 09:14:15 Recv First Byte
+2025/02/21 09:14:15 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:15 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:15 Send Done
+2025/02/21 09:14:15 Recv First Byte
+2025/02/21 09:14:15 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:15 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:15 Send Done
+2025/02/21 09:14:15 Recv First Byte
+2025/02/21 09:14:15 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:15 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:15 Send Done
+2025/02/21 09:14:15 Recv First Byte
+2025/02/21 09:14:15 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:15 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:15 Send Done
+2025/02/21 09:14:15 Recv First Byte
+2025/02/21 09:14:15 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:15 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:15 Send Done
+2025/02/21 09:14:15 Recv First Byte
+[0D[2K⣯ Waiting for health checks...[0D[0D[2K⣷ Waiting for health checks...[0D[0D[2K⣾ Waiting for health checks...[0D[0D[2K⣽ Waiting for health checks...[0D[0D[2K⣻ Waiting for health checks...[0D[0D[2K⢿ Waiting for health checks...[0D[0D[2K⡿ Waiting for health checks...[0D[0D[2K⣟ Waiting for health checks...[0D[0D[2K⣯ Waiting for health checks...[0D2025/02/21 09:14:16 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:16 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:16 Send Done
+[0D[2K⣷ Waiting for health checks...[0D2025/02/21 09:14:16 Recv First Byte
+2025/02/21 09:14:16 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:16 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:16 Send Done
+2025/02/21 09:14:16 Recv First Byte
+2025/02/21 09:14:16 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:16 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:16 Send Done
+2025/02/21 09:14:16 Recv First Byte
+2025/02/21 09:14:16 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:16 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:16 Send Done
+2025/02/21 09:14:16 Recv First Byte
+2025/02/21 09:14:16 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:16 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:16 Send Done
+2025/02/21 09:14:16 Recv First Byte
+2025/02/21 09:14:16 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:16 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:16 Send Done
+2025/02/21 09:14:16 Recv First Byte
+2025/02/21 09:14:16 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:16 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:16 Send Done
+2025/02/21 09:14:16 Recv First Byte
+[0D[2K⣾ Waiting for health checks...[0D[0D[2K⣽ Waiting for health checks...[0D[0D[2K⣻ Waiting for health checks...[0D[0D[2K⢿ Waiting for health checks...[0D[0D[2K⡿ Waiting for health checks...[0D[0D[2K⣟ Waiting for health checks...[0D[0D[2K⣯ Waiting for health checks...[0D[0D[2K⣷ Waiting for health checks...[0D[0D[2K⣾ Waiting for health checks...[0D[0D[2K⣽ Waiting for health checks...[0D2025/02/21 09:14:17 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:17 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:17 Send Done
+2025/02/21 09:14:17 Recv First Byte
+2025/02/21 09:14:17 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:17 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:17 Send Done
+2025/02/21 09:14:17 Recv First Byte
+2025/02/21 09:14:17 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:17 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:17 Send Done
+2025/02/21 09:14:17 Recv First Byte
+2025/02/21 09:14:17 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:17 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:17 Send Done
+2025/02/21 09:14:17 Recv First Byte
+2025/02/21 09:14:17 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:17 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:17 Send Done
+2025/02/21 09:14:17 Recv First Byte
+2025/02/21 09:14:17 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:17 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:17 Send Done
+2025/02/21 09:14:17 Recv First Byte
+2025/02/21 09:14:17 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:17 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:17 Send Done
+2025/02/21 09:14:17 Recv First Byte
+[0D[2K⣻ Waiting for health checks...[0D[0D[2K⢿ Waiting for health checks...[0D[0D[2K⡿ Waiting for health checks...[0D[0D[2K⣟ Waiting for health checks...[0D[0D[2K⣯ Waiting for health checks...[0D[0D[2K⣷ Waiting for health checks...[0D[0D[2K⣾ Waiting for health checks...[0D[0D[2K⣽ Waiting for health checks...[0D[0D[2K⣻ Waiting for health checks...[0D[0D[2K⢿ Waiting for health checks...[0D2025/02/21 09:14:18 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:18 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:18 Send Done
+2025/02/21 09:14:18 Recv First Byte
+2025/02/21 09:14:18 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:18 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:18 Send Done
+2025/02/21 09:14:18 Recv First Byte
+2025/02/21 09:14:18 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:18 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:18 Send Done
+2025/02/21 09:14:18 Recv First Byte
+2025/02/21 09:14:18 Sent Header: Host [api.moby.localhost]
+2025/02/21 09:14:18 Sent Header: User-Agent [Docker-Client/unknown-version (darwin)]
+2025/02/21 09:14:18 Send Done
+2025/02/21 09:14:18 Recv First Byte
+[2K[?25h[?1002l[?1003l[?1006lStarted supabase local development setup.
+
+         API URL: http://127.0.0.1:54321
+     GraphQL URL: http://127.0.0.1:54321/graphql/v1
+  S3 Storage URL: http://127.0.0.1:54321/storage/v1/s3
+          DB URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      Studio URL: http://127.0.0.1:54323
+    Inbucket URL: http://127.0.0.1:54324
+      JWT secret: super-secret-jwt-token-with-at-least-32-characters-long
+        anon key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+service_role key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU
+   S3 Access Key: 625729a08b95bf1b7ff351a663f3a23c
+   S3 Secret Key: 850181e4652dd023b7a98c58ae0d2d34bd487ee0cc3254aed6eda37307425907
+       S3 Region: local

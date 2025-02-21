@@ -1,27 +1,25 @@
 'use client'
 
-import * as React from 'react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { ReactNode, useState } from 'react'
 import { ThemeProvider } from './theme-provider'
-import { ToastProvider } from './toast-provider'
-import { SupabaseProvider } from './supabase-provider'
 import { AuthProvider } from './auth-provider'
-import { ErrorBoundary } from './error-boundary'
+import { SupabaseProvider } from './supabase-provider'
+import { Toaster } from 'sonner'
 
-interface ProvidersProps {
-  children: React.ReactNode
-}
+export function Providers({ children }: { children: ReactNode }) {
+  const [queryClient] = useState(() => new QueryClient())
 
-export function Providers({ children }: ProvidersProps) {
   return (
-    <ErrorBoundary fallback={<div>Something went wrong. Please try again.</div>}>
-      <ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
         <SupabaseProvider>
           <AuthProvider>
             {children}
-            <ToastProvider />
+            <Toaster />
           </AuthProvider>
         </SupabaseProvider>
       </ThemeProvider>
-    </ErrorBoundary>
+    </QueryClientProvider>
   )
 } 

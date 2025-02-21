@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { format, parseISO, differenceInDays } from 'date-fns'
 import {
   DotsHorizontalIcon,
@@ -25,17 +25,19 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
-import { createClient } from '@/lib/supabase/client'
+import { handleClientError } from '@/lib/utils/error-handler'
+import { updateTimeOffStatus } from './actions'
 import type { Database } from '@/types/supabase/database'
 
 type TimeOffRequest = Database['public']['Tables']['time_off_requests']['Row'] & {
   employee: Database['public']['Tables']['employees']['Row']
 }
 
+type TimeOffStatus = TimeOffRequest['status']
+
 export function TimeOffDataTable({ promise, isManager }: { promise: Promise<TimeOffRequest[]>, isManager: boolean }) {
   const [requests, setRequests] = useState<TimeOffRequest[]>([])
 
-  // Use effect to handle the promise
   useEffect(() => {
     promise.then((data) => setRequests(data))
   }, [promise])
@@ -44,7 +46,6 @@ export function TimeOffDataTable({ promise, isManager }: { promise: Promise<Time
 }
 
 function DataTable({ requests, isManager }: { requests: TimeOffRequest[], isManager: boolean }) {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const { toast } = useToast()
   const [isPending, setIsPending] = useState(false)
@@ -74,39 +75,28 @@ function DataTable({ requests, isManager }: { requests: TimeOffRequest[], isMana
   })
 
   // Handle request status update
-  async function updateStatus(id: string, status: 'approved' | 'rejected') {
+  async function handleStatusUpdate(id: string, status: 'approved' | 'rejected') {
     try {
       setIsPending(true)
-      const supabase = createClient()
-
-      const { error } = await supabase
-        .from('time_off_requests')
-        .update({ status })
-        .eq('id', id)
-
-      if (error) throw error
-
+      await updateTimeOffStatus(id, status)
       toast({
         title: 'Success',
         description: `Request ${status} successfully.`,
       })
-
-      router.refresh()
     } catch (error) {
-      console.error('Error updating request:', error)
-      toast({
-        title: 'Error',
-        description: 'Failed to update request. Please try again.',
-        variant: 'destructive',
-      })
+      await handleClientError(
+        () => Promise.reject(error),
+        toast,
+        { defaultMessage: 'Failed to update request status' }
+      )
     } finally {
       setIsPending(false)
     }
   }
 
   // Get status badge variant
-  function getStatusVariant(status: string): 'default' | 'destructive' | 'outline' | 'secondary' {
-    switch (status) {
+  function getStatusVariant(status: TimeOffStatus): 'default' | 'destructive' | 'outline' | 'secondary' {
+    switch (status.toLowerCase()) {
       case 'approved':
         return 'secondary'
       case 'rejected':
@@ -141,7 +131,7 @@ function DataTable({ requests, isManager }: { requests: TimeOffRequest[], isMana
             <TableHead>End Date</TableHead>
             <TableHead>Duration</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead>Notes</TableHead>
+            <TableHead>Reason</TableHead>
             {isManager && <TableHead className="w-[100px]"></TableHead>}
           </TableRow>
         </TableHeader>
@@ -160,13 +150,13 @@ function DataTable({ requests, isManager }: { requests: TimeOffRequest[], isMana
               </TableCell>
               <TableCell>
                 <Badge variant={getStatusVariant(request.status)} className="capitalize">
-                  {request.status}
+                  {request.status.toLowerCase()}
                 </Badge>
               </TableCell>
               <TableCell className="max-w-[200px] truncate">
-                {request.notes}
+                {request.reason}
               </TableCell>
-              {isManager && request.status === 'pending' && (
+              {isManager && request.status.toLowerCase() === 'pending' && (
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -177,14 +167,14 @@ function DataTable({ requests, isManager }: { requests: TimeOffRequest[], isMana
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem
-                        onClick={() => updateStatus(request.id, 'approved')}
+                        onClick={() => handleStatusUpdate(request.id, 'approved')}
                         className="text-green-600"
                       >
                         <CheckIcon className="mr-2 h-4 w-4" />
                         Approve
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() => updateStatus(request.id, 'rejected')}
+                        onClick={() => handleStatusUpdate(request.id, 'rejected')}
                         className="text-destructive"
                       >
                         <CrossCircledIcon className="mr-2 h-4 w-4" />

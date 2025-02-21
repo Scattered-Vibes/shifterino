@@ -1,6 +1,7 @@
 import type { ShiftPattern, Holiday } from '@/types/shift-patterns'
 
 export type ShiftStatus = 'scheduled' | 'completed' | 'cancelled'
+export type ShiftCategory = 'DAY' | 'SWING' | 'NIGHT'
 
 export interface Employee {
   id: string
@@ -8,7 +9,8 @@ export interface Employee {
   email: string
   role: 'supervisor' | 'dispatcher' | 'manager'
   shift_pattern: ShiftPattern
-  max_weekly_hours: number
+  weekly_hours_cap: number
+  preferred_shift_category?: ShiftCategory
 }
 
 export interface ShiftOption {
@@ -16,7 +18,7 @@ export interface ShiftOption {
   startTime: string
   endTime: string
   durationHours: number
-  category: string
+  category: ShiftCategory
 }
 
 export interface TimeOffRequest {
@@ -53,7 +55,6 @@ export interface ScheduleGenerationParams {
 export interface ScheduleGenerationResult {
   success: boolean
   shiftsGenerated: number
-  shifts_generated: number
   errors?: string[]
   warnings?: string[]
 }
@@ -64,6 +65,7 @@ export interface ShiftEvent {
   employeeRole: 'supervisor' | 'dispatcher' | 'manager'
   start: string
   end: string
+  date: string
   status: ShiftStatus
   pattern: ShiftPattern
   shiftOptionId: string

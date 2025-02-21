@@ -1,40 +1,22 @@
-import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { createClient } from '@/lib/supabase/server'
-import { handleError, getHttpStatus } from '@/lib/utils/error-handler'
+import { createServerClient } from '@/lib/supabase/index'
+import { createApiResponse, handleApiError, requireAuth } from '@/lib/api/utils'
+import { NextResponse } from 'next/server'
+
+export const dynamic = 'force-dynamic'
 
 const ForceSignOutSchema = z.object({
   userId: z.string().uuid(),
   reason: z.string().min(1).max(500),
 })
 
-// Verify admin/manager role
-async function verifyManagerRole(userId: string) {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from('employees')
-    .select('role')
-    .eq('id', userId)
-    .single()
-
-  if (error || !data || data.role !== 'manager') {
-    throw new Error('Unauthorized - Manager role required')
-  }
-}
-
 /**
- * Force sign out a user (admin only)
+ * Force sign out a user (manager only)
  */
 export async function POST(request: Request) {
   try {
-    const supabase = createClient()
-
-    // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) throw new Error('Unauthorized')
-    
-    // Verify manager role
-    await verifyManagerRole(user.id)
+    const user = await requireAuth('manager')
+    const supabase = createServerClient()
 
     // Parse and validate request body
     const body = await request.json()
@@ -61,17 +43,32 @@ export async function POST(request: Request) {
       console.error('Error logging force sign out:', logError)
     }
 
-    return NextResponse.json({
+    return createApiResponse({
       message: 'Successfully signed out user',
       userId: validatedData.userId,
     })
   } catch (error) {
-    const appError = handleError(error)
-    return NextResponse.json(
-      { error: appError.message }, 
-      { status: getHttpStatus(appError.code) }
-    )
+    return handleApiError(error, 'force sign out')
   }
+}
+
+// Handle OPTIONS requests for CORS
+export async function OPTIONS() {
+  const allowedOrigin = process.env.NEXT_PUBLIC_APP_URL
+  
+  if (!allowedOrigin) {
+    return new NextResponse(null, { status: 500 })
+  }
+  
+  return new NextResponse(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': allowedOrigin,
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Max-Age': '86400'
+    },
+  })
 }
 
 // Only allow POST requests

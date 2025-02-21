@@ -1,118 +1,70 @@
 import { NextRequest } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { createErrorResponse } from '@/lib/api-utils'
+import { createServerClient } from '@/lib/supabase/index'
+import { createApiResponse, handleApiError, requireAuth } from '@/lib/api/utils'
+import { z } from 'zod'
 
 export const dynamic = 'force-dynamic'
 
+const createUserSchema = z.object({
+  email: z.string().email('Invalid email'),
+  password: z.string().optional(),
+  role: z.enum(['admin', 'manager', 'supervisor', 'employee']),
+  full_name: z.string().optional()
+})
+
 export async function GET(_request: NextRequest) {
   try {
-    const supabase = createClient()
-
-    // Get current user and verify admin status
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError) {
-      return createErrorResponse(authError.message, 401)
-    }
-
-    if (!user) {
-      return createErrorResponse('Unauthorized', 401)
-    }
-
-    // Get user's role from profiles table
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError) {
-      return createErrorResponse(profileError.message, 500)
-    }
-
-    if (profile?.role !== 'admin') {
-      return createErrorResponse('Forbidden - Admin access required', 403)
-    }
+    await requireAuth('admin')
+    const supabase = createServerClient()
 
     // Get all users with their profiles
     const { data: users, error: usersError } = await supabase
       .from('profiles')
       .select('*, users:auth.users(email, created_at)')
 
-    if (usersError) {
-      return createErrorResponse(usersError.message, 500)
-    }
+    if (usersError) throw usersError
 
-    return Response.json({ users })
+    return createApiResponse({ users })
   } catch (error) {
-    console.error('Admin API error:', error)
-    return createErrorResponse('Internal server error', 500)
+    return handleApiError(error, 'get users')
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient()
+    await requireAuth('admin')
+    const supabase = createServerClient()
 
-    // Get current user and verify admin status
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError) {
-      return createErrorResponse(authError.message, 401)
-    }
-
-    if (!user) {
-      return createErrorResponse('Unauthorized', 401)
-    }
-
-    // Get user's role from profiles table
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError) {
-      return createErrorResponse(profileError.message, 500)
-    }
-
-    if (profile?.role !== 'admin') {
-      return createErrorResponse('Forbidden - Admin access required', 403)
-    }
-
-    // Parse request body
+    // Parse and validate request body
     const body = await request.json()
-    if (!body.email || !body.role) {
-      return createErrorResponse('Missing required fields: email, role', 400)
-    }
+    const data = createUserSchema.parse(body)
 
     // Create new user
     const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
-      email: body.email,
-      password: body.password || Math.random().toString(36).slice(-8),
+      email: data.email,
+      password: data.password || Math.random().toString(36).slice(-8),
       email_confirm: true
     })
 
-    if (createError) {
-      return createErrorResponse(createError.message, 500)
-    }
+    if (createError) throw createError
 
     // Create profile for new user
-    const { error: profileCreateError } = await supabase
+    const { error: profileError } = await supabase
       .from('profiles')
       .insert({
         id: newUser.user.id,
-        role: body.role,
-        full_name: body.full_name || null
+        role: data.role,
+        full_name: data.full_name || null
       })
 
-    if (profileCreateError) {
+    if (profileError) {
       // Attempt to clean up user if profile creation fails
       await supabase.auth.admin.deleteUser(newUser.user.id)
-      return createErrorResponse(profileCreateError.message, 500)
+      throw profileError
     }
 
-    return Response.json({ user: newUser.user })
+    return createApiResponse({ user: newUser.user })
   } catch (error) {
-    console.error('Admin API error:', error)
-    return createErrorResponse('Internal server error', 500)
+    return handleApiError(error, 'create user')
   }
 } 

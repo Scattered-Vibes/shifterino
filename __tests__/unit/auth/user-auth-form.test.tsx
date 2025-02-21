@@ -1,116 +1,99 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { UserAuthForm } from '@/app/(auth)/components/user-auth-form'
-import { mockRouter } from '../../helpers/auth'
-import * as React from 'react'
+import { vi, describe, it, expect, beforeEach } from 'vitest'
+import { useRouter } from 'next/navigation'
 
+// Mock next/navigation
+vi.mock('next/navigation', () => ({
+  useRouter: vi.fn(() => ({
+    push: vi.fn()
+  })),
+  useSearchParams: vi.fn(() => ({
+    get: vi.fn()
+  }))
+}))
+
+// Define proper types for form state
 interface LoginState {
   error?: { message: string }
   success?: boolean
-  redirectTo?: string
 }
 
-// Mock hooks directly on React
-const useTransition = vi.spyOn(React, 'useTransition')
-const mockStartTransition = vi.fn()
+// Create mock functions
+const mockFormAction = vi.fn()
+const mockFormState = vi.fn()
+const mockFormStatus = vi.fn()
 
-// Mock form state hook
-const mockFormState = vi.fn((action: any, initialState: LoginState | null) => [initialState, action])
+// Mock react-dom module
 vi.mock('react-dom', () => ({
-  useFormState: (action: any, initialState: LoginState | null) => mockFormState(action, initialState)
+  experimental_useFormState: mockFormState,
+  experimental_useFormStatus: mockFormStatus
 }))
 
 describe('UserAuthForm', () => {
+  const user = userEvent.setup()
+
   beforeEach(() => {
     vi.clearAllMocks()
-    useTransition.mockReturnValue([false, mockStartTransition])
+    // Reset mocks with proper types
+    mockFormState.mockReturnValue([{}, mockFormAction, false])
+    mockFormStatus.mockReturnValue({ pending: false })
   })
 
-  it('renders login form with required fields', () => {
+  it('renders form fields correctly', () => {
     render(<UserAuthForm />)
-
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument()
   })
 
-  it('includes hidden redirectTo field with default value', () => {
+  it('shows validation errors for empty fields', async () => {
     render(<UserAuthForm />)
-    
-    const redirectInput = screen.getByRole('textbox', { hidden: true }) as HTMLInputElement
-    expect(redirectInput).toHaveValue('/overview')
-  })
-
-  it('includes custom redirectTo when provided', () => {
-    render(<UserAuthForm redirectTo="/custom-page" />)
-    
-    const redirectInput = screen.getByRole('textbox', { hidden: true }) as HTMLInputElement
-    expect(redirectInput).toHaveValue('/custom-page')
+    await user.click(screen.getByRole('button', { name: /sign in/i }))
+    expect(screen.getByLabelText(/email/i)).toBeInvalid()
+    expect(screen.getByLabelText(/password/i)).toBeInvalid()
   })
 
   it('disables form fields while submitting', async () => {
-    useTransition.mockReturnValue([true, mockStartTransition])
-    
+    mockFormStatus.mockReturnValue({ pending: true })
+
     render(<UserAuthForm />)
-    
     expect(screen.getByLabelText(/email/i)).toBeDisabled()
     expect(screen.getByLabelText(/password/i)).toBeDisabled()
-    expect(screen.getByRole('button', { name: /sign in/i })).toBeDisabled()
+    expect(screen.getByRole('button')).toBeDisabled()
+    expect(screen.getByRole('button')).toHaveTextContent(/signing in\.\.\./i)
   })
 
-  it('shows loading spinner while submitting', async () => {
-    useTransition.mockReturnValue([true, mockStartTransition])
-    
+  it('handles successful login', async () => {
+    const router = useRouter()
+    mockFormState.mockReturnValue([{ success: true }, mockFormAction, false])
+
     render(<UserAuthForm />)
-    
-    expect(screen.getByTestId('spinner')).toBeInTheDocument()
-  })
-
-  it('displays error message when login fails', () => {
-    mockFormState.mockReturnValue([
-      { error: { message: 'Invalid credentials' } },
-      vi.fn()
-    ])
-    
-    render(<UserAuthForm />)
-    
-    expect(screen.getByText('Invalid credentials')).toBeInTheDocument()
-  })
-
-  it('redirects on successful login', async () => {
-    mockFormState.mockReturnValue([
-      { success: true, redirectTo: '/overview' },
-      vi.fn()
-    ])
-    
-    render(<UserAuthForm />)
-    
-    await waitFor(() => {
-      expect(mockRouter.push).toHaveBeenCalledWith('/overview')
-    })
-  })
-
-  it('uses custom redirect path on successful login', async () => {
-    mockFormState.mockReturnValue([
-      { success: true, redirectTo: '/custom-page' },
-      vi.fn()
-    ])
-    
-    render(<UserAuthForm redirectTo="/custom-page" />)
-    
-    await waitFor(() => {
-      expect(mockRouter.push).toHaveBeenCalledWith('/custom-page')
-    })
-  })
-
-  it('validates required fields', async () => {
-    const user = userEvent.setup()
-    render(<UserAuthForm />)
-    
+    await user.type(screen.getByLabelText(/email/i), 'test@example.com')
+    await user.type(screen.getByLabelText(/password/i), 'password123')
     await user.click(screen.getByRole('button', { name: /sign in/i }))
-    
-    expect(screen.getByLabelText(/email/i)).toBeInvalid()
-    expect(screen.getByLabelText(/password/i)).toBeInvalid()
+
+    await waitFor(() => {
+      expect(mockFormAction).toHaveBeenCalled()
+      expect(router.push).toHaveBeenCalledWith('/overview')
+    })
+  })
+
+  it('handles login errors', async () => {
+    mockFormState.mockReturnValue([
+      { error: { message: 'Invalid login credentials' } },
+      mockFormAction,
+      false
+    ])
+
+    render(<UserAuthForm />)
+    await user.type(screen.getByLabelText(/email/i), 'test@example.com')
+    await user.type(screen.getByLabelText(/password/i), 'wrongpass')
+    await user.click(screen.getByRole('button', { name: /sign in/i }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent(/invalid login credentials/i)
+    })
   })
 }) 

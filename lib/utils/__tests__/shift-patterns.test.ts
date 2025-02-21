@@ -1,17 +1,23 @@
 import { describe, it, expect } from 'vitest'
 import { validateShiftPattern, SHIFT_PATTERNS } from '../shift-patterns'
 import type { ShiftEvent } from '@/types/scheduling/shift'
+import { validateShiftPatternFormat, isValidShiftPattern } from '../shift-patterns'
+import type { Database } from '@/types/supabase/database'
+
+type DbShiftPattern = Database['public']['Enums']['shift_pattern']
 
 describe('validateShiftPattern', () => {
   const baseShift: ShiftEvent = {
     id: '1',
-    employee_id: 'emp1',
-    date: '2025-01-01',
+    employeeId: 'emp1',
+    employeeRole: 'dispatcher',
+    title: 'Test Shift',
     start: '2025-01-01T09:00:00.000Z',
     end: '2025-01-01T19:00:00.000Z',
-    pattern: 'PATTERN_A',
+    pattern: '4x10',
     status: 'scheduled',
-    notes: null
+    notes: undefined,
+    shiftOptionId: 'opt1'
   }
 
   describe('Pattern A (4x10)', () => {
@@ -52,7 +58,7 @@ describe('validateShiftPattern', () => {
   describe('Pattern B (3x12+4)', () => {
     const baseBShift: ShiftEvent = {
       ...baseShift,
-      pattern: 'PATTERN_B',
+      pattern: '3x12_plus_4',
       start: '2025-01-01T07:00:00.000Z',
       end: '2025-01-01T19:00:00.000Z'
     }
@@ -138,4 +144,60 @@ describe('validateShiftPattern', () => {
       expect(validateShiftPattern(shifts[0], shifts)).toBe(true)
     })
   })
-}) 
+})
+
+describe('Shift Pattern Utilities', () => {
+  describe('validateShiftPatternFormat', () => {
+    it('accepts valid patterns without conversion', () => {
+      const result = validateShiftPatternFormat('4x10')
+      expect(result.pattern).toBe('4x10')
+      expect(result.wasConverted).toBe(false)
+      expect(result.originalPattern).toBeUndefined()
+    })
+
+    it('converts legacy formats', () => {
+      const result = validateShiftPatternFormat('4_10')
+      expect(result.pattern).toBe('4x10')
+      expect(result.wasConverted).toBe(true)
+      expect(result.originalPattern).toBe('4_10')
+    })
+
+    it('converts 3x12+4 variants', () => {
+      const patterns = ['3_12_4', '3_12_plus_4']
+      patterns.forEach(pattern => {
+        const result = validateShiftPatternFormat(pattern)
+        expect(result.pattern).toBe('3x12_plus_4')
+        expect(result.wasConverted).toBe(true)
+        expect(result.originalPattern).toBe(pattern)
+      })
+    })
+
+    it('defaults to 4x10 for unknown patterns', () => {
+      const result = validateShiftPatternFormat('unknown')
+      expect(result.pattern).toBe('4x10')
+      expect(result.wasConverted).toBe(true)
+      expect(result.originalPattern).toBe('unknown')
+    })
+  })
+
+  describe('isValidShiftPattern', () => {
+    it('validates known patterns', () => {
+      expect(isValidShiftPattern('4x10')).toBe(true)
+      expect(isValidShiftPattern('3x12_plus_4')).toBe(true)
+    })
+
+    it('rejects unknown patterns', () => {
+      expect(isValidShiftPattern('unknown')).toBe(false)
+      expect(isValidShiftPattern('4_10')).toBe(false)
+      expect(isValidShiftPattern('3_12_4')).toBe(false)
+    })
+
+    it('handles type checking', () => {
+      const pattern = '4x10' as const
+      if (isValidShiftPattern(pattern)) {
+        const typedPattern: DbShiftPattern = pattern
+        expect(typedPattern).toBe('4x10')
+      }
+    })
+  })
+})
