@@ -1,6 +1,6 @@
 // app/(dashboard)/layout.tsx (should be correct already)
 import { ReactNode } from "react"
-import { BaseLayout } from "@/components/layouts/BaseLayout"
+import { DashboardClientLayout } from './DashboardClientLayout'
 
 export const metadata = {
   title: "Dashboard - Shifterino",
@@ -12,11 +12,5 @@ export default function DashboardLayout({
 }: {
   children: ReactNode
 }) {
-  return (
-    <BaseLayout className="min-h-screen bg-background">
-      <div className="container mx-auto p-4">
-        {children}
-      </div>
-    </BaseLayout>
-  )
+  return <DashboardClientLayout>{children}</DashboardClientLayout>;
 }

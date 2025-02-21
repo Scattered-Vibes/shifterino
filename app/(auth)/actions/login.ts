@@ -11,16 +11,17 @@ import { loginSchema } from '@/lib/validations/auth'
 interface LoginState {
   error?: { message: string }
   success?: boolean
+  redirectTo?: string
 }
 
-export async function login(prevState: LoginState | null, formData: FormData): Promise<LoginState> {
+export async function login(prevState: LoginState, formData: FormData): Promise<LoginState> {
   const requestId = Math.random().toString(36).substring(7)
-  console.log(`[login:${requestId}] Processing login request`)
+  console.log(`[login:${requestId}] Processing login request`, { prevState })
 
   // Extract form data
   const email = formData.get('email') as string
   const password = formData.get('password') as string
-  const redirectTo = formData.get('redirectTo') as string || '/overview'
+  const redirectTo = formData.get('redirectTo') as string || prevState?.redirectTo || '/overview'
 
   // Validate input
   const result = loginSchema.safeParse({ email, password })
@@ -29,7 +30,8 @@ export async function login(prevState: LoginState | null, formData: FormData): P
     return { 
       error: { 
         message: result.error.issues[0].message 
-      } 
+      },
+      redirectTo 
     }
   }
 
@@ -62,17 +64,17 @@ export async function login(prevState: LoginState | null, formData: FormData): P
 
     if (error) {
       console.error(`[login:${requestId}] Auth error:`, error.message)
-      return { error: { message: error.message } }
+      return { error: { message: error.message }, redirectTo }
     }
 
     console.log(`[login:${requestId}] Login successful, redirecting to:`, redirectTo)
     revalidatePath('/login')
-    redirect(redirectTo)
+    return { success: true, redirectTo }
   } catch (error) {
     console.error(`[login:${requestId}] Unexpected error:`, error)
     if (error instanceof AuthError) {
-      return { error: { message: error.message } }
+      return { error: { message: error.message }, redirectTo }
     }
-    return { error: { message: 'An unexpected error occurred' } }
+    return { error: { message: 'An unexpected error occurred' }, redirectTo }
   }
 }

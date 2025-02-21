@@ -8,6 +8,7 @@ import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { toast } from 'sonner'
 
 // Debug logging
 const requestId = Math.random().toString(36).substring(7)
@@ -16,25 +17,34 @@ console.log(`[LoginPage:${requestId}] Initializing`)
 export default function LoginPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [state, formAction] = useFormState(login, {})
+  const redirectTo = searchParams.get('redirectTo') || '/overview'
+  const [state, formAction] = useFormState(login, { redirectTo })
   const { pending } = useFormStatus()
 
   // Debug logging
   console.log(`[LoginPage:${requestId}] State:`, {
     state,
     pending,
-    redirectTo: searchParams.get('redirectTo')
+    redirectTo
   })
 
   // Handle successful login redirect
   useEffect(() => {
     if (state?.success) {
-      const redirectTo = searchParams.get('redirectTo') || '/overview'
-      console.log(`[LoginPage:${requestId}] Login success, redirecting to:`, redirectTo)
-      router.push(redirectTo)
+      const targetUrl = state.redirectTo || redirectTo
+      console.log(`[LoginPage:${requestId}] Login success, redirecting to:`, targetUrl)
+      toast.success('Login successful')
+      router.push(targetUrl)
       router.refresh()
+    } else if (state?.error) {
+      toast.error(state.error.message)
     }
-  }, [state?.success, router, searchParams])
+  }, [state, router, redirectTo])
+
+  const enhancedFormAction = async (formData: FormData) => {
+    formData.set('redirectTo', redirectTo)
+    return formAction(formData)
+  }
 
   return (
     <div className="container flex h-screen w-screen flex-col items-center justify-center">
@@ -47,7 +57,7 @@ export default function LoginPage() {
             Enter your credentials to continue
           </p>
         </div>
-        <form action={formAction} className="space-y-4">
+        <form action={enhancedFormAction} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input

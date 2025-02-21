@@ -2,11 +2,10 @@
 
 import { createContext, useContext, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import type { SupabaseClient, User } from '@supabase/supabase-js'
-import type { Database } from '@/types/supabase/database'
+import type { User } from '@supabase/supabase-js'
 import { toast } from 'sonner'
 import { Loading } from '@/components/ui/loading'
-import { createClient } from '@/lib/supabase/client'
+import { useSupabase } from './supabase-provider'
 
 interface AuthContextType {
   user: User | null
@@ -30,14 +29,25 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useSupabase()
+  const [user, setUser] = useState<User | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
 
   useEffect(() => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null)
+      setIsLoading(false)
       if (event === 'SIGNED_IN') router.refresh()
       if (event === 'SIGNED_OUT') router.refresh()
+    })
+
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null)
+      setIsLoading(false)
     })
 
     return () => {
@@ -45,5 +55,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, [router, supabase])
 
-  return children
+  if (isLoading) {
+    return <Loading />
+  }
+
+  return (
+    <AuthContext.Provider value={{ user, isLoading, error }}>
+      {children}
+    </AuthContext.Provider>
+  )
 } 

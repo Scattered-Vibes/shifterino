@@ -6,13 +6,18 @@ import { ReactNode } from 'react'
 interface BaseLayoutProps {
   children: ReactNode
   showNav?: boolean
+  className?: string
 }
 
-export function BaseLayout({ children, showNav = true }: BaseLayoutProps) {
+export function BaseLayout({ 
+  children, 
+  showNav = true,
+  className 
+}: BaseLayoutProps) {
   return (
-    <div className="min-h-screen">
-      {showNav && <NavigationBar />}
-      <main className="container mx-auto px-4 py-8">{children}</main>
+    <div className="min-h-screen bg-background">
+      {showNav && <NavigationBar className="sticky top-0 z-40" />}
+      {children}
     </div>
   )
 } 

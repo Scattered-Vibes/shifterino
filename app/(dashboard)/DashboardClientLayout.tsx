@@ -1,53 +1,93 @@
 'use client'
 
-import { MainNav } from '@/components/ui/main-nav'
-import { UserNav } from '@/components/ui/user-nav'
+import { BaseLayout } from '@/components/layouts/BaseLayout'
 import { SidebarNav } from '@/components/ui/sidebar-nav'
-import type { UserRole } from '@/types/models/employee'
+import { ReactNode, useMemo } from 'react'
+import { NavItem } from '@/types/navigation'
+import { 
+  LayoutDashboard,
+  Calendar,
+  Clock,
+  Users,
+  Settings,
+  ClipboardList,
+  ArrowLeftRight,
+  UserCog
+} from 'lucide-react'
+import { useAuth } from '@/app/providers/auth-provider'
 
-interface DashboardClientLayoutProps {
-  children: React.ReactNode
-  userRole: UserRole
-  firstName: string
-  lastName: string
-  email: string
+const sidebarNavItems: NavItem[] = [
+  {
+    title: 'Overview',
+    href: '/overview',
+    icon: LayoutDashboard,
+  },
+  {
+    title: 'Schedules',
+    href: '/schedules',
+    icon: Calendar,
+  },
+  {
+    title: 'Time Off',
+    href: '/time-off',
+    icon: Clock,
+  },
+  {
+    title: 'Manage',
+    href: '/manage',
+    icon: ClipboardList,
+    roles: ['manager', 'supervisor', 'admin'],
+  },
+  {
+    title: 'Employees',
+    href: '/employees',
+    icon: Users,
+    roles: ['manager', 'supervisor', 'admin'],
+  },
+  {
+    title: 'Shift Options',
+    href: '/shift-options',
+    icon: Clock,
+    roles: ['manager', 'admin'],
+  },
+  {
+    title: 'Requirements',
+    href: '/requirements',
+    icon: ArrowLeftRight,
+    roles: ['manager', 'admin'],
+  },
+  {
+    title: 'Settings',
+    href: '/settings',
+    icon: UserCog,
+  },
+]
+
+export interface DashboardClientLayoutProps {
+  children: ReactNode
 }
 
-export function DashboardClientLayout({
-  children,
-  userRole,
-  firstName,
-  lastName,
-  email
-}: DashboardClientLayoutProps) {
-  return (
-    <div className="flex min-h-screen">
-      {/* Sidebar */}
-      <aside className="hidden w-64 border-r bg-background lg:block">
-        <div className="flex h-full flex-col">
-          <div className="p-6">
-            <h2 className="text-lg font-semibold">911 Dispatch</h2>
-          </div>
-          <SidebarNav className="flex-1 px-4" userRole={userRole} />
-        </div>
-      </aside>
+export function DashboardClientLayout({ children }: DashboardClientLayoutProps) {
+  const { user } = useAuth()
+  const userRole = user?.user_metadata?.role || 'dispatcher'
 
-      {/* Main content */}
-      <div className="flex flex-1 flex-col">
-        <header className="flex h-16 items-center justify-between border-b px-6">
-          <MainNav userRole={userRole} />
-          <UserNav 
-            name={`${firstName} ${lastName}`}
-            email={email}
-            role={userRole}
-          />
-        </header>
-        <main className="flex-1">
-          <div className="container py-6">
-            {children}
+  const filteredNavItems = useMemo(() => 
+    sidebarNavItems.filter(item => 
+      !item.roles || item.roles.includes(userRole)
+    ),
+    [userRole]
+  )
+
+  return (
+    <BaseLayout>
+      <div className="flex min-h-screen flex-col md:flex-row">
+        <aside className="w-full border-r border-border bg-card md:w-64">
+          <div className="sticky top-16 overflow-y-auto p-4">
+            <SidebarNav items={filteredNavItems} />
           </div>
-        </main>
+        </aside>
+        <main className="flex-1 p-6">{children}</main>
       </div>
-    </div>
+    </BaseLayout>
   )
 } 

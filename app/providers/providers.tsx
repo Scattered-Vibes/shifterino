@@ -5,8 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ThemeProvider } from './theme-provider'
 import { Toaster } from '@/components/ui/toaster'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
-import { createBrowserClient } from '@supabase/ssr'
-import type { Database } from '@/types/supabase/database'
+import { SupabaseProvider } from './supabase-provider'
 import { AuthProvider } from './auth-provider'
 
 // Create a client
@@ -28,13 +27,6 @@ interface ProvidersProps {
 }
 
 export function Providers({ children }: ProvidersProps) {
-  const [supabase] = React.useState(() => 
-    createBrowserClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
-  )
-
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
@@ -44,10 +36,12 @@ export function Providers({ children }: ProvidersProps) {
           enableSystem
           disableTransitionOnChange
         >
-          <AuthProvider supabaseClient={supabase}>
-            {children}
-            <Toaster />
-          </AuthProvider>
+          <SupabaseProvider>
+            <AuthProvider>
+              {children}
+              <Toaster />
+            </AuthProvider>
+          </SupabaseProvider>
         </ThemeProvider>
       </QueryClientProvider>
     </ErrorBoundary>

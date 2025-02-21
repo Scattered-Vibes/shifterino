@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { cn } from "@/lib/utils"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { UserNav } from "@/app/components/ui/user-nav"
+import { UserNav } from "@/components/ui/user-nav"
 
 const navItems = [
   { href: '/overview', label: 'Overview' },
@@ -13,11 +13,15 @@ const navItems = [
   { href: '/profile', label: 'Profile' },
 ]
 
-export function NavigationBar() {
+interface NavigationBarProps {
+  className?: string;
+}
+
+export function NavigationBar({ className }: NavigationBarProps) {
   const pathname = usePathname()
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className={cn('sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60', className)}>
       <div className="container flex h-14 items-center">
         <div className="mr-4 flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
@@ -48,6 +52,6 @@ export function NavigationBar() {
           </nav>
         </div>
       </div>
-    </nav>
+    </header>
   )
 } 
