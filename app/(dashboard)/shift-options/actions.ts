@@ -1,7 +1,9 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
+import { getServerClient } from '@/lib/supabase/server'
+import { handleError, ErrorCode } from '@/lib/utils/error-handler'
+import type { Database } from '@/types/supabase/database'
 import { differenceInHours, parse } from 'date-fns'
 
 interface CreateShiftOptionData {
@@ -13,7 +15,7 @@ interface CreateShiftOptionData {
 
 export async function createShiftOption(data: CreateShiftOptionData) {
   try {
-    const supabase = createClient()
+    const supabase = getServerClient()
 
     // Calculate duration
     const startTime = parse(data.start_time, 'HH:mm', new Date())
@@ -62,4 +64,18 @@ export async function createShiftOption(data: CreateShiftOptionData) {
       error: 'Failed to create shift option. Please try again.',
     }
   }
+}
+
+export async function getShiftOptions() {
+  const supabase = getServerClient()
+  const { data, error } = await supabase
+    .from('shift_options')
+    .select('*')
+    .order('start_time')
+
+  if (error) {
+    throw handleError(error, ErrorCode.DATABASE_ERROR)
+  }
+
+  return data
 } 

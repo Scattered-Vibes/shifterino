@@ -2,7 +2,7 @@
 
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { handleError } from '@/lib/utils/error-handler'
-import { requireSupervisorOrAbove } from '@/lib/auth/middleware'
+import { requireSupervisor as requireSupervisorOrAbove } from '@/lib/auth/server'
 import { revalidatePath } from 'next/cache'
 import type { Database } from '@/types/supabase/database'
 

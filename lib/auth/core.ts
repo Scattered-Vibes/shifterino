@@ -1,8 +1,9 @@
-import { createClient } from '@/lib/supabase/server'
+import { getServerClient } from '@/lib/supabase/server'
 import type { User } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import { AppError, ErrorCode } from '@/lib/utils/error-handler'
 import type { Employee, EmployeeRole } from '@/types/models/employee'
+import type { Database } from '@/types/supabase/database'
 
 export type UserRole = EmployeeRole
 
@@ -16,7 +17,7 @@ export interface AuthenticatedUser {
 // Authenticates the user and fetches employee data.
 // Throws an error if authentication fails or employee data is incomplete.
 export async function requireAuth(allowIncomplete = false): Promise<AuthenticatedUser> {
-  const supabase = createClient()
+  const supabase = getServerClient()
 
   // Get authenticated user using the server client
   const { data: { user }, error: userError } = await supabase.auth.getUser()
@@ -85,7 +86,7 @@ export async function requireSupervisorOrAbove(): Promise<AuthenticatedUser> {
 export async function verifyTeamAccess(auth: AuthenticatedUser, employeeId: string): Promise<void> {
   if (auth.role === 'manager') return
 
-  const supabase = createClient()
+  const supabase = getServerClient()
   const { data: targetEmployee, error: fetchError } = await supabase
     .from('employees')
     .select('team_id')
@@ -104,7 +105,7 @@ export async function verifyEmployeeAccess(auth: AuthenticatedUser, employeeId: 
   if (auth.role === 'manager') return
 
   if (auth.role === 'supervisor') {
-    const supabase = createClient()
+    const supabase = getServerClient()
     const { data: employee, error: employeeError } = await supabase
       .from('employees')
       .select('team_id')
@@ -141,6 +142,18 @@ export async function getUserEmail(): Promise<string | null> {
   try {
     return (await requireAuth()).user.email ?? null
   } catch {
+    return null
+  }
+}
+
+export async function getUser() {
+  const supabase = getServerClient()
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser()
+    if (error) throw error
+    return user
+  } catch (error) {
+    console.error('Error getting user:', error)
     return null
   }
 }

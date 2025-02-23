@@ -1,20 +1,21 @@
-import { requireAuth } from '@/lib/auth/server'
 import { Suspense } from 'react'
-import { OverviewContent } from './components/overview-content'
-import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { requireAuth } from '@/lib/auth/server'
+import { StaffingOverview } from './components/staffing-overview'
+import { ErrorBoundary } from '@/components/ui/error-boundary'
+import { Loading } from '@/components/ui/loading'
 
 export default async function OverviewPage() {
-  const auth = await requireAuth()
-  
+  await requireAuth()
+
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">
-        Welcome, {auth.firstName}!
-      </h1>
+    <div className="container mx-auto py-6">
+      <h1 className="text-2xl font-bold mb-6">Staffing Overview</h1>
       
-      <Suspense fallback={<LoadingSpinner />}>
-        <OverviewContent userId={auth.userId} role={auth.role} />
-      </Suspense>
+      <ErrorBoundary>
+        <Suspense fallback={<Loading />}>
+          <StaffingOverview />
+        </Suspense>
+      </ErrorBoundary>
     </div>
   )
 }

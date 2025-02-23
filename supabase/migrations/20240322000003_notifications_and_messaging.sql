@@ -53,6 +53,43 @@ CREATE TABLE scheduled_reports (
     CONSTRAINT scheduled_reports_recipients_not_empty CHECK (array_length(recipients, 1) > 0)
 );
 
+-- Create function to create notification on time-off request status change
+CREATE OR REPLACE FUNCTION create_time_off_notification()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.status != OLD.status THEN
+        INSERT INTO notifications (
+            user_id,
+            type,
+            message,
+            data
+        )
+        VALUES (
+            NEW.employee_id,
+            'time_off_request',
+            CASE 
+                WHEN NEW.status = 'approved' THEN 'Your time-off request has been approved'
+                WHEN NEW.status = 'rejected' THEN 'Your time-off request has been rejected'
+                ELSE 'Your time-off request status has been updated'
+            END,
+            jsonb_build_object(
+                'request_id', NEW.id,
+                'start_date', NEW.start_date,
+                'end_date', NEW.end_date,
+                'status', NEW.status
+            )
+        );
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create trigger for time-off notifications
+CREATE TRIGGER time_off_notification_trigger
+    AFTER UPDATE OF status ON time_off_requests
+    FOR EACH ROW
+    EXECUTE FUNCTION create_time_off_notification();
+
 -- Create indexes
 CREATE INDEX idx_notifications_user ON notifications(user_id);
 CREATE INDEX idx_notifications_type ON notifications(type);

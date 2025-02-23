@@ -50,13 +50,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Enable RLS on all tables
-ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE departments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE roles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE permissions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE department_members ENABLE ROW LEVEL SECURITY;
-ALTER TABLE employees ENABLE ROW LEVEL SECURITY;
+-- Enable RLS on non-core tables
 ALTER TABLE teams ENABLE ROW LEVEL SECURITY;
 ALTER TABLE shift_options ENABLE ROW LEVEL SECURITY;
 ALTER TABLE staffing_requirements ENABLE ROW LEVEL SECURITY;
@@ -75,25 +69,7 @@ ALTER TABLE system_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE scheduled_reports ENABLE ROW LEVEL SECURITY;
 
--- Create policies for each table
-CREATE POLICY organizations_policy ON organizations
-    FOR ALL USING (true); -- Full access since it's the top-level, but might restrict insert/update
-
-CREATE POLICY departments_policy ON departments
-    FOR ALL USING (true);
-
-CREATE POLICY roles_policy ON roles
-    FOR ALL USING (is_manager());
-
-CREATE POLICY permissions_policy ON permissions
-    FOR ALL USING (is_manager());
-
-CREATE POLICY department_members_policy ON department_members
-    FOR ALL USING (
-        (user_id = auth.uid() AND department_id IN (SELECT id FROM departments))
-        OR is_manager()
-    );
-
+-- Create policies for non-core tables
 CREATE POLICY teams_policy ON teams
     FOR SELECT USING (
         id IN (SELECT team_id FROM employees WHERE auth_id = auth.uid())
@@ -217,16 +193,3 @@ CREATE POLICY audit_logs_policy ON audit_logs
 
 CREATE POLICY scheduled_reports_policy ON scheduled_reports
     FOR ALL USING (is_manager());
-
-CREATE POLICY employees_insert ON employees
-FOR INSERT WITH CHECK (
-    is_manager()
-);
-
-CREATE POLICY employees_update ON employees
-  FOR UPDATE USING (
-    is_supervisor_or_above()
-  );
-
-CREATE POLICY employees_delete ON employees
-    FOR DELETE USING (is_manager());

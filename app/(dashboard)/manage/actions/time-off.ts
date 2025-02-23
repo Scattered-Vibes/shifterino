@@ -1,8 +1,8 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { getServerClient } from '@/lib/supabase/server'
 import { handleError } from '@/lib/utils/error-handler'
-import { requireAuth, requireSupervisorOrAbove, verifyEmployeeAccess } from '@/lib/auth/middleware'
+import { requireAuth, requireSupervisor as requireSupervisorOrAbove, verifyEmployeeAccess } from '@/lib/auth/server'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
@@ -21,13 +21,13 @@ export async function createTimeOffRequest(data: z.infer<typeof timeOffRequestSc
     // Validate request data
     const validated = timeOffRequestSchema.parse(data)
     
-    const supabase = createClient()
+    const supabase = getServerClient()
     
     // Create request
     const { data: request, error } = await supabase
       .from('time_off_requests')
       .insert({
-        employee_id: auth.employeeId,
+        employee_id: auth.employee_id,
         start_date: validated.start_date,
         end_date: validated.end_date,
         reason: validated.reason,
@@ -54,7 +54,7 @@ export async function updateTimeOffRequest(
     // Verify authenticated
     const auth = await requireSupervisorOrAbove()
     
-    const supabase = createClient()
+    const supabase = getServerClient()
     
     // Get request to verify ownership
     const { data: request, error: fetchError } = await supabase
@@ -67,7 +67,7 @@ export async function updateTimeOffRequest(
     if (!request) throw new Error('Request not found')
     
     // Only allow updates to pending requests by the owner
-    if (request.employee_id !== auth.employeeId) {
+    if (request.employee_id !== auth.employee_id) {
       throw new Error('Not authorized to update this request')
     }
     
@@ -100,7 +100,7 @@ export async function deleteTimeOffRequest(requestId: string) {
     // Verify authenticated
     const auth = await requireAuth()
     
-    const supabase = createClient()
+    const supabase = getServerClient()
     
     // Get request to verify ownership
     const { data: request, error: fetchError } = await supabase
@@ -113,7 +113,7 @@ export async function deleteTimeOffRequest(requestId: string) {
     if (!request) throw new Error('Request not found')
     
     // Only allow deletion of pending requests by the owner
-    if (request.employee_id !== auth.employeeId) {
+    if (request.employee_id !== auth.employee_id) {
       throw new Error('Not authorized to delete this request')
     }
     
@@ -141,7 +141,7 @@ export async function approveTimeOffRequest(requestId: string) {
     // Verify supervisor or above
     const auth = await requireSupervisorOrAbove()
     
-    const supabase = createClient()
+    const supabase = getServerClient()
     
     // Get request to verify team access
     const { data: request, error: fetchError } = await supabase
@@ -182,7 +182,7 @@ export async function rejectTimeOffRequest(requestId: string, reason: string) {
     // Verify supervisor or above
     const auth = await requireSupervisorOrAbove()
     
-    const supabase = createClient()
+    const supabase = getServerClient()
     
     // Get request to verify team access
     const { data: request, error: fetchError } = await supabase

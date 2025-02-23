@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { handleError, getHttpStatus } from '@/lib/utils/error-handler'
+import { getServerClient } from '@/lib/supabase/server'
+import { AppError, ErrorCode } from '@/lib/utils/error-handler'
 
 const THIRTY_DAYS_IN_SECONDS = 60 * 60 * 24 * 30
 
@@ -13,19 +13,21 @@ export async function POST(request: Request) {
     // Verify secret key to ensure only authorized calls
     const authHeader = request.headers.get('authorization')
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new Error('Unauthorized')
+      throw new AppError('Unauthorized', ErrorCode.UNAUTHORIZED, 401)
     }
 
     const token = authHeader.split(' ')[1]
     if (token !== process.env.CLEANUP_SECRET_KEY) {
-      throw new Error('Invalid token')
+      throw new AppError('Invalid token', ErrorCode.UNAUTHORIZED, 401)
     }
 
-    const supabase = createClient()
+    const supabase = getServerClient()
 
     // Use admin API to list all sessions
     const { data: sessions, error: listError } = await supabase.auth.admin.listUsers()
-    if (listError) throw listError
+    if (listError) {
+      throw new AppError(listError.message, ErrorCode.INTERNAL_SERVER_ERROR, 500)
+    }
 
     const now = Math.floor(Date.now() / 1000)
     const expiredUsers = sessions.users.filter((user) => {
@@ -41,51 +43,59 @@ export async function POST(request: Request) {
     }
 
     // Sign out expired users and log the operation
-    const cleanupPromises = expiredUsers.map(async (user) => {
+    const errors = []
+    for (const user of expiredUsers) {
       try {
         // Sign out the user
         const { error: signOutError } = await supabase.auth.admin.signOut(user.id)
-        if (signOutError) throw signOutError
-
-        // Log the cleanup
-        const { error: logError } = await supabase.from('auth_logs').insert({
-          operation: 'cleanup',
-          user_id: user.id,
-          details: {
-            reason: 'Session expired',
-            last_sign_in: user.last_sign_in_at,
-          },
-        })
-
-        if (logError) {
-          console.error('Error logging cleanup:', logError)
+        if (signOutError) {
+          errors.push({ userId: user.id, error: signOutError.message })
+          continue
         }
 
-        return true
-      } catch (error) {
-        console.error(`Error cleaning up user ${user.id}:`, error)
-        return false
-      }
-    })
+        // Log the cleanup
+        const { error: logError } = await supabase
+          .from('auth_logs')
+          .insert({
+            user_id: user.id,
+            action: 'cleanup',
+            details: {
+              reason: 'expired_session',
+              last_sign_in: user.last_sign_in_at,
+            },
+          })
 
-    const results = await Promise.all(cleanupPromises)
-    const successCount = results.filter(Boolean).length
+        if (logError) {
+          errors.push({ userId: user.id, error: `Logged out but failed to log: ${logError.message}` })
+        }
+      } catch (error) {
+        errors.push({ userId: user.id, error: error instanceof Error ? error.message : 'Unknown error' })
+      }
+    }
 
     return NextResponse.json({
-      message: 'Successfully cleaned up expired sessions',
-      cleaned: successCount,
-      total: expiredUsers.length,
+      message: 'Cleanup completed',
+      cleaned: expiredUsers.length - errors.length,
+      errors: errors.length > 0 ? errors : undefined,
     })
   } catch (error) {
-    const appError = handleError(error)
+    if (error instanceof AppError) {
+      return NextResponse.json(
+        { error: error.message, details: error.details },
+        { status: error.statusCode }
+      )
+    }
+
+    // Handle unexpected errors
+    console.error('Unexpected error:', error)
     return NextResponse.json(
-      { error: appError.message },
-      { status: getHttpStatus(appError.code) }
+      { error: 'An unexpected error occurred' },
+      { status: 500 }
     )
   }
 }
 
-// Only allow POST requests
+// Disallow other methods
 export async function GET() {
   return NextResponse.json({ error: 'Method not allowed' }, { status: 405 })
 }
@@ -98,16 +108,6 @@ export async function DELETE() {
   return NextResponse.json({ error: 'Method not allowed' }, { status: 405 })
 }
 
-// Handle OPTIONS requests for CORS
 export async function OPTIONS() {
-  return NextResponse.json(
-    {},
-    {
-      headers: {
-        'Access-Control-Allow-Origin': process.env.NEXT_PUBLIC_DOMAIN || '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      },
-    }
-  )
+  return new NextResponse(null, { status: 204 })
 }

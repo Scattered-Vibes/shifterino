@@ -1,43 +1,39 @@
-import { createClient } from '@/lib/supabase/server'
+import { getServerClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { handleError, AppError } from '@/lib/utils/error-handler'
-import { requireManager } from '@/lib/auth/middleware'
+import { AppError, ErrorCode } from '@/lib/utils/error-handler'
+import { requireManager } from '@/lib/auth/server'
 
 export async function GET() {
   try {
     // Verify manager role using middleware
     const manager = await requireManager()
     if (!manager) {
-      throw new Error('Unauthorized access')
+      throw new AppError('Unauthorized access', ErrorCode.UNAUTHORIZED, 401)
     }
     
-    const supabase = createClient()
+    const supabase = getServerClient()
     
     // List users with service role
     const { data, error } = await supabase.auth.admin.listUsers()
     if (error) {
-      throw new Error(error.message)
+      throw new AppError(error.message, ErrorCode.INTERNAL_SERVER_ERROR, 500)
     }
     
     return NextResponse.json({ data })
   } catch (error) {
-    try {
-      const message = error instanceof Error ? error.message : 'Failed to list users'
-      handleError(message, error)
-    } catch (appError) {
-      if (appError instanceof AppError) {
-        return NextResponse.json(
-          { error: appError.message },
-          { status: appError.code === 'UNAUTHORIZED' ? 401 : 
-                   appError.code === 'FORBIDDEN' ? 403 : 
-                   appError.code === 'NOT_FOUND' ? 404 : 500 }
-        )
-      }
+    if (error instanceof AppError) {
       return NextResponse.json(
-        { error: 'An unexpected error occurred' },
-        { status: 500 }
+        { error: error.message },
+        { status: error.statusCode }
       )
     }
+    
+    // Handle unexpected errors
+    console.error('Unexpected error:', error)
+    return NextResponse.json(
+      { error: 'An unexpected error occurred' },
+      { status: 500 }
+    )
   }
 }
 
@@ -46,59 +42,44 @@ export async function DELETE(request: Request) {
     // Verify manager role using middleware
     const manager = await requireManager()
     if (!manager) {
-      throw new Error('Unauthorized access')
+      throw new AppError('Unauthorized access', ErrorCode.UNAUTHORIZED, 401)
     }
     
-    const supabase = createClient()
+    const supabase = getServerClient()
     
-    // Get user ID to delete from request body with validation
-    let userId: string
-    try {
-      const body = await request.json()
-      if (!body || typeof body.userId !== 'string' || !body.userId) {
-        throw new Error('Invalid request body: userId is required')
+    // Get request body
+    const body = await request.json()
+    if (!body.userIds || !Array.isArray(body.userIds)) {
+      throw new AppError('Invalid request body', ErrorCode.VALIDATION_ERROR, 400)
+    }
+    
+    // Delete users
+    const errors = []
+    for (const userId of body.userIds) {
+      const { error } = await supabase.auth.admin.deleteUser(userId)
+      if (error) {
+        errors.push({ userId, error: error.message })
       }
-      userId = body.userId
-    } catch (parseError) {
-      throw new Error('Invalid JSON in request body')
     }
     
-    // Get current user to prevent self-deletion
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      throw new Error('Authentication failed')
-    }
-    
-    // Prevent managers from deleting themselves
-    if (userId === user.id) {
-      throw new Error('Cannot delete your own account')
-    }
-    
-    // Delete user with service role
-    const { error } = await supabase.auth.admin.deleteUser(userId)
-    if (error) {
-      throw new Error(error.message)
+    if (errors.length > 0) {
+      throw new AppError('Failed to delete some users', ErrorCode.INTERNAL_SERVER_ERROR, 500, { errors })
     }
     
     return NextResponse.json({ success: true })
   } catch (error) {
-    try {
-      const message = error instanceof Error ? error.message : 'Failed to delete user'
-      handleError(message, error)
-    } catch (appError) {
-      if (appError instanceof AppError) {
-        return NextResponse.json(
-          { error: appError.message },
-          { status: appError.code === 'UNAUTHORIZED' ? 401 : 
-                   appError.code === 'FORBIDDEN' ? 403 : 
-                   appError.code === 'NOT_FOUND' ? 404 : 
-                   appError.code === 'VALIDATION' ? 400 : 500 }
-        )
-      }
+    if (error instanceof AppError) {
       return NextResponse.json(
-        { error: 'An unexpected error occurred' },
-        { status: 500 }
+        { error: error.message, details: error.details },
+        { status: error.statusCode }
       )
     }
+    
+    // Handle unexpected errors
+    console.error('Unexpected error:', error)
+    return NextResponse.json(
+      { error: 'An unexpected error occurred' },
+      { status: 500 }
+    )
   }
 } 

@@ -1,7 +1,7 @@
-import { createClient } from '@/lib/supabase/server'
+import { getServerClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { handleError, AppError } from '@/lib/utils/error-handler'
-import { requireManager } from '@/lib/auth/middleware'
+import { handleError, AppError, ErrorCode } from '@/lib/utils/error-handler'
+import { requireManager } from '@/lib/auth/server'
 
 export async function GET(
   request: Request,
@@ -11,45 +11,41 @@ export async function GET(
     // Verify manager role using middleware
     const manager = await requireManager()
     if (!manager) {
-      throw new Error('Unauthorized access')
+      throw new AppError('Unauthorized access', ErrorCode.UNAUTHORIZED, 401)
     }
     
     // Validate user ID
     if (!params.id || typeof params.id !== 'string') {
-      throw new Error('Invalid user ID')
+      throw new AppError('Invalid user ID', ErrorCode.VALIDATION_ERROR, 400)
     }
     
-    const supabase = createClient()
+    const supabase = getServerClient()
     
     // Get user by ID
     const { data, error } = await supabase.auth.admin.getUserById(params.id)
     if (error) {
-      throw new Error(error.message)
+      throw new AppError(error.message, ErrorCode.INTERNAL_SERVER_ERROR, 500)
     }
     
     if (!data.user) {
-      throw new Error('User not found')
+      throw new AppError('User not found', ErrorCode.NOT_FOUND, 404)
     }
     
     return NextResponse.json({ data: data.user })
   } catch (error) {
-    try {
-      const message = error instanceof Error ? error.message : 'Failed to get user'
-      handleError(message, error)
-    } catch (appError) {
-      if (appError instanceof AppError) {
-        return NextResponse.json(
-          { error: appError.message },
-          { status: appError.code === 'UNAUTHORIZED' ? 401 : 
-                   appError.code === 'FORBIDDEN' ? 403 : 
-                   appError.code === 'NOT_FOUND' ? 404 : 500 }
-        )
-      }
+    if (error instanceof AppError) {
       return NextResponse.json(
-        { error: 'An unexpected error occurred' },
-        { status: 500 }
+        { error: error.message },
+        { status: error.statusCode }
       )
     }
+    
+    // Handle unexpected errors
+    console.error('Unexpected error:', error)
+    return NextResponse.json(
+      { error: 'An unexpected error occurred' },
+      { status: 500 }
+    )
   }
 }
 
@@ -61,51 +57,36 @@ export async function DELETE(
     // Verify manager role using middleware
     const manager = await requireManager()
     if (!manager) {
-      throw new Error('Unauthorized access')
+      throw new AppError('Unauthorized access', ErrorCode.UNAUTHORIZED, 401)
     }
     
     // Validate user ID
     if (!params.id || typeof params.id !== 'string') {
-      throw new Error('Invalid user ID')
+      throw new AppError('Invalid user ID', ErrorCode.VALIDATION_ERROR, 400)
     }
     
-    const supabase = createClient()
+    const supabase = getServerClient()
     
-    // Get current user to prevent self-deletion
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      throw new Error('Authentication failed')
-    }
-    
-    // Prevent managers from deleting themselves
-    if (params.id === user.id) {
-      throw new Error('Cannot delete your own account')
-    }
-    
-    // Delete user
+    // Delete user by ID
     const { error } = await supabase.auth.admin.deleteUser(params.id)
     if (error) {
-      throw new Error(error.message)
+      throw new AppError(error.message, ErrorCode.INTERNAL_SERVER_ERROR, 500)
     }
     
     return NextResponse.json({ success: true })
   } catch (error) {
-    try {
-      const message = error instanceof Error ? error.message : 'Failed to delete user'
-      handleError(message, error)
-    } catch (appError) {
-      if (appError instanceof AppError) {
-        return NextResponse.json(
-          { error: appError.message },
-          { status: appError.code === 'UNAUTHORIZED' ? 401 : 
-                   appError.code === 'FORBIDDEN' ? 403 : 
-                   appError.code === 'NOT_FOUND' ? 404 : 500 }
-        )
-      }
+    if (error instanceof AppError) {
       return NextResponse.json(
-        { error: 'An unexpected error occurred' },
-        { status: 500 }
+        { error: error.message },
+        { status: error.statusCode }
       )
     }
+    
+    // Handle unexpected errors
+    console.error('Unexpected error:', error)
+    return NextResponse.json(
+      { error: 'An unexpected error occurred' },
+      { status: 500 }
+    )
   }
 } 

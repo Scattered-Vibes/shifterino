@@ -21,7 +21,7 @@ VALUES ('00000000-0000-0000-0000-000000000001', '911 Dispatch', 'Main dispatch t
 ON CONFLICT (id) DO NOTHING;
 
 -- Insert shift options
-INSERT INTO public.shift_options (id, name, category, start_time, end_time, duration_hours)
+INSERT INTO public.shift_options (id, name, shift_category, start_time, end_time, duration_hours)
 VALUES
     (uuid_generate_v4(), 'Early 4', 'early'::shift_category, '05:00', '09:00', 4),
     (uuid_generate_v4(), 'Early 10', 'early'::shift_category, '05:00', '15:00', 10),
@@ -38,10 +38,17 @@ VALUES
 ON CONFLICT (name) DO NOTHING;
 
 -- Insert staffing requirements
-INSERT INTO public.staffing_requirements (id, team_id, start_time, end_time, min_employees, min_supervisors)
+INSERT INTO public.staffing_requirements (
+    id, 
+    time_block_start, 
+    time_block_end, 
+    min_employees, 
+    requires_supervisor,
+    crosses_midnight
+)
 VALUES
-    (uuid_generate_v4(), '00000000-0000-0000-0000-000000000001', '05:00', '09:00', 6, 1),
-    (uuid_generate_v4(), '00000000-0000-0000-0000-000000000001', '09:00', '21:00', 8, 1),
-    (uuid_generate_v4(), '00000000-0000-0000-0000-000000000001', '21:00', '01:00', 7, 1),
-    (uuid_generate_v4(), '00000000-0000-0000-0000-000000000001', '01:00', '05:00', 6, 1)
-ON CONFLICT (team_id, start_time, end_time) DO NOTHING; 
+    (uuid_generate_v4(), '05:00', '09:00', 6, true, false),  -- Morning block
+    (uuid_generate_v4(), '09:00', '21:00', 8, true, false),  -- Day block
+    (uuid_generate_v4(), '21:00', '01:00', 7, true, true),   -- Evening block (crosses midnight)
+    (uuid_generate_v4(), '01:00', '05:00', 6, true, false)   -- Night block
+ON CONFLICT DO NOTHING; 

@@ -11,27 +11,28 @@ export interface Employee {
   id: string
   auth_id: string
   email: string
+  employee_id: string
   first_name: string
   last_name: string
-  role: Enums['employee_role']
-  shift_pattern: Enums['shift_pattern']
+  role: EmployeeRole
+  shift_pattern: ShiftPattern
   team_id?: string | null
   default_weekly_hours: number
   weekly_hours_cap: number
   max_overtime_hours: number
-  overtime_hours: number
-  preferred_shift_category?: ShiftCategory | null
-  profile_incomplete: boolean
   created_at: string
   updated_at: string
   created_by?: string | null
   updated_by?: string | null
+  preferred_shift_category?: string
+  max_weekly_hours: number
+  is_active: boolean
 }
 
 /**
  * Employee role from database enum
  */
-export type EmployeeRole = Enums['employee_role']
+export type EmployeeRole = 'dispatcher' | 'supervisor' | 'manager'
 
 /**
  * Shift category type
@@ -41,7 +42,7 @@ export type ShiftCategory = 'early' | 'day' | 'swing' | 'graveyard'
 /**
  * Shift pattern type from database enum
  */
-export type ShiftPattern = Enums['shift_pattern']
+export type ShiftPattern = '4x10' | '3x12_plus_4'
 
 /**
  * Employee with their current schedule information
@@ -171,4 +172,13 @@ export interface EmployeeAvailability {
   reason?: string
 }
 
-export type UserRole = 'dispatcher' | 'supervisor' | 'manager' 
+export type UserRole = 'dispatcher' | 'supervisor' | 'manager'
+
+// Type for the Supabase employees table
+export type EmployeeRow = Database['public']['Tables']['employees']['Row']
+
+// Type for inserting a new employee
+export type EmployeeInsert = Database['public']['Tables']['employees']['Insert']
+
+// Type for updating an employee
+export type EmployeeUpdate = Database['public']['Tables']['employees']['Update'] 

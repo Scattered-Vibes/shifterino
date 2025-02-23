@@ -1,93 +1,91 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { getServerClient } from '@/lib/supabase/server'
 import { handleError } from '@/lib/utils/error-handler'
-import { requireManager, requireSupervisorOrAbove, verifyTeamAccess } from '@/lib/auth/middleware'
-import type { IndividualShift } from '@/types/models/shift'
+import { requireManager, requireSupervisor as requireSupervisorOrAbove, verifyTeamAccess } from '@/lib/auth/server'
+import type { Database } from '@/types/supabase/database'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
-import {
-  ScheduleGenerationParams,
-  ScheduleGenerationResult
-} from '@/types/models/shift'
-import { generateSchedule as generateScheduleImpl } from '@/lib/scheduling/generate'
 
-interface SchedulePeriod {
-  id?: string
-  start_date: string
-  end_date: string
-  status: 'draft' | 'published' | 'archived'
-}
+type Schedule = Database['public']['Tables']['schedules']['Row']
+type ScheduleInsert = Database['public']['Tables']['schedules']['Insert']
+type ScheduleUpdate = Database['public']['Tables']['schedules']['Update']
+type IndividualShift = Database['public']['Tables']['individual_shifts']['Row']
+type IndividualShiftInsert = Database['public']['Tables']['individual_shifts']['Insert']
+type IndividualShiftUpdate = Database['public']['Tables']['individual_shifts']['Update']
 
-const schedulePeriodIdSchema = z.string().uuid()
+const scheduleIdSchema = z.string().uuid()
 
-export async function createSchedulePeriod(data: Omit<SchedulePeriod, 'id'>) {
+export async function createSchedule(data: Omit<ScheduleInsert, 'id' | 'created_at' | 'updated_at'>) {
   try {
     // Verify manager role
     await requireManager()
     
-    const supabase = createClient()
+    const supabase = getServerClient()
     
     const { error } = await supabase
-      .from('schedule_periods')
+      .from('schedules')
       .insert(data)
     
     if (error) throw error
     
+    revalidatePath('/schedule')
     return { success: true }
   } catch (error) {
     throw handleError(error)
   }
 }
 
-export async function updateSchedule(scheduleId: string, data: Partial<IndividualShift>) {
+export async function updateIndividualShift(shiftId: string, data: Partial<IndividualShiftUpdate>) {
   try {
     // Verify supervisor or above
     const auth = await requireSupervisorOrAbove()
     
-    const supabase = createClient()
+    const supabase = getServerClient()
     
-    // Get schedule to verify team access
-    const { data: schedule, error: fetchError } = await supabase
-      .from('schedules')
+    // Get shift to verify team access
+    const { data: shift, error: fetchError } = await supabase
+      .from('individual_shifts')
       .select('employee_id')
-      .eq('id', scheduleId)
+      .eq('id', shiftId)
       .single()
       
     if (fetchError) throw fetchError
-    if (!schedule) throw new Error('Schedule not found')
+    if (!shift) throw new Error('Shift not found')
     
     // Verify team access
-    await verifyTeamAccess(auth, schedule.employee_id)
+    await verifyTeamAccess(auth, shift.employee_id)
     
-    // Update schedule
+    // Update shift
     const { error } = await supabase
-      .from('schedules')
+      .from('individual_shifts')
       .update(data)
-      .eq('id', scheduleId)
+      .eq('id', shiftId)
     
     if (error) throw error
     
+    revalidatePath('/schedule')
     return { success: true }
   } catch (error) {
     throw handleError(error)
   }
 }
 
-export async function deleteSchedule(scheduleId: string) {
+export async function deleteIndividualShift(shiftId: string) {
   try {
     // Verify manager role
     await requireManager()
     
-    const supabase = createClient()
+    const supabase = getServerClient()
     
     const { error } = await supabase
-      .from('schedules')
+      .from('individual_shifts')
       .delete()
-      .eq('id', scheduleId)
+      .eq('id', shiftId)
     
     if (error) throw error
     
+    revalidatePath('/schedule')
     return { success: true }
   } catch (error) {
     throw handleError(error)
@@ -95,43 +93,61 @@ export async function deleteSchedule(scheduleId: string) {
 }
 
 export async function generateSchedule(
-  periodId: string,
-  params: ScheduleGenerationParams
-): Promise<ScheduleGenerationResult> {
+  scheduleId: string,
+  params: {
+    startDate: string
+    endDate: string
+    organizationId: string
+  }
+): Promise<{ success: boolean }> {
   try {
     // Verify manager role
     await requireManager()
     
-    const supabase = createClient()
+    const supabase = getServerClient()
     
-    // Validate period exists
-    const parsedId = schedulePeriodIdSchema.parse(periodId)
+    // Validate schedule exists
+    const parsedId = scheduleIdSchema.parse(scheduleId)
     
-    // Call our new schedule generation implementation
-    const result = await generateScheduleImpl(supabase, parsedId, params)
+    // Create schedule if it doesn't exist
+    const { data: schedule, error: scheduleError } = await supabase
+      .from('schedules')
+      .upsert({
+        id: parsedId,
+        organization_id: params.organizationId,
+        name: `Schedule ${new Date(params.startDate).toLocaleDateString()}`,
+        start_date: params.startDate,
+        end_date: params.endDate,
+        is_published: false
+      })
+      .select()
+      .single()
+    
+    if (scheduleError) throw scheduleError
     
     revalidatePath('/schedule')
-    return result
+    return { success: true }
   } catch (error) {
     throw handleError(error)
   }
 }
 
-export async function publishSchedule(periodId: string) {
+export async function publishSchedule(scheduleId: string) {
   try {
     // Verify manager role
     await requireManager()
     
-    const supabase = createClient()
+    const supabase = getServerClient()
     
-    // Update all schedules in period to published
+    // Update schedule to published
     const { error } = await supabase
       .from('schedules')
-      .update({ status: 'published' })
-      .eq('period_id', periodId)
+      .update({ is_published: true })
+      .eq('id', scheduleId)
     
     if (error) throw error
     
+    revalidatePath('/schedule')
     return { success: true }
   } catch (error) {
     throw handleError(error)

@@ -1,14 +1,42 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
-import { NextResponse, type NextRequest } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
+import { authDebug } from '@/lib/utils/auth-debug'
 
-const PUBLIC_ROUTES = ['/login', '/signup', '/reset-password']
+const COOKIE_OPTIONS: CookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax',
+  path: '/',
+  maxAge: 60 * 60 * 24 * 7 // 7 days
+}
+
+const PUBLIC_ROUTES = ['/login', '/signup', '/forgot-password', '/reset-password']
+const ASSET_ROUTES = ['/api/auth', '/_next', '/favicon.ico']
 
 // Version check to confirm code execution
 console.log('[middleware] Version: 2025-02-22 Corrected Middleware')
 
 export async function middleware(request: NextRequest) {
   const requestId = Math.random().toString(36).substring(7)
-  console.log(`[middleware:${requestId}] Processing request:`, request.nextUrl.pathname)
+  
+  authDebug.debug('Processing request', {
+    requestId,
+    path: request.nextUrl.pathname,
+    method: request.method,
+    headers: Object.fromEntries(request.headers)
+  })
+
+  // Skip middleware for asset routes
+  if (ASSET_ROUTES.some(path => request.nextUrl.pathname.startsWith(path))) {
+    authDebug.debug('Asset route skipped', { requestId, path: request.nextUrl.pathname })
+    return NextResponse.next()
+  }
+
+  // Allow public routes to proceed immediately
+  if (PUBLIC_ROUTES.includes(request.nextUrl.pathname)) {
+    authDebug.debug('Public route allowed', { requestId, path: request.nextUrl.pathname })
+    return NextResponse.next()
+  }
 
   let response = NextResponse.next({
     request: {
@@ -17,80 +45,112 @@ export async function middleware(request: NextRequest) {
   })
 
   try {
-    // Create supabase client
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
           get(name: string) {
-            console.log(`[middleware:${requestId}] Getting cookie:`, name)
-            return request.cookies.get(name)?.value
+            const value = request.cookies.get(name)?.value
+            authDebug.trackCookie('get', name, value)
+            return value
           },
           set(name: string, value: string, options: CookieOptions) {
-            console.log(`[middleware:${requestId}] Setting cookie:`, name)
-            response.cookies.set({
-              name,
-              value,
+            const cookieOptions = {
+              ...COOKIE_OPTIONS,
               ...options,
-            })
+            }
+            authDebug.trackCookie('set', name, value, cookieOptions)
+            request.cookies.set({ name, value, ...cookieOptions })
+            response = NextResponse.next({ request: { headers: request.headers } })
+            response.cookies.set({ name, value, ...cookieOptions })
           },
           remove(name: string, options: CookieOptions) {
-            console.log(`[middleware:${requestId}] Removing cookie:`, name)
-            response.cookies.set({
-              name,
-              value: '',
+            const cookieOptions = {
+              ...COOKIE_OPTIONS,
               ...options,
-            })
+              maxAge: 0,
+            }
+            authDebug.trackCookie('remove', name, undefined, cookieOptions)
+            request.cookies.delete({ name, ...cookieOptions })
+            response = NextResponse.next({ request: { headers: request.headers } })
+            response.cookies.delete({ name, ...cookieOptions })
           },
         },
       }
     )
 
-    // Check auth status
-    console.log(`[middleware:${requestId}] Checking session`)
-    const { data: { session } } = await supabase.auth.getSession()
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
 
-    // Handle public routes
-    if (PUBLIC_ROUTES.includes(request.nextUrl.pathname)) {
-      if (session) {
-        // If logged in on public route, redirect to dashboard
-        console.log(`[middleware:${requestId}] Redirecting authenticated user from public route to dashboard`)
+    if (userError) {
+      authDebug.error('Middleware auth error', userError, { requestId, path: request.nextUrl.pathname })
+      return redirectToLogin(request)
+    }
+
+    if (user) {
+      authDebug.info('User authenticated in middleware', {
+        requestId,
+        userId: user.id,
+        path: request.nextUrl.pathname,
+        role: user.role,
+        email: user.email
+      })
+
+      // Add debug headers
+      response.headers.set('X-Auth-Debug-User', user.id)
+      response.headers.set('X-Auth-Debug-Role', user.role || 'unknown')
+      response.headers.set('X-Auth-Debug-Email', user.email || 'unknown')
+
+      // Redirect authenticated users away from auth routes
+      const isAuthRoute = request.nextUrl.pathname.startsWith('/(auth)')
+      if (isAuthRoute) {
+        authDebug.info('Redirecting authenticated user from auth route', {
+          requestId,
+          userId: user.id,
+          path: request.nextUrl.pathname,
+          destination: '/overview'
+        })
         return NextResponse.redirect(new URL('/overview', request.url))
       }
-      console.log(`[middleware:${requestId}] Allowing access to public route:`, request.nextUrl.pathname)
+
       return response
     }
 
-    // Protected routes
-    if (!session && !request.nextUrl.pathname.startsWith('/login')) {
-      // If not logged in on protected route, redirect to login
-      console.log(`[middleware:${requestId}] No session found, redirecting to login`)
-      const redirectUrl = new URL('/login', request.url)
-      redirectUrl.searchParams.set('redirectTo', request.nextUrl.pathname)
-      return NextResponse.redirect(redirectUrl)
-    }
-
-    // Redirect logged in users away from auth pages
-    if (session && request.nextUrl.pathname.startsWith('/login')) {
-      console.log(`[middleware:${requestId}] Redirecting authenticated user from login page to dashboard`)
-      return NextResponse.redirect(new URL('/overview', request.url))
-    }
-
-    // User is authenticated, allow access
-    console.log(`[middleware:${requestId}] Session found, allowing access`)
-    return response
-  } catch (error) {
-    // Handle errors
-    console.error(`[middleware:${requestId}] Error:`, error)
+    // No user session
+    authDebug.debug('No user session in middleware', {
+      requestId,
+      path: request.nextUrl.pathname
+    })
     
-    // On error, redirect to login for safety
-    const redirectUrl = new URL('/login', request.url)
-    redirectUrl.searchParams.set('error', 'An unexpected error occurred')
-    return NextResponse.redirect(redirectUrl)
+    response.headers.set('X-Auth-Debug-Status', 'unauthenticated')
+    return redirectToLogin(request)
+
+  } catch (error) {
+    authDebug.error('Middleware execution error', error as Error, {
+      requestId,
+      path: request.nextUrl.pathname
+    })
+    return redirectToLogin(request)
   }
 }
 
+function redirectToLogin(request: NextRequest) {
+  const redirectUrl = new URL('/login', request.url)
+  if (!PUBLIC_ROUTES.includes(request.nextUrl.pathname)) {
+    redirectUrl.searchParams.set('redirectTo', request.nextUrl.pathname)
+  }
+  return NextResponse.redirect(redirectUrl)
+}
+
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder
+     */
+    '/((?!_next/static|_next/image|favicon.ico|public/).*)',
+  ],
 } 

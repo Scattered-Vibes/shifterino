@@ -1,57 +1,99 @@
+'use server'
+
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase/index'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { createApiResponse, handleApiError } from '@/lib/api/utils'
+import { authDebug } from '@/lib/utils/auth-debug'
+import { AppError, ErrorCode } from '@/lib/utils/error-handler'
 
 export const dynamic = 'force-dynamic'
 
-const COOKIE_OPTIONS = {
+const COOKIE_OPTIONS: CookieOptions = {
   path: '/',
   secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax' as const,
+  sameSite: 'lax',
   httpOnly: true,
   maxAge: 60 * 60 * 24 * 7, // 7 days
 }
 
 export async function GET() {
+  const requestId = Math.random().toString(36).substring(7)
+  
   try {
     const cookieStore = cookies()
-    const supabase = createServerClient()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            const value = cookieStore.get(name)?.value
+            authDebug.trackCookie('get', name, value)
+            return value
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            const cookieOptions = {
+              ...COOKIE_OPTIONS,
+              ...options,
+            }
+            authDebug.trackCookie('set', name, value, cookieOptions)
+            cookieStore.set({
+              name,
+              value,
+              ...cookieOptions,
+            })
+          },
+          remove(name: string, options: CookieOptions) {
+            const cookieOptions = {
+              ...COOKIE_OPTIONS,
+              ...options,
+              maxAge: 0,
+            }
+            authDebug.trackCookie('remove', name, undefined, cookieOptions)
+            cookieStore.set({
+              name,
+              value: '',
+              ...cookieOptions,
+            })
+          },
+        },
+      }
+    )
 
-    // Note: We use getSession here (instead of getUser) because we specifically need
-    // the session tokens for refreshing. This is one of the few legitimate uses of getSession.
-    const {
-      data: { session },
-      error,
-    } = await supabase.auth.getSession()
+    authDebug.debug('Refreshing session', { requestId })
+
+    // Get current session
+    const { data: { session }, error } = await supabase.auth.getSession()
 
     if (error) {
-      console.error('Session refresh error:', error)
-      throw error
+      authDebug.error('Session refresh error', error, { requestId })
+      throw new AppError('Failed to get current session', ErrorCode.UNAUTHORIZED, 401)
     }
 
     if (!session) {
-      throw new Error('No active session')
+      throw new AppError('No active session', ErrorCode.UNAUTHORIZED, 401)
     }
 
     // Get new session with refreshed tokens
-    const { data: refreshData, error: refreshError } =
-      await supabase.auth.refreshSession()
+    const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession()
 
     if (refreshError) {
-      console.error('Token refresh error:', refreshError)
-      throw refreshError
+      authDebug.error('Token refresh error', refreshError, { requestId })
+      throw new AppError('Failed to refresh session', ErrorCode.UNAUTHORIZED, 401)
     }
 
     const { session: newSession } = refreshData
 
     if (!newSession) {
-      throw new Error('Failed to create new session')
+      throw new AppError('Failed to create new session', ErrorCode.INTERNAL_SERVER_ERROR, 500)
     }
 
-    // Update session cookies with consistent settings
-    cookieStore.set('sb-access-token', newSession.access_token, COOKIE_OPTIONS)
-    cookieStore.set('sb-refresh-token', newSession.refresh_token, COOKIE_OPTIONS)
+    authDebug.info('Session refreshed successfully', {
+      requestId,
+      userId: newSession.user.id,
+      expiresAt: new Date(newSession.expires_at! * 1000).toISOString()
+    })
 
     // Log successful refresh
     try {
@@ -61,12 +103,16 @@ export async function GET() {
           operation: 'session_refresh',
           user_id: newSession.user.id,
           details: {
+            request_id: requestId,
             expires_at: newSession.expires_at,
           },
         })
     } catch (logError) {
       // Don't fail the refresh if logging fails
-      console.error('Error logging session refresh:', logError)
+      authDebug.warn('Failed to log session refresh', {
+        error: logError instanceof Error ? logError.message : String(logError),
+        requestId
+      })
     }
 
     return createApiResponse({
@@ -74,7 +120,18 @@ export async function GET() {
       expires_at: newSession.expires_at,
     })
   } catch (error) {
-    return handleApiError(error, 'refresh session', 401)
+    if (error instanceof AppError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.statusCode }
+      )
+    }
+
+    authDebug.error('Unexpected error during session refresh', error as Error, { requestId })
+    return NextResponse.json(
+      { error: 'An unexpected error occurred' },
+      { status: 500 }
+    )
   }
 }
 

@@ -1,153 +1,83 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { AppError, ErrorCode } from '@/lib/errors'
+import { AppError, ErrorCode } from '@/lib/utils/error-handler'
 import type { Database } from '@/types/supabase/database'
 import type { User } from '@supabase/supabase-js'
 import { generateLogMessage } from '@/lib/utils/logging'
-import { createClient } from '@/lib/supabase/server'
+import { getServerClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import type { Employee, EmployeeRole, ShiftPattern } from '@/types/models/employee'
+import type { Employee, EmployeeRole as EmployeeRoleType, ShiftPattern as ShiftPatternType } from '@/types/models/employee'
+import { handleError } from '@/lib/utils/error-handler'
 
-export type UserRole = Employee['role']
+type EmployeeRole = EmployeeRoleType
+type ShiftPattern = ShiftPatternType
 
 // Types for authenticated user data
 export interface AuthenticatedUser {
-  userId: string
-  employeeId: string
-  role: UserRole
+  id: string
   email: string
-  isNewUser: boolean
-  firstName: string
-  lastName: string
-  team_id: string
-  user_metadata?: {
-    first_name: string
-    last_name: string
-    role: UserRole
-    employee_id?: string
-    [key: string]: any
-  }
-}
-
-// Get the server-side Supabase client
-function createServerSupabaseClient() {
-  const cookieStore = cookies()
-  return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value, ...options })
-          } catch (error) {
-            console.warn('[Cookie] Set failed:', error instanceof Error ? error.message : String(error))
-          }
-        },
-        remove(name: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value: '', ...options, maxAge: 0 })
-          } catch (error) {
-            console.warn('[Cookie] Remove failed:', error instanceof Error ? error.message : String(error))
-          }
-        },
-      },
-    }
-  )
-}
-
-// Get the current user with error handling
-async function getUser(): Promise<User | null> {
-  const supabase = createServerSupabaseClient()
-
-  try {
-    const { data: { user }, error } = await supabase.auth.getUser()
-    
-    if (error) {
-      console.error('[getUser] Auth error:', error)
-      return null
-    }
-    
-    return user
-  } catch (error) {
-    console.error('[getUser] Error:', error)
-    return null
-  }
+  role: EmployeeRole
+  employee_id: string
+  first_name: string
+  last_name: string
+  shift_pattern: ShiftPattern
 }
 
 /**
  * Require authentication and return user data
- * @param allowIncomplete - Whether to allow incomplete profiles
  * @returns AuthenticatedUser object with user and employee data
  * @throws AppError if authentication fails or employee data cannot be fetched
  */
 export async function requireAuth(): Promise<AuthenticatedUser> {
-  const requestId = Math.random().toString(36).substring(7)
-  console.log(`[requireAuth:${requestId}] Starting authentication check`, {
-    timestamp: new Date().toISOString(),
-    cookies: cookies().getAll().map(c => ({ name: c.name, hasValue: !!c.value }))
-  })
+  console.log('[requireAuth] Starting authentication check')
+  const supabase = getServerClient()
+  const { data: { user }, error } = await supabase.auth.getUser()
 
-  const supabase = createClient()
-  const { data: { user }, error: userError } = await supabase.auth.getUser()
-
-  if (userError || !user) {
-    console.log(`[requireAuth:${requestId}] Auth check failed`, {
-      error: userError ? { message: userError.message, status: userError.status } : 'No user found'
-    })
-
-    // Clear invalid session
-    if (userError?.status === 403) {
-      console.log(`[requireAuth:${requestId}] Invalid session, clearing cookies`)
-      await supabase.auth.signOut()
-      cookies().delete('sb-localhost-auth-token')
-      cookies().delete('sb-127-auth-token')
-    }
-
-    throw redirect('/login')
+  if (error || !user) {
+    console.log('[requireAuth] No authenticated user found, redirecting to login')
+    redirect('/(auth)/login')
   }
 
-  try {
-    const { data: employee, error: employeeError } = await supabase
-      .from('employees')
-      .select('*')
-      .eq('auth_id', user.id)
-      .single()
+  const userMetadata = user.user_metadata as {
+    role: EmployeeRole
+    employee_id: string
+    first_name: string
+    last_name: string
+    shift_pattern: ShiftPattern
+  }
 
-    if (employeeError || !employee) {
-      console.error(`[requireAuth:${requestId}] Failed to fetch employee data:`, employeeError)
-      throw new AppError('Failed to fetch employee data', ErrorCode.DATABASE)
-    }
+  if (!userMetadata.role || !userMetadata.employee_id) {
+    console.error('[requireAuth] User missing required metadata')
+    redirect('/(auth)/login')
+  }
 
-    console.log(`[requireAuth:${requestId}] Authentication successful`, {
-      userId: user.id,
-      email: user.email,
-      role: employee.role
-    })
+  // Verify the employee exists in the database
+  const { data: employee, error: employeeError } = await supabase
+    .from('employees')
+    .select('id, role, shift_pattern')
+    .eq('id', userMetadata.employee_id)
+    .single()
 
-    return {
-      userId: user.id,
-      employeeId: employee.id,
-      role: employee.role,
-      email: employee.email,
-      isNewUser: false,
-      firstName: employee.first_name,
-      lastName: employee.last_name,
-      team_id: employee.team_id || '',
-      user_metadata: {
-        first_name: employee.first_name,
-        last_name: employee.last_name,
-        role: employee.role,
-        employee_id: employee.id
-      }
-    }
-  } catch (error) {
-    console.error(`[requireAuth:${requestId}] Unexpected error:`, error)
-    throw error
+  if (employeeError || !employee) {
+    console.error('[requireAuth] Employee record not found:', employeeError)
+    redirect('/(auth)/login')
+  }
+
+  // Ensure role matches database
+  if (employee.role !== userMetadata.role) {
+    console.error('[requireAuth] Role mismatch between auth and database')
+    redirect('/(auth)/login')
+  }
+
+  return {
+    id: user.id,
+    email: user.email || '',
+    role: userMetadata.role,
+    employee_id: userMetadata.employee_id,
+    first_name: userMetadata.first_name,
+    last_name: userMetadata.last_name,
+    shift_pattern: userMetadata.shift_pattern,
   }
 }
 
@@ -155,58 +85,61 @@ export async function requireAuth(): Promise<AuthenticatedUser> {
 export async function requireManager(): Promise<AuthenticatedUser> {
   console.log('[requireManager] Starting manager role check')
   
-  try {
-    const auth = await requireAuth()
-    console.log('[requireManager] Auth check passed:', {
-      userId: auth.userId,
+  const auth = await requireAuth()
+
+  if (auth.role !== 'manager') {
+    console.warn('[requireManager] User is not a manager:', {
+      userId: auth.id,
       email: auth.email,
-      metadata: auth.user_metadata
+      role: auth.role,
     })
-
-    if (auth.role !== 'manager') {
-      console.warn('[requireManager] User is not a manager:', {
-        userId: auth.userId,
-        userEmail: auth.email,
-        role: auth.role
-      })
-      throw new AppError(
-        'Manager role required',
-        ErrorCode.FORBIDDEN
-      )
-    }
-
-    console.log('[requireManager] Manager role verified:', {
-      userId: auth.userId,
-      userEmail: auth.email,
-      role: auth.role
-    })
-
-    return auth
-  } catch (error) {
-    console.error('[requireManager] Unexpected error:', {
-      error: error instanceof Error ? {
-        message: error.message,
-        name: error.name,
-        stack: error.stack
-      } : error
-    })
-    throw error
+    throw new AppError(
+      'Manager role required',
+      ErrorCode.FORBIDDEN,
+      403,
+      { userId: auth.id, role: auth.role }
+    )
   }
+
+  console.log('[requireManager] Manager role verified:', {
+    userId: auth.id,
+    email: auth.email,
+    role: auth.role,
+  })
+
+  return auth
 }
 
 // Helper to require supervisor or manager role
 export async function requireSupervisor(): Promise<AuthenticatedUser> {
+  console.log('[requireSupervisor] Starting supervisor role check')
   const auth = await requireAuth()
   
   if (!['supervisor', 'manager'].includes(auth.role)) {
-    throw new AppError('Supervisor or manager role required', ErrorCode.FORBIDDEN)
+    console.warn('[requireSupervisor] User is not a supervisor or manager:', {
+      userId: auth.id,
+      email: auth.email,
+      role: auth.role,
+    })
+    throw new AppError(
+      'Supervisor or manager role required',
+      ErrorCode.FORBIDDEN,
+      403,
+      { userId: auth.id, role: auth.role }
+    )
   }
+
+  console.log('[requireSupervisor] Supervisor/manager role verified:', {
+    userId: auth.id,
+    email: auth.email,
+    role: auth.role,
+  })
   
   return auth
 }
 
 // Checks if the user has one of the allowed roles. Does *not* redirect.
-export async function hasRole(roles: UserRole[]): Promise<boolean> {
+export async function hasRole(roles: EmployeeRole[]): Promise<boolean> {
   try {
     const auth = await requireAuth()
     const hasAllowedRole = roles.includes(auth.role)
@@ -225,22 +158,21 @@ export async function hasRole(roles: UserRole[]): Promise<boolean> {
 export async function verifyTeamAccess(auth: AuthenticatedUser, employeeId: string): Promise<void> {
   if (auth.role === 'manager') return
 
-  const supabase = createServerSupabaseClient()
+  const supabase = getServerClient()
 
   const { data: targetEmployee, error: targetError } = await supabase
     .from('employees')
-    .select('id, team_id')
+    .select('id, role')
     .eq('id', employeeId)
-    .single<Pick<Database['public']['Tables']['employees']['Row'], 'id' | 'team_id'>>()
+    .single()
 
   if (targetError || !targetEmployee) {
     throw new AppError('Employee not found', ErrorCode.NOT_FOUND)
   }
 
   if (auth.role === 'supervisor') {
-    if (auth.team_id !== targetEmployee.team_id) {
-      throw new AppError('Access denied: Employee not in your team', ErrorCode.FORBIDDEN)
-    }
+    // For now, supervisors can access all employees since we don't have team structure
+    // TODO: Implement team-based access control when teams are added
     return
   }
 
@@ -251,30 +183,30 @@ export async function verifyEmployeeAccess(auth: AuthenticatedUser, employeeId: 
   if (auth.role === 'manager') return
 
   if (auth.role === 'supervisor') {
-    const supabase = createServerSupabaseClient()
+    const supabase = getServerClient()
     const { data: employee, error: employeeError } = await supabase
       .from('employees')
-      .select('id, team_id')
+      .select('id, role')
       .eq('id', employeeId)
-      .single<Pick<Database['public']['Tables']['employees']['Row'], 'id' | 'team_id'>>()
+      .single()
 
     if (employeeError || !employee) {
       throw new AppError('Employee not found', ErrorCode.NOT_FOUND)
     }
 
-    if (auth.team_id !== employee.team_id) {
-      throw new AppError('Access denied: Employee not in your team', ErrorCode.FORBIDDEN)
-    }
+    // For now, supervisors can access all employees since we don't have team structure
+    // TODO: Implement team-based access control when teams are added
     return
   }
 
-  if (auth.userId !== employeeId) {
+  // Regular employees can only access their own data
+  if (auth.employee_id !== employeeId) {
     throw new AppError('Unauthorized', ErrorCode.UNAUTHORIZED)
   }
 }
 
 export async function getEmployee(userId: string) {
-  const supabase = await createServerSupabaseClient()
+  const supabase = getServerClient()
   return await supabase
     .from('employees')
     .select(`
@@ -298,7 +230,7 @@ export async function getEmployee(userId: string) {
 
 export async function hasCompletedProfile(userId: string): Promise<boolean> {
   console.log('[hasCompletedProfile] Checking profile completion for user:', userId)
-  const supabase = await createServerSupabaseClient()
+  const supabase = getServerClient()
   
   try {
     const { data: employee, error } = await supabase
@@ -317,76 +249,34 @@ export async function hasCompletedProfile(userId: string): Promise<boolean> {
   }
 }
 
-// Re-export core functions
-export * from './core'
-
 /**
  * Get the current user with error handling
  */
 export async function getSessionUser(): Promise<User | null> {
-  const requestId = Math.random().toString(36).substring(7)
-  console.log(`[getSessionUser:${requestId}] Starting session check`)
-  
-  try {
-    const supabase = createClient()
-    console.log(`[getSessionUser:${requestId}] Calling auth.getUser()`)
-    
-    const { data: { user }, error } = await supabase.auth.getUser()
-    
-    if (error) {
-      console.error(`[getSessionUser:${requestId}] Auth error:`, {
-        message: error.message,
-        status: error.status
-      })
-      return null
-    }
-    
-    if (!user) {
-      console.log(`[getSessionUser:${requestId}] No user found`)
-      return null
-    }
+  const supabase = getServerClient()
+  const { data: { user }, error } = await supabase.auth.getUser()
 
-    console.log(`[getSessionUser:${requestId}] User found:`, {
-      id: user.id,
-      email: user.email
-    })
-    
-    return user
-  } catch (error) {
-    console.error(`[getSessionUser:${requestId}] Unexpected error:`, 
-      error instanceof Error ? error.message : error
-    )
+  if (error) {
+    console.error('[getSessionUser] Auth error:', error.message)
     return null
   }
+
+  return user
 }
 
 /**
  * Sign out the current user
  */
 export async function signOut(): Promise<void> {
-  const requestId = Math.random().toString(36).substring(7)
-  console.log(`[signOut:${requestId}] Starting sign out`)
+  const supabase = getServerClient()
+  const { error } = await supabase.auth.signOut()
   
-  const supabase = createClient()
-
-  try {
-    console.log(`[signOut:${requestId}] Calling auth.signOut()`)
-    const { error } = await supabase.auth.signOut()
-    
-    if (error) {
-      console.error(`[signOut:${requestId}] Sign out error:`, error)
-      const err = new Error('Failed to sign out')
-      err.cause = error
-      throw err
-    }
-    
-    console.log(`[signOut:${requestId}] Successfully signed out`)
-  } catch (error) {
-    console.error(`[signOut:${requestId}] Error:`, error)
-    const err = new Error('Failed to sign out')
-    err.cause = error
-    throw err
+  if (error) {
+    console.error('[signOut] Error signing out:', error)
+    throw error
   }
+
+  redirect('/(auth)/login')
 }
 
 function mapShiftPattern(pattern: string): 'pattern_a' | 'pattern_b' | 'custom' {
@@ -490,23 +380,17 @@ export async function createTestUsers() {
         const employeeData = {
           auth_id: userData.id,
           email: testUser.email,
+          employee_id: `EMP${userData.id.split('-')[0]}`,
           first_name: testUser.firstName,
           last_name: testUser.lastName,
           role: testUser.role,
           shift_pattern: testUser.shiftPattern,
-          default_weekly_hours: 40,
+          preferred_shift_category,
           weekly_hours_cap: 40,
           max_overtime_hours: 0,
-          overtime_hours: 0,
-          profile_incomplete: false,
-          preferred_shift_category,
-          organization_id: '00000000-0000-0000-0000-000000000002',
-          team_id: '00000000-0000-0000-0000-000000000001',
           created_at: now,
-          updated_at: now,
-          created_by: userData.id,
-          updated_by: userData.id
-        } as const
+          updated_at: now
+        } as const;
 
         // Perform the upsert
         const { data: newEmployee, error: employeeError } = await supabaseAdmin
@@ -565,13 +449,61 @@ export async function createTestUsers() {
 }
 
 export async function getServerUser() {
-  const supabase = createClient()
+  const supabase = createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookies().get(name)?.value
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          try {
+            cookies().set({ name, value, ...options })
+          } catch (error) {
+            console.warn('[Cookie] Set failed:', error instanceof Error ? error.message : String(error))
+          }
+        },
+        remove(name: string, options: CookieOptions) {
+          try {
+            cookies().set({ name, value: '', ...options, maxAge: 0 })
+          } catch (error) {
+            console.warn('[Cookie] Remove failed:', error instanceof Error ? error.message : String(error))
+          }
+        },
+      },
+    }
+  )
   const { data: { user } } = await supabase.auth.getUser()
   return user
 }
 
 export async function getServerSession() {
-  const supabase = createClient()
+  const supabase = createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookies().get(name)?.value
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          try {
+            cookies().set({ name, value, ...options })
+          } catch (error) {
+            console.warn('[Cookie] Set failed:', error instanceof Error ? error.message : String(error))
+          }
+        },
+        remove(name: string, options: CookieOptions) {
+          try {
+            cookies().set({ name, value: '', ...options, maxAge: 0 })
+          } catch (error) {
+            console.warn('[Cookie] Remove failed:', error instanceof Error ? error.message : String(error))
+          }
+        },
+      },
+    }
+  )
   const { data: { session } } = await supabase.auth.getSession()
   return session
 } 

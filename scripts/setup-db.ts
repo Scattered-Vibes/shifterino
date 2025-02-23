@@ -48,6 +48,30 @@ async function resetDatabase() {
   }
 }
 
+// Setup roles and initial data
+async function setupRoles() {
+  console.log('\n👥 Setting up roles...');
+  try {
+    execSync('PGPASSWORD="postgres" psql -h 127.0.0.1 -p 54322 -U postgres -d postgres -f ./supabase/seed_roles.sql', { stdio: 'inherit' });
+    console.log('✅ Roles setup successful');
+  } catch (error) {
+    console.error('❌ Failed to setup roles:', error);
+    throw error;
+  }
+}
+
+// Setup user relationships and additional data
+async function setupUserRelationships() {
+  console.log('\n🔄 Setting up user relationships...');
+  try {
+    execSync('PGPASSWORD="postgres" psql -h 127.0.0.1 -p 54322 -U postgres -d postgres -f ./supabase/seed_part2.sql', { stdio: 'inherit' });
+    console.log('✅ User relationships setup successful');
+  } catch (error) {
+    console.error('❌ Failed to setup user relationships:', error);
+    throw error;
+  }
+}
+
 // Generate TypeScript types
 async function generateTypes() {
   console.log('\n📝 Generating TypeScript types...');
@@ -97,6 +121,13 @@ async function verifyDatabaseSetup(retries = MAX_RETRIES): Promise<boolean> {
         throw new Error(`Employees check failed: ${empError?.message || 'None found'}`);
       }
       console.log('✅ Employees verified');
+
+      // Verify RLS policies
+      const { data: policies, error: policyError } = await supabaseAdmin.rpc('get_policies');
+      if (policyError || !policies) {
+        throw new Error(`RLS policy check failed: ${policyError?.message || 'None found'}`);
+      }
+      console.log('✅ RLS policies verified');
 
       return true;
     } catch (error) {
@@ -195,25 +226,18 @@ async function createTestUsers() {
 
         // Create employee insert data with correct types
         const employeeData = {
-          id: testUser.id,
           auth_id: userData.id,
           email: testUser.email,
+          employee_id: `EMP${testUser.id.split('-')[0]}`,  // Generate employee ID from UUID
           first_name: testUser.firstName,
           last_name: testUser.lastName,
           role: testUser.role,
           shift_pattern: testUser.shiftPattern,
-          default_weekly_hours: 40,
+          preferred_shift_category,
           weekly_hours_cap: 40,
           max_overtime_hours: 0,
-          overtime_hours: 0,
-          profile_incomplete: false,
-          preferred_shift_category,
-          organization_id: '00000000-0000-0000-0000-000000000002',
-          team_id: DEFAULT_TEAM_ID,
           created_at: now,
-          updated_at: now,
-          created_by: userData.id,
-          updated_by: userData.id
+          updated_at: now
         } as const;
 
         // Perform the upsert
@@ -277,15 +301,13 @@ async function setupDatabase() {
   try {
     console.log('\n🚀 Starting database setup...');
 
-    // Reset database and apply migrations/seeds
+    // Reset database and apply migrations
     await resetDatabase();
 
-    // Verify Supabase is running
-    console.log('\nVerifying Supabase status...');
-    execSync('supabase status', { stdio: 'inherit' });
+    // Setup roles and initial data
+    await setupRoles();
 
-    // Create test users first
-    console.log('\nCreating test users...');
+    // Create test users
     const { data: users, error: userError } = await createTestUsers();
     if (userError) {
       throw userError;
@@ -295,7 +317,10 @@ async function setupDatabase() {
       throw new Error('No test users were created');
     }
 
-    // Then verify database setup
+    // Setup user relationships and additional data
+    await setupUserRelationships();
+
+    // Verify database setup
     const isSetupValid = await verifyDatabaseSetup();
     if (!isSetupValid) {
       throw new Error('Database setup verification failed');
@@ -321,4 +346,12 @@ if (import.meta.url.endsWith('setup-db.ts')) {
 }
 
 // Export functions for use in other scripts
-export { setupDatabase, resetDatabase, generateTypes, verifyDatabaseSetup };
+export {
+  setupDatabase,
+  resetDatabase,
+  generateTypes,
+  verifyDatabaseSetup,
+  setupRoles,
+  setupUserRelationships,
+  createTestUsers
+};

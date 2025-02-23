@@ -1,4 +1,4 @@
-import type { Database } from '../supabase/database'
+import { Database } from '@/types/supabase/database'
 import type { ValidationResult } from '../validation'
 import type { Employee } from './employee'
 
@@ -13,7 +13,7 @@ export type TimeOffRequest = Tables['time_off_requests']['Row']
 /**
  * Time off request status from database enums
  */
-export type TimeOffStatus = Enums['time_off_status']
+export type TimeOffStatus = 'pending' | 'approved' | 'rejected'
 
 /**
  * Time off request with employee details
@@ -96,4 +96,9 @@ export interface TimeOffBalance {
   pendingDays: number
   remainingDays: number
   requests: TimeOffRequest[]
-} 
+}
+
+// Supabase types
+export type TimeOffRequestRow = Tables['time_off_requests']['Row']
+export type TimeOffRequestInsert = Tables['time_off_requests']['Insert']
+export type TimeOffRequestUpdate = Tables['time_off_requests']['Update'] 

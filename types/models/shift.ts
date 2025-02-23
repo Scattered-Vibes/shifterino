@@ -2,6 +2,7 @@ import type { Database } from '../supabase/database'
 import type { ValidationResult } from '../validation'
 import type { ShiftCategory } from './employee'
 import type { ShiftPattern } from '../shift-patterns'
+import { Employee } from './employee'
 
 type Tables = Database['public']['Tables']
 type Enums = Database['public']['Enums']
@@ -35,14 +36,12 @@ export interface ShiftWithDetails extends Shift {
 export interface ShiftOption {
   id: string
   name: string
-  category: ShiftCategory
-  startTime: string  // HH:mm
-  endTime: string    // HH:mm
-  durationHours: number
-  isOvernight: boolean
-  requiredRole?: Enums['employee_role']
-  minStaff?: number
-  maxStaff?: number
+  start_time: string  // HH:mm format
+  end_time: string    // HH:mm format
+  duration_hours: number
+  category: 'early' | 'day' | 'swing' | 'graveyard'
+  created_at: string
+  updated_at: string
 }
 
 /**
@@ -117,3 +116,40 @@ export interface ShiftFilters {
   maxDuration?: number
   searchTerm?: string
 }
+
+export interface IndividualShift {
+  id: string
+  employee_id: string
+  shift_option_id: string
+  date: string
+  status: 'scheduled' | 'completed' | 'cancelled'
+  created_at: string
+  updated_at: string
+  shift_option?: ShiftOption
+  employee?: Employee
+}
+
+export interface ShiftSwapRequest {
+  id: string
+  requester_id: string
+  requested_shift_id: string
+  offered_shift_id: string
+  status: 'pending' | 'approved' | 'rejected'
+  created_at: string
+  updated_at: string
+}
+
+// Types from Supabase
+export type ShiftOptionRow = Tables['shift_options']['Row']
+export type IndividualShiftRow = Tables['individual_shifts']['Row']
+export type ShiftSwapRequestRow = Tables['shift_swap_requests']['Row']
+
+// Insert types
+export type ShiftOptionInsert = Tables['shift_options']['Insert']
+export type IndividualShiftInsert = Tables['individual_shifts']['Insert']
+export type ShiftSwapRequestInsert = Tables['shift_swap_requests']['Insert']
+
+// Update types
+export type ShiftOptionUpdate = Tables['shift_options']['Update']
+export type IndividualShiftUpdate = Tables['individual_shifts']['Update']
+export type ShiftSwapRequestUpdate = Tables['shift_swap_requests']['Update']

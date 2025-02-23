@@ -2,10 +2,13 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { getServerClient } from '@/lib/supabase/server'
 import { AppError, ErrorCode } from '@/lib/utils/error-handler'
 import { z } from 'zod'
 import { loginSchema } from '@/lib/validations/auth'
+import { ErrorCode as ErrorCodes } from '@/lib/utils/error-codes'
+import { cookies } from 'next/headers'
+import type { Database } from '@/types/supabase/database'
 
 // Schema definitions
 const signupSchema = z.object({
@@ -52,7 +55,7 @@ type AuthState = {
 // Server Actions
 export async function signOut(): Promise<AuthState> {
   try {
-    const supabase = await createClient()
+    const supabase = getServerClient()
     const { error } = await supabase.auth.signOut()
 
     if (error) {
@@ -94,9 +97,12 @@ const signUpSchema = z.object({
 })
 
 export type SignUpResult = {
-  error?: { message: string }
-  redirectTo?: string
+  error?: { 
+    message: string
+    code?: keyof typeof ErrorCodes 
+  }
   success?: boolean
+  redirectTo?: string
 }
 
 export async function signUp(prevState: SignUpResult | null, formData: FormData): Promise<SignUpResult> {
@@ -113,7 +119,7 @@ export async function signUp(prevState: SignUpResult | null, formData: FormData)
 
     const validatedData = signUpSchema.parse(rawData)
 
-    const supabase = await createClient()
+    const supabase = getServerClient()
 
     const { data: { user }, error: signUpError } = await supabase.auth.signUp({
       email: validatedData.email,
@@ -130,7 +136,8 @@ export async function signUp(prevState: SignUpResult | null, formData: FormData)
     if (signUpError) {
       return {
         error: {
-          message: signUpError.message
+          message: signUpError.message,
+          code: ErrorCodes.AUTH_ERROR
         }
       }
     }
@@ -138,7 +145,8 @@ export async function signUp(prevState: SignUpResult | null, formData: FormData)
     if (!user) {
       return {
         error: {
-          message: 'No user data returned'
+          message: 'No user data returned',
+          code: ErrorCodes.AUTH_ERROR
         }
       }
     }
@@ -147,27 +155,28 @@ export async function signUp(prevState: SignUpResult | null, formData: FormData)
     const { error: employeeError } = await supabase
       .from('employees')
       .insert({
-        user_id: user.id,
+        auth_id: user.id,
+        email: validatedData.email,
+        employee_id: `EMP${user.id.split('-')[0]}`,
         first_name: validatedData.first_name,
         last_name: validatedData.last_name,
-        role: validatedData.role,
+        role: validatedData.role.toLowerCase() as 'dispatcher' | 'supervisor' | 'manager',
+        shift_pattern: '4x10',  // Default to 4x10 pattern
+        preferred_shift_category: 'day',  // Default to day shift
+        weekly_hours_cap: 40,
+        max_overtime_hours: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       })
 
     if (employeeError) {
       return {
         error: {
-          message: 'Failed to create employee record'
+          message: 'Failed to create employee record',
+          code: ErrorCodes.DB_ERROR
         }
       }
     }
-
-    // Log successful registration
-    await supabase.from('auth_logs').insert({
-      email: validatedData.email,
-      success: true,
-      ip_address: '127.0.0.1',
-      user_agent: 'Registration Form',
-    })
 
     return {
       success: true,
@@ -176,19 +185,10 @@ export async function signUp(prevState: SignUpResult | null, formData: FormData)
   } catch (error) {
     console.error('Registration error:', error)
     
-    // Log failed registration
-    const supabase = await createClient()
-    await supabase.from('auth_logs').insert({
-      email: formData.get('email')?.toString(),
-      success: false,
-      error_message: error instanceof Error ? error.message : 'Unknown error',
-      ip_address: '127.0.0.1',
-      user_agent: 'Registration Form',
-    })
-
     return {
       error: {
-        message: error instanceof Error ? error.message : 'An unexpected error occurred'
+        message: error instanceof Error ? error.message : 'Unknown error',
+        code: ErrorCodes.UNKNOWN_ERROR
       }
     }
   }
@@ -199,52 +199,38 @@ export async function resetPassword(
   formData: FormData
 ): Promise<AuthState> {
   try {
-    const origin = process.env.NEXT_PUBLIC_APP_URL
-    if (!origin) {
+    const email = formData.get('email')?.toString()
+    if (!email) {
       return {
         error: {
-          message: "Missing NEXT_PUBLIC_APP_URL environment variable",
-          code: ErrorCode.SERVER_ERROR,
-        },
-      }
-    }
-
-    const validationResult = resetPasswordSchema.safeParse({
-      email: formData.get('email')
-    })
-
-    if (!validationResult.success) {
-      return {
-        error: {
-          message: validationResult.error.errors[0].message,
-          code: ErrorCode.VALIDATION
+          message: 'Email is required',
+          code: ErrorCodes.VALIDATION_ERROR
         }
       }
     }
 
-    const supabase = await createClient()
-    const { error } = await supabase.auth.resetPasswordForEmail(
-      validationResult.data.email,
-      {
-        redirectTo: `${origin}/auth/callback?next=/update-password`
-      }
-    )
+    const supabase = getServerClient()
+    const { error } = await supabase.auth.resetPasswordForEmail(email)
 
     if (error) {
       return {
         error: {
           message: error.message,
-          code: ErrorCode.OPERATION_FAILED
+          code: ErrorCodes.AUTH_ERROR
         }
       }
     }
 
-    return { message: 'Password reset link sent' }
+    return {
+      success: true,
+      message: 'Password reset email sent'
+    }
   } catch (error) {
+    console.error('Reset password error:', error)
     return {
       error: {
-        message: error instanceof Error ? error.message : 'An unexpected error occurred',
-        code: ErrorCode.UNKNOWN
+        message: error instanceof Error ? error.message : 'Unknown error',
+        code: ErrorCodes.UNKNOWN_ERROR
       }
     }
   }
@@ -255,40 +241,38 @@ export async function updatePassword(
   formData: FormData
 ): Promise<AuthState> {
   try {
-    const validationResult = updatePasswordSchema.safeParse({
-      password: formData.get('password'),
-      confirmPassword: formData.get('confirmPassword')
-    })
-
-    if (!validationResult.success) {
+    const password = formData.get('password')?.toString()
+    if (!password) {
       return {
         error: {
-          message: validationResult.error.errors[0].message,
-          code: ErrorCode.VALIDATION
+          message: 'Password is required',
+          code: ErrorCodes.VALIDATION_ERROR
         }
       }
     }
 
-    const supabase = await createClient()
-    const { error } = await supabase.auth.updateUser({
-      password: validationResult.data.password
-    })
+    const supabase = getServerClient()
+    const { error } = await supabase.auth.updateUser({ password })
 
     if (error) {
       return {
         error: {
           message: error.message,
-          code: ErrorCode.OPERATION_FAILED
+          code: ErrorCodes.AUTH_ERROR
         }
       }
     }
 
-    redirect('/login')
+    return {
+      success: true,
+      message: 'Password updated successfully'
+    }
   } catch (error) {
+    console.error('Update password error:', error)
     return {
       error: {
-        message: error instanceof Error ? error.message : 'An unexpected error occurred',
-        code: ErrorCode.UNKNOWN
+        message: error instanceof Error ? error.message : 'Unknown error',
+        code: ErrorCodes.UNKNOWN_ERROR
       }
     }
   }
@@ -315,7 +299,7 @@ export async function updateProfile(
       }
     }
 
-    const supabase = await createClient()
+    const supabase = getServerClient()
     
     // Start a transaction by using RPC
     const { data: result, error: rpcError } = await supabase.rpc('validate_session', {
@@ -355,4 +339,63 @@ export async function updateProfile(
       }
     }
   }
+}
+
+export async function validateSession(
+  prevState: AuthState | null,
+  formData: FormData
+): Promise<AuthState> {
+  try {
+    const supabase = getServerClient()
+    const { data: { session }, error } = await supabase.auth.getSession()
+
+    if (error) {
+      return {
+        error: {
+          message: error.message,
+          code: ErrorCodes.AUTH_ERROR
+        }
+      }
+    }
+
+    if (!session) {
+      return {
+        error: {
+          message: 'No active session',
+          code: ErrorCodes.UNAUTHORIZED
+        }
+      }
+    }
+
+    return {
+      success: true,
+      message: 'Session is valid'
+    }
+  } catch (error) {
+    console.error('Session validation error:', error)
+    return {
+      error: {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        code: ErrorCodes.UNKNOWN_ERROR
+      }
+    }
+  }
+}
+
+export async function signIn(formData: FormData) {
+  const email = formData.get('email') as string
+  const password = formData.get('password') as string
+  
+  const supabase = getServerClient()
+  
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  })
+  
+  if (error) {
+    throw new AppError(error.message, ErrorCode.AUTH_ERROR)
+  }
+
+  return data
 } 

@@ -13,28 +13,38 @@ import { ErrorBoundary } from '@/components/ui/error-boundary'
 import { requireManager } from '@/lib/auth/server'
 
 async function getShiftOptions() {
-  const cookieStore = cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
+  try {
+    const cookieStore = cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          }
         }
       }
+    )
+
+    // Get the data with count in a single query
+    const { data: options, count, error } = await supabase
+      .from('shift_options')
+      .select('*', { count: 'exact' })
+      .order('shift_category', { ascending: true })
+      .order('start_time', { ascending: true })
+
+    if (error) {
+      console.error('Error fetching shift options:', error)
+      throw new Error(`Failed to fetch shift options: ${error.message}`)
     }
-  )
 
-  const { data: options, error } = await supabase
-    .from('shift_options')
-    .select('*')
-    .order('category', { ascending: true })
-    .order('start_time', { ascending: true })
-
-  if (error) throw error
-
-  return options || []
+    console.log(`Successfully fetched ${count} shift options`)
+    return options || []
+  } catch (error) {
+    console.error('Unexpected error in getShiftOptions:', error)
+    throw error
+  }
 }
 
 export default async function ShiftOptionsPage() {

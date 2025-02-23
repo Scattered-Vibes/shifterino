@@ -15,7 +15,7 @@ import {
   PersonIcon,
   UpdateIcon,
 } from '@radix-ui/react-icons'
-import { createClient } from '@/lib/supabase/server'
+import { getServerClient } from '@/lib/supabase/server'
 import { formatDistanceToNow } from 'date-fns'
 import Link from 'next/link'
 import type { Database } from '@/types/supabase/database'
@@ -127,7 +127,7 @@ function QuickActions() {
 
 // Pending Requests Section
 async function PendingRequests() {
-  const supabase = createClient()
+  const supabase = getServerClient()
 
   const { data: timeOffRequests } = await supabase
     .from('time_off_requests')
@@ -258,7 +258,7 @@ async function PendingRequests() {
 
 // On-Call Assignments Section
 async function OnCallAssignments() {
-  const supabase = createClient()
+  const supabase = getServerClient()
   
   const { data: assignments } = await supabase
     .from('on_call_assignments')
@@ -305,7 +305,7 @@ async function OnCallAssignments() {
 
 // Metrics Section
 async function Metrics() {
-  const supabase = createClient()
+  const supabase = getServerClient()
   const now = new Date()
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString()
@@ -400,7 +400,7 @@ function LoadingState() {
 
 // Main Dashboard Page
 export default async function ManagePage() {
-  const supabase = createClient()
+  const supabase = getServerClient()
 
   try {
     const { data: { user }, error: userError } = await supabase.auth.getUser()

@@ -3,26 +3,30 @@
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { createClient } from '@/lib/supabase/server'
+import { getServerClient } from '@/lib/supabase/server'
 import { handleError } from '@/lib/utils/index'
 import { ShiftSwapsDataTable } from './data-table'
 import { CalendarView } from './calendar-view'
 import { ShiftSwapsTableSkeleton } from './loading'
 import type { Database } from '@/types/supabase/database'
 
+type Employee = Database['public']['Tables']['employees']['Row']
+type IndividualShift = Database['public']['Tables']['individual_shifts']['Row']
+type ShiftOption = Database['public']['Tables']['shift_options']['Row']
+
 type ShiftSwapRequest = Database['public']['Tables']['shift_swap_requests']['Row'] & {
-  requester: Database['public']['Tables']['employees']['Row']
-  requested_employee: Database['public']['Tables']['employees']['Row']
-  original_shift: Database['public']['Tables']['individual_shifts']['Row'] & {
-    shift_option: Database['public']['Tables']['shift_options']['Row']
+  requester: Employee
+  requested_employee: Employee
+  original_shift: IndividualShift & {
+    shift_option: ShiftOption
   }
-  proposed_shift: Database['public']['Tables']['individual_shifts']['Row'] & {
-    shift_option: Database['public']['Tables']['shift_options']['Row']
+  proposed_shift: IndividualShift & {
+    shift_option: ShiftOption
   }
 }
 
-async function getShiftSwapRequests() {
-  const supabase = createClient()
+async function getShiftSwapRequests(): Promise<ShiftSwapRequest[]> {
+  const supabase = getServerClient()
 
   const {
     data: { user },
@@ -68,6 +72,7 @@ async function getShiftSwapRequests() {
       )
     `)
     .order('created_at', { ascending: false })
+    .returns<ShiftSwapRequest[]>()
 
   if (error) {
     throw error

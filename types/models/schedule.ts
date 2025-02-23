@@ -1,8 +1,9 @@
-import type { Database } from '../supabase/database'
+import { Database } from '@/types/supabase/database'
 import type { ValidationResult } from '../validation'
 import type { ShiftPattern } from '../shift-patterns'
 import type { Employee } from './employee'
 import type { Shift, AssignedShift } from './shift'
+import { IndividualShift } from './shift'
 
 type Tables = Database['public']['Tables']
 type Enums = Database['public']['Enums']
@@ -26,6 +27,8 @@ export type Schedule = {
   updated_by: string | null
   created_at: string
   updated_at: string
+  is_published: boolean
+  shifts?: IndividualShift[]
 }
 
 /**
@@ -122,3 +125,17 @@ export interface ScheduleGenerationOptions {
     maxOvertimeHours?: number
   }
 }
+
+export interface ScheduleGenerationParams {
+  start_date: string
+  end_date: string
+  employee_ids: string[]
+  shift_option_ids?: string[]
+  respect_time_off: boolean
+  respect_weekly_hours: boolean
+}
+
+// Supabase types
+export type ScheduleRow = Database['public']['Tables']['schedules']['Row']
+export type ScheduleInsert = Database['public']['Tables']['schedules']['Insert']
+export type ScheduleUpdate = Database['public']['Tables']['schedules']['Update']

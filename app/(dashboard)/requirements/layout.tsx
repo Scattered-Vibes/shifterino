@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { requireAuth } from '@/lib/auth/server'
+import { ErrorBoundary } from '@/components/ui/error-boundary'
 
 export default async function RequirementsLayout({
   children,
@@ -13,5 +14,9 @@ export default async function RequirementsLayout({
     redirect('/unauthorized')
   }
 
-  return <>{children}</>
+  return (
+    <ErrorBoundary>
+      {children}
+    </ErrorBoundary>
+  )
 } 
