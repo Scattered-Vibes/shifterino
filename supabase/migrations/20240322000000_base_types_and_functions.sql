@@ -4,17 +4,13 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Create all ENUM types first
 CREATE TYPE shift_assignment_status AS ENUM ('ASSIGNED', 'SWAPPED', 'CANCELLED');
 CREATE TYPE shift_task_status AS ENUM ('NOT_STARTED', 'IN_PROGRESS', 'DONE');
-CREATE TYPE employee_role AS ENUM ('dispatcher', 'supervisor', 'manager');
-CREATE TYPE shift_pattern_type AS ENUM ('4x10', '3x12_plus_4');
+CREATE TYPE employee_role AS ENUM ('manager', 'supervisor', 'dispatcher');
+CREATE TYPE shift_pattern AS ENUM ('4x10', '3x12_plus_4');
 CREATE TYPE day_of_week AS ENUM (
     'SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'
 );
-CREATE TYPE time_off_request_status AS ENUM (
-    'PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'
-);
-CREATE TYPE shift_swap_status AS ENUM (
-    'PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'
-);
+CREATE TYPE time_off_request_status AS ENUM ('pending', 'approved', 'rejected');
+CREATE TYPE shift_swap_status AS ENUM ('pending', 'approved', 'rejected', 'cancelled');
 CREATE TYPE notification_type AS ENUM (
     'SHIFT_ASSIGNED',
     'SHIFT_CHANGED',
@@ -30,6 +26,9 @@ CREATE TYPE notification_type AS ENUM (
     'SUPERVISOR_REQUIRED_ALERT'
 );
 CREATE TYPE shift_category AS ENUM ('early', 'day', 'swing', 'graveyard');
+CREATE TYPE shift_status AS ENUM ('scheduled', 'completed', 'cancelled');
+CREATE TYPE holiday_type AS ENUM ('FEDERAL', 'COMPANY', 'OTHER');
+CREATE TYPE schedule_status AS ENUM ('draft', 'published', 'archived');
 
 -- Create utility functions
 CREATE OR REPLACE FUNCTION update_updated_at_column()

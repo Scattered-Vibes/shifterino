@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect } from 'react';
-import { createBrowserClient } from '@supabase/ssr';
-import { RealtimePostgresChangesPayload, SupabaseClient } from '@supabase/supabase-js';
-import { Database } from '@/types/supabase/database';
+import { supabase } from '@/lib/supabase/client';
+import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+import type { Database } from '@/types/supabase/database';
 import { toast } from '@/components/ui/use-toast';
 
 type Table = keyof Database['public']['Tables'];
@@ -23,31 +23,26 @@ export function useRealtimeSubscription<T extends Table>({
   onData,
 }: SubscriptionOptions<T>) {
   useEffect(() => {
-    const supabase = createBrowserClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    let channel: RealtimeChannel;
 
-    type Row = Database['public']['Tables'][T]['Row'];
-    const channel = supabase
-      .channel(`${table}-changes`)
-      .on<'postgres_changes'>(
-        'postgres_changes',
-        {
-          event,
-          schema: 'public',
-          table,
-          filter,
-        },
-        (payload: RealtimePostgresChangesPayload<Row>) => {
-          onData(payload);
-          toast({
-            title: 'Update Received',
-            description: `${table} data has been updated.`,
-          });
-        }
-      )
-      .subscribe();
+    try {
+      channel = supabase
+        .channel(`${table}-changes`)
+        .on('postgres_changes' as const, 
+          { event, schema: 'public', table, filter },
+          (payload: RealtimePostgresChangesPayload<Database['public']['Tables'][T]['Row']>) => {
+            onData(payload);
+            toast({
+              title: 'Update Received',
+              description: `${table} data has been updated.`,
+            });
+          }
+        )
+        .subscribe();
+    } catch (error) {
+      console.error('Error setting up realtime subscription:', error);
+      return;
+    }
 
     return () => {
       supabase.removeChannel(channel);

@@ -36,7 +36,13 @@ export async function requireAuth(): Promise<AuthenticatedUser> {
 
   if (error || !user) {
     console.log('[requireAuth] No authenticated user found, redirecting to login')
-    redirect('/(auth)/login')
+    redirect('/login')
+  }
+
+  // Check if user has any metadata
+  if (!user.user_metadata) {
+    console.error('[requireAuth] User has no metadata')
+    redirect('/login')
   }
 
   const userMetadata = user.user_metadata as {
@@ -47,9 +53,15 @@ export async function requireAuth(): Promise<AuthenticatedUser> {
     shift_pattern: ShiftPattern
   }
 
-  if (!userMetadata.role || !userMetadata.employee_id) {
-    console.error('[requireAuth] User missing required metadata')
-    redirect('/(auth)/login')
+  // Check each required field individually for better error logging
+  if (!userMetadata.role) {
+    console.error('[requireAuth] User missing role metadata')
+    redirect('/login')
+  }
+
+  if (!userMetadata.employee_id) {
+    console.error('[requireAuth] User missing employee_id metadata')
+    redirect('/login')
   }
 
   // Verify the employee exists in the database
@@ -61,13 +73,13 @@ export async function requireAuth(): Promise<AuthenticatedUser> {
 
   if (employeeError || !employee) {
     console.error('[requireAuth] Employee record not found:', employeeError)
-    redirect('/(auth)/login')
+    redirect('/login')
   }
 
   // Ensure role matches database
   if (employee.role !== userMetadata.role) {
     console.error('[requireAuth] Role mismatch between auth and database')
-    redirect('/(auth)/login')
+    redirect('/login')
   }
 
   return {
@@ -276,7 +288,7 @@ export async function signOut(): Promise<void> {
     throw error
   }
 
-  redirect('/(auth)/login')
+  redirect('/login')
 }
 
 function mapShiftPattern(pattern: string): 'pattern_a' | 'pattern_b' | 'custom' {

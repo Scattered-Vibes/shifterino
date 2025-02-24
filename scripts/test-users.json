@@ -1,0 +1,29 @@
+[
+  {
+    "email": "manager@example.com",
+    "password": "Password@123",
+    "role": "manager",
+    "employeeId": "EMP00000001",
+    "firstName": "Manager",
+    "lastName": "User",
+    "shiftPattern": "4x10"
+  },
+  {
+    "email": "supervisor@example.com",
+    "password": "Password@123",
+    "role": "supervisor",
+    "employeeId": "EMP00000002",
+    "firstName": "Supervisor",
+    "lastName": "User",
+    "shiftPattern": "3x12_plus_4"
+  },
+  {
+    "email": "dispatcher@example.com",
+    "password": "Password@123",
+    "role": "dispatcher",
+    "employeeId": "EMP00000003",
+    "firstName": "Dispatcher",
+    "lastName": "User",
+    "shiftPattern": "4x10"
+  }
+] 

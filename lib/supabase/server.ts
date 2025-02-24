@@ -1,4 +1,4 @@
-import { createServerClient, CookieOptions } from '@supabase/ssr'
+import { createServerClient as createSupabaseServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import type { Database } from '@/types/supabase/database'
 import { AppError, ErrorCode } from '@/lib/utils/error-handler'
@@ -6,92 +6,91 @@ import { authDebug } from '@/lib/utils/auth-debug'
 
 // Validate environment variables
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-  throw new AppError(
-    'Missing env.NEXT_PUBLIC_SUPABASE_URL',
-    ErrorCode.INTERNAL_ERROR,
-    500
-  )
-}
-if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-  throw new AppError(
-    'Missing env.NEXT_PUBLIC_SUPABASE_ANON_KEY',
-    ErrorCode.INTERNAL_ERROR,
-    500
-  )
+  throw new AppError('Missing env.NEXT_PUBLIC_SUPABASE_URL', ErrorCode.INTERNAL_ERROR, 500)
 }
 
+if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+  throw new AppError('Missing env.NEXT_PUBLIC_SUPABASE_ANON_KEY', ErrorCode.INTERNAL_ERROR, 500)
+}
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+// Cookie options for consistent settings
 const COOKIE_OPTIONS: CookieOptions = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
   sameSite: 'lax',
   path: '/',
   maxAge: 60 * 60 * 24 * 7 // 7 days
-}
+} as const
 
-let client: ReturnType<typeof createServerClient<Database>> | null = null
+export type SupabaseServer = ReturnType<typeof createSupabaseServerClient<Database>>
 
+// Create a server client - this should be created per request
 export function getServerClient() {
   const cookieStore = cookies()
 
-  return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          const value = cookieStore.get(name)?.value
-          authDebug.trackCookie('get', name, value)
-          return value
-        },
-        set(name: string, value: string, options: Partial<CookieOptions>) {
-          try {
-            const cookieOptions = {
-              ...COOKIE_OPTIONS,
-              ...options,
-            }
-            cookieStore.set({
-              name,
-              value,
-              ...cookieOptions,
-            })
-            authDebug.trackCookie('set', name, value, cookieOptions)
-          } catch (error) {
-            authDebug.error('Failed to set cookie', error as Error, {
-              name,
-              valueLength: value.length,
-              options
-            })
-          }
-        },
-        remove(name: string, options: Partial<CookieOptions>) {
-          try {
-            const cookieOptions = {
-              ...COOKIE_OPTIONS,
-              ...options,
-              maxAge: 0,
-            }
-            cookieStore.set({
-              name,
-              value: '',
-              ...cookieOptions,
-            })
-            authDebug.trackCookie('remove', name, undefined, cookieOptions)
-          } catch (error) {
-            authDebug.error('Failed to remove cookie', error as Error, {
-              name,
-              options
-            })
-          }
-        },
+  return createSupabaseServerClient<Database>(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      get(name: string) {
+        return cookieStore.get(name)?.value
       },
-    }
-  )
+      set(name: string, value: string, options: CookieOptions) {
+        cookieStore.set({ name, value, ...COOKIE_OPTIONS, ...options })
+      },
+      remove(name: string, options: CookieOptions) {
+        cookieStore.set({ name, value: '', ...COOKIE_OPTIONS, ...options, maxAge: 0 })
+      },
+    },
+  })
 }
 
-/**
- * Helper to get authenticated user server-side.
- * Returns null if user is not authenticated or if there's an error.
- */
+// For backwards compatibility
+export const createServerClient = getServerClient
+
+// Create an admin client for privileged operations
+let adminClient: ReturnType<typeof createSupabaseServerClient<Database>> | null = null
+
+export function createAdminClient() {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    throw new AppError(
+      'Missing env.SUPABASE_SERVICE_ROLE_KEY',
+      ErrorCode.INTERNAL_ERROR,
+      500
+    )
+  }
+
+  if (!adminClient) {
+    const cookieStore = cookies()
+    
+    adminClient = createSupabaseServerClient<Database>(
+      supabaseUrl,
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+          set(name: string, value: string, options: any) {
+            // Admin client doesn't need to set cookies
+          },
+          remove(name: string, options: any) {
+            // Admin client doesn't need to remove cookies
+          },
+        },
+      }
+    )
+  }
+
+  return adminClient
+}
+
+// Helper to get authenticated user server-side
 export async function getUser() {
   const supabase = getServerClient()
   try {

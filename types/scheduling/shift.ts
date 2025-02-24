@@ -1,123 +1,71 @@
-import type { Employee } from '../models/employee'
-import type { Database } from '../supabase/database'
+import type { Database } from '@/types/supabase/database'
+import type { BaseModel } from '../models/base'
+import type { Employee, EmployeeRole } from '../models/employee'
 
+// Database types
 type Tables = Database['public']['Tables']
-type Enums = Database['public']['Enums']
+type ShiftTable = Tables['shifts']
+type DBShift = ShiftTable['Row']
 
-/**
- * Represents the type of shift pattern an employee can work
- */
-export type ShiftPatternType = Enums['shift_pattern']
+// Shift status from database enum
+export type ShiftStatus = 'pending' | 'approved' | 'rejected' | 'completed'
 
-/**
- * Represents the possible statuses for a shift
- */
-export type ShiftStatus = 'scheduled' | 'completed' | 'cancelled'
+// Base shift interface
+export interface Shift extends BaseModel {
+  employee_id: string
+  start_time: string // ISO date string
+  end_time: string // ISO date string
+  is_supervisor: boolean
+  status: ShiftStatus
+  notes?: string
+}
 
-/**
- * Represents a shift event with complete timing information
- */
+// Shift with relationships
+export interface ShiftWithEmployee extends Shift {
+  employee: Employee
+}
+
+// UI event representation
 export interface ShiftEvent {
   id: string
-  employeeId: string
-  employeeRole: 'dispatcher' | 'supervisor' | 'manager'
+  employee_id: string
+  employee_role: EmployeeRole
   title: string
   start: string // ISO date string
   end: string // ISO date string
-  pattern: ShiftPatternType
+  is_supervisor: boolean
   status: ShiftStatus
-  overrideHoursCap?: boolean
-  notes?: string
-  shiftOptionId: string
-}
-
-export interface ShiftUpdateData {
-  startTime: string // HH:mm
-  endTime: string // HH:mm
-  employeeId: string
   notes?: string
 }
 
-export interface ShiftSwapRequest {
-  id: string
-  requesterId: string
-  requesterShiftId: string
-  targetEmployeeId: string
-  targetShiftId: string
+// Input types
+export type CreateShiftInput = Omit<Shift, keyof BaseModel>
+export type UpdateShiftInput = Partial<CreateShiftInput>
+
+// Shift swap types
+export interface ShiftSwap extends BaseModel {
+  requester_id: string
+  requesting_shift_id: string
+  target_employee_id: string
+  target_shift_id: string
   status: 'pending' | 'approved' | 'rejected'
   notes?: string
-  createdAt: string
-  updatedAt: string
 }
 
-export interface OnCallSchedule {
-  id: string
-  employeeId: string
-  startDate: string // YYYY-MM-DD
-  endDate: string // YYYY-MM-DD
-  status: 'active' | 'inactive'
-  notes?: string
-}
-
-export interface Duration {
-  hours: number
-  minutes: number
-}
-
-/**
- * Converts a database shift record to a ShiftEvent
- */
-export function convertToShiftEvent(
-  shift: {
-    id: string
-    employee_id: string
-    date: string
-    actual_hours_worked?: number
-    status: ShiftStatus
-    notes?: string
-    created_at: string
-    updated_at: string
-    created_by?: string | null
-    updated_by?: string | null
-  },
-  shiftOption: {
-    start_time: string
-    end_time: string
-    pattern: ShiftPatternType
-  }
-): ShiftEvent {
-  // Combine date with start/end times
-  const [year, month, day] = shift.date.split('-')
-  const startDate = new Date(
-    parseInt(year),
-    parseInt(month) - 1,
-    parseInt(day)
+// Type guards
+export function isShift(value: unknown): value is Shift {
+  if (!value || typeof value !== 'object') return false
+  
+  return (
+    'id' in value &&
+    'employee_id' in value &&
+    'start_time' in value &&
+    'end_time' in value &&
+    'is_supervisor' in value &&
+    'status' in value
   )
-  const endDate = new Date(startDate)
+}
 
-  // Parse start time
-  const [startHour, startMinute] = shiftOption.start_time.split(':')
-  startDate.setHours(parseInt(startHour), parseInt(startMinute), 0, 0)
-
-  // Parse end time
-  const [endHour, endMinute] = shiftOption.end_time.split(':')
-  endDate.setHours(parseInt(endHour), parseInt(endMinute), 0, 0)
-
-  // If end time is before start time, it means the shift ends the next day
-  if (endDate < startDate) {
-    endDate.setDate(endDate.getDate() + 1)
-  }
-
-  return {
-    id: shift.id,
-    employeeId: shift.employee_id,
-    employeeRole: 'dispatcher', // This needs to be updated to get actual role
-    title: 'Shift', // This needs to be updated to get actual title
-    start: startDate.toISOString(),
-    end: endDate.toISOString(),
-    pattern: shiftOption.pattern,
-    status: shift.status,
-    notes: shift.notes,
-    shiftOptionId: '0' // This needs to be updated to get actual shift option id
-  }
+export function isShiftWithEmployee(value: unknown): value is ShiftWithEmployee {
+  return isShift(value) && 'employee' in value && typeof (value as any).employee === 'object'
 }

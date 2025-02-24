@@ -29,11 +29,12 @@ CREATE TABLE shift_requirements (
 -- Create shift_options table with proper category
 CREATE TABLE shift_options (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name VARCHAR(255) NOT NULL,
+    name VARCHAR(255) NOT NULL UNIQUE,
     start_time TIME NOT NULL,
     end_time TIME NOT NULL,
     duration_hours INTEGER NOT NULL,
     category shift_category NOT NULL,
+    is_overnight BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -97,7 +98,7 @@ CREATE TABLE time_off_requests (
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
-    status time_off_request_status NOT NULL DEFAULT 'PENDING',
+    status time_off_request_status NOT NULL DEFAULT 'pending',
     reason TEXT,
     approved_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -119,7 +120,7 @@ CREATE TABLE shift_swaps (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     assignment_id UUID NOT NULL REFERENCES shift_assignments(id) ON DELETE CASCADE,
     to_user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
-    status shift_swap_status NOT NULL DEFAULT 'PENDING',
+    status shift_swap_status NOT NULL DEFAULT 'pending',
     reason TEXT NOT NULL,
     manager_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -144,7 +145,7 @@ CREATE TABLE shift_swap_requests (
     requester_id UUID NOT NULL REFERENCES employees(id),
     requested_shift_id UUID NOT NULL REFERENCES individual_shifts(id),
     offered_shift_id UUID NOT NULL REFERENCES individual_shifts(id),
-    status swap_request_status DEFAULT 'pending',
+    status shift_swap_status DEFAULT 'pending',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT different_shifts CHECK (requested_shift_id != offered_shift_id)

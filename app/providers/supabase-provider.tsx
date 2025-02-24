@@ -1,26 +1,36 @@
 'use client'
 
-import { createClient } from '@/lib/supabase/client'
-import { createContext, useContext, useState } from 'react'
-import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Database } from '@/types/supabase/database'
+import { createContext, useContext, type ReactNode } from 'react'
+import { supabase, type SupabaseClient } from '@/lib/supabase/client'
+import { AppError, ErrorCode } from '@/lib/utils/error-handler'
 
-const SupabaseContext = createContext<SupabaseClient<Database> | undefined>(undefined)
-
-export function SupabaseProvider({ children }: { children: React.ReactNode }) {
-  const [supabase] = useState(() => createClient())
-
-  return (
-    <SupabaseContext.Provider value={supabase}>
-      {children}
-    </SupabaseContext.Provider>
-  )
+interface SupabaseContextType {
+  supabase: SupabaseClient
 }
+
+const SupabaseContext = createContext<SupabaseContextType | undefined>(undefined)
 
 export function useSupabase() {
   const context = useContext(SupabaseContext)
   if (context === undefined) {
-    throw new Error('useSupabase must be used inside SupabaseProvider')
+    throw new AppError(
+      'useSupabase must be used within a SupabaseProvider',
+      ErrorCode.INTERNAL_ERROR,
+      500
+    )
   }
-  return context
+  return context.supabase
+}
+
+interface SupabaseProviderProps {
+  children: ReactNode
+}
+
+export function SupabaseProvider({ children }: SupabaseProviderProps) {
+  // Use the singleton instance directly - no need for useState
+  return (
+    <SupabaseContext.Provider value={{ supabase }}>
+      {children}
+    </SupabaseContext.Provider>
+  )
 } 

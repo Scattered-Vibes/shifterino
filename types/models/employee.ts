@@ -1,31 +1,28 @@
 import type { Database } from '../supabase/database'
 import type { ValidationResult } from '../validation'
+import { BaseModel } from './base'
 
 type Tables = Database['public']['Tables']
 type Enums = Database['public']['Enums']
 
+type EmployeeTable = Tables['employees']
+type DBEmployee = EmployeeTable['Row']
+type DBShiftAssignment = Tables['shift_assignments']['Row']
+type DBTimeOffRequest = Tables['time_off_requests']['Row']
+
 /**
  * Base employee type from database with additional fields
  */
-export interface Employee {
-  id: string
-  auth_id: string
-  email: string
-  employee_id: string
+export interface Employee extends BaseModel {
+  user_id: string
   first_name: string
   last_name: string
-  role: EmployeeRole
-  shift_pattern: ShiftPattern
-  team_id?: string | null
-  default_weekly_hours: number
+  email: string
+  role: 'dispatcher' | 'supervisor' | 'manager'
+  shift_pattern: 'four_ten' | 'three_twelve_four'
+  default_shift: string
   weekly_hours_cap: number
   max_overtime_hours: number
-  created_at: string
-  updated_at: string
-  created_by?: string | null
-  updated_by?: string | null
-  preferred_shift_category?: string
-  max_weekly_hours: number
   is_active: boolean
 }
 
@@ -48,31 +45,31 @@ export type ShiftPattern = '4x10' | '3x12_plus_4'
  * Employee with their current schedule information
  */
 export interface EmployeeWithSchedule extends Employee {
-  assignedShifts: Tables['assigned_shifts']['Row'][]
-  timeOffRequests: Tables['time_off_requests']['Row'][]
+  shift_assignments: DBShiftAssignment[]
+  time_off_requests: DBTimeOffRequest[]
 }
 
 /**
  * Employee with their schedule statistics
  */
 export interface EmployeeWithStats extends Employee {
-  totalHours: number
-  overtimeHours: number
-  regularHours: number
-  scheduledDays: number
-  consecutiveDays: number
-  timeOffDays: number
+  total_hours: number
+  overtime_hours: number
+  regular_hours: number
+  scheduled_days: number
+  consecutive_days: number
+  time_off_days: number
 }
 
 /**
  * Employee schedule preferences
  */
 export interface EmployeeSchedulePreferences {
-  preferredShiftCategory: ShiftCategory
-  preferredDaysOff: number[]  // 0-6, where 0 is Sunday
-  maxConsecutiveDays: number
-  minRestHours: number
-  overtimePreference: boolean
+  preferred_shift_category: ShiftCategory
+  preferred_days_off: number[]  // 0-6, where 0 is Sunday
+  max_consecutive_days: number
+  min_rest_hours: number
+  overtime_preference: boolean
 }
 
 /**
@@ -87,7 +84,7 @@ export interface EmployeeAvailability {
     startTime: string  // HH:mm
     endTime: string    // HH:mm
   }[]
-  timeOffRequests: Tables['time_off_requests']['Row'][]
+  timeOffRequests: DBTimeOffRequest[]
 }
 
 /**
@@ -107,10 +104,7 @@ export type EmployeeSortField = keyof Pick<
 /**
  * Input type for creating a new employee
  */
-export type CreateEmployeeInput = Omit<
-  Employee,
-  'id' | 'created_at' | 'updated_at' | 'created_by' | 'updated_by'
->
+export type CreateEmployeeInput = Omit<Employee, keyof BaseModel>
 
 /**
  * Input type for updating an existing employee
@@ -142,11 +136,11 @@ export interface EmployeeSort {
  */
 export interface EmployeeFilters {
   roles?: EmployeeRole[]
-  shiftPatterns?: ShiftPattern[]
-  preferredShiftCategory?: ShiftCategory
-  minWeeklyHours?: number
-  maxWeeklyHours?: number
-  searchTerm?: string
+  shift_patterns?: ShiftPattern[]
+  preferred_shift_category?: ShiftCategory
+  min_weekly_hours?: number
+  max_weekly_hours?: number
+  search_term?: string
 }
 
 /**
@@ -181,4 +175,38 @@ export type EmployeeRow = Database['public']['Tables']['employees']['Row']
 export type EmployeeInsert = Database['public']['Tables']['employees']['Insert']
 
 // Type for updating an employee
-export type EmployeeUpdate = Database['public']['Tables']['employees']['Update'] 
+export type EmployeeUpdate = Database['public']['Tables']['employees']['Update']
+
+export interface EmployeeShift {
+  id: string
+  start_time: string
+  end_time: string
+  is_supervisor: boolean
+}
+
+export interface EmployeeWithShifts extends Employee {
+  shifts: EmployeeShift[]
+}
+
+// Type guards
+export function isEmployee(value: unknown): value is Employee {
+  if (!value || typeof value !== 'object') return false
+  
+  return (
+    'id' in value &&
+    'user_id' in value &&
+    'first_name' in value &&
+    'last_name' in value &&
+    'email' in value &&
+    'role' in value &&
+    'shift_pattern' in value &&
+    'default_shift' in value &&
+    'weekly_hours_cap' in value &&
+    'max_overtime_hours' in value &&
+    'is_active' in value
+  )
+}
+
+export function isEmployeeWithShifts(value: unknown): value is EmployeeWithShifts {
+  return isEmployee(value) && 'shifts' in value && Array.isArray((value as any).shifts)
+} 

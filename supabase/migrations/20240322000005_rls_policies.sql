@@ -139,21 +139,21 @@ CREATE POLICY time_off_requests_insert ON time_off_requests
 -- Employees can update/delete their OWN PENDING requests
 CREATE POLICY time_off_requests_update ON time_off_requests
     FOR UPDATE USING (
-        user_id IN (SELECT id FROM employees WHERE auth_id = auth.uid()) AND status = 'PENDING'::time_off_request_status
+        user_id IN (SELECT id FROM employees WHERE auth_id = auth.uid()) AND status = 'pending'::time_off_request_status
     ) WITH CHECK (
-        user_id IN (SELECT id FROM employees WHERE auth_id = auth.uid()) AND status = 'PENDING'::time_off_request_status
+        user_id IN (SELECT id FROM employees WHERE auth_id = auth.uid()) AND status = 'pending'::time_off_request_status
     );
 
 CREATE POLICY time_off_requests_delete ON time_off_requests
     FOR DELETE USING (
-        user_id IN (SELECT id FROM employees WHERE auth_id = auth.uid()) AND status = 'PENDING'::time_off_request_status
+        user_id IN (SELECT id FROM employees WHERE auth_id = auth.uid()) AND status = 'pending'::time_off_request_status
     );
 
 -- Supervisors and Managers can approve/reject requests
 CREATE POLICY time_off_requests_approve_reject ON time_off_requests
     FOR UPDATE
     USING (is_supervisor_or_above())
-    WITH CHECK (is_supervisor_or_above() AND status IN ('APPROVED'::time_off_request_status, 'REJECTED'::time_off_request_status));
+    WITH CHECK (is_supervisor_or_above() AND status IN ('approved'::time_off_request_status, 'rejected'::time_off_request_status));
 
 CREATE POLICY time_off_balances_policy ON time_off_balances
     FOR ALL USING (
@@ -193,3 +193,26 @@ CREATE POLICY audit_logs_policy ON audit_logs
 
 CREATE POLICY scheduled_reports_policy ON scheduled_reports
     FOR ALL USING (is_manager());
+
+-- RLS policies for employees table
+ALTER TABLE employees ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "employees_select_policy" ON employees
+    FOR SELECT
+    USING (
+        auth.uid() = auth_id
+        OR is_supervisor_or_above()
+    );
+
+CREATE POLICY "employees_insert_policy" ON employees
+    FOR INSERT
+    WITH CHECK (is_manager());
+
+CREATE POLICY "employees_update_policy" ON employees
+    FOR UPDATE
+    USING (is_manager())
+    WITH CHECK (is_manager());
+
+CREATE POLICY "employees_delete_policy" ON employees
+    FOR DELETE
+    USING (is_manager());

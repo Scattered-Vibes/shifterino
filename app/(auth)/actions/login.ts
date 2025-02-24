@@ -9,7 +9,11 @@ import { AppError, ErrorCode } from '@/lib/utils/error-handler'
 export async function login(prevState: any, formData: FormData) {
   const requestId = Math.random().toString(36).substring(7)
   
-  authDebug.debug('Login attempt started', { requestId, prevState })
+  authDebug.debug('Login attempt started', { 
+    requestId, 
+    prevState,
+    redirectTo: prevState?.redirectTo || '/overview'
+  })
 
   const cookieStore = cookies()
   const supabase = createServerClient(
@@ -83,7 +87,8 @@ export async function login(prevState: any, formData: FormData) {
       requestId,
       userId: data.user?.id,
       email: data.user?.email,
-      sessionId: data.session.access_token.substring(0, 8) + '...'
+      sessionId: data.session.access_token.substring(0, 8) + '...',
+      redirectTo: prevState?.redirectTo || '/overview'
     })
 
     // Set session cookies with proper security options
@@ -122,7 +127,12 @@ export async function login(prevState: any, formData: FormData) {
       hasCookie: !!authCookie
     })
 
-    redirect(prevState?.redirectTo || '/overview')
+    // Return success state with clean redirect path
+    const redirectTo = (prevState?.redirectTo || '/overview').replace(/\/\([^)]+\)/g, '')
+    return {
+      success: true,
+      redirectTo
+    }
   } catch (error) {
     if (error instanceof AppError) {
       return {

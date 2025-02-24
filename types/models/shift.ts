@@ -1,155 +1,144 @@
-import type { Database } from '../supabase/database'
+import type { Database } from '@/types/supabase/database'
+import type { Employee } from './employee'
 import type { ValidationResult } from '../validation'
-import type { ShiftCategory } from './employee'
-import type { ShiftPattern } from '../shift-patterns'
-import { Employee } from './employee'
 
+// Base types from Supabase
 type Tables = Database['public']['Tables']
 type Enums = Database['public']['Enums']
 
-/**
- * Base shift type from database
- */
-export type Shift = Tables['shifts']['Row']
+// Core shift types from database
+export type ShiftRow = Tables['shifts']['Row']
+export type ShiftInsert = Tables['shifts']['Insert']
+export type ShiftUpdate = Tables['shifts']['Update']
+
+// Core shift assignment types from database
+export type ShiftAssignmentRow = Tables['shift_assignments']['Row']
+export type ShiftAssignmentInsert = Tables['shift_assignments']['Insert']
+export type ShiftAssignmentUpdate = Tables['shift_assignments']['Update']
+
+// Shift option types from database
+export type ShiftOptionRow = Tables['shift_options']['Row']
+export type ShiftOptionInsert = Tables['shift_options']['Insert']
+export type ShiftOptionUpdate = Tables['shift_options']['Update']
+
+// Database enums
+export type ShiftPattern = Enums['shift_pattern']
+export type ShiftCategory = Enums['shift_category']
+export type ShiftStatus = Enums['shift_status']
+export type ShiftAssignmentStatus = Enums['shift_assignment_status']
+export type ShiftSwapStatus = Enums['shift_swap_status']
 
 /**
- * Base assigned shift type from database
+ * Extended shift type with relationships
  */
-export type AssignedShift = Tables['assigned_shifts']['Row']
-
-/**
- * Re-export shift pattern type
- */
-export type { ShiftPattern } from '../shift-patterns'
-
-/**
- * Shift with employee and option details
- */
-export interface ShiftWithDetails extends Shift {
-  employee: Tables['employees']['Row']
-  assignedShift?: AssignedShift
+export interface ShiftWithRelations extends ShiftRow {
+  employee?: Employee;
+  supervisor?: Employee;
+  overrideHoursCap?: boolean;
 }
 
 /**
  * Shift option configuration
  */
-export interface ShiftOption {
-  id: string
-  name: string
-  start_time: string  // HH:mm format
-  end_time: string    // HH:mm format
-  duration_hours: number
-  category: 'early' | 'day' | 'swing' | 'graveyard'
-  created_at: string
-  updated_at: string
+export interface ShiftOption extends ShiftOptionRow {
+  category: ShiftCategory;
+  duration_hours: number;
 }
 
 /**
- * Input for creating a new shift
+ * Individual shift assignment
  */
-export type CreateShiftInput = Omit<
-  Shift,
-  'id' | 'created_at' | 'updated_at' | 'created_by' | 'updated_by'
->
+export interface IndividualShift extends ShiftAssignmentRow {
+  shift_option?: ShiftOption;
+  employee?: Employee;
+}
 
 /**
- * Input for updating an existing shift
+ * Shift swap request
  */
-export type UpdateShiftInput = Partial<CreateShiftInput>
-
-/**
- * Input for assigning a shift
- */
-export type CreateAssignedShiftInput = Omit<
-  AssignedShift,
-  'id' | 'created_at' | 'updated_at' | 'created_by' | 'updated_by'
->
-
-/**
- * Input for updating an assigned shift
- */
-export type UpdateAssignedShiftInput = Partial<CreateAssignedShiftInput>
+export interface ShiftSwapRequest {
+  id: string;
+  requester_id: string;
+  requested_shift_id: string;
+  offered_shift_id: string;
+  status: ShiftSwapStatus;
+  created_at: string;
+  updated_at: string;
+}
 
 /**
  * Shift validation result
  */
 export interface ShiftValidationResult extends ValidationResult {
-  shift: Shift
+  shift: ShiftRow;
   conflicts: {
-    type: 'OVERLAP' | 'HOURS' | 'REST' | 'PATTERN'
-    message: string
-    conflictingShiftId?: string
-  }[]
-}
-
-/**
- * Fields that can be used to sort shifts
- */
-export type ShiftSortField = keyof Pick<
-  Shift,
-  | 'name'
-  | 'start_time'
-  | 'end_time'
-  | 'duration_hours'
-  | 'created_at'
-  | 'updated_at'
->
-
-/**
- * Shift sort configuration
- */
-export interface ShiftSort {
-  field: ShiftSortField
-  direction: 'asc' | 'desc'
+    type: 'OVERLAP' | 'HOURS' | 'REST' | 'PATTERN';
+    message: string;
+    conflictingShiftId?: string;
+  }[];
+  warnings: string[];
 }
 
 /**
  * Shift filter options
  */
 export interface ShiftFilters {
-  startDate?: string
-  endDate?: string
-  employeeId?: string
-  category?: ShiftCategory
-  isOvernight?: boolean
-  minDuration?: number
-  maxDuration?: number
-  searchTerm?: string
+  startDate?: string;
+  endDate?: string;
+  employeeId?: string;
+  category?: ShiftCategory;
+  isOvernight?: boolean;
+  minDuration?: number;
+  maxDuration?: number;
+  searchTerm?: string;
 }
 
-export interface IndividualShift {
-  id: string
-  employee_id: string
-  shift_option_id: string
-  date: string
-  status: 'scheduled' | 'completed' | 'cancelled'
-  created_at: string
-  updated_at: string
-  shift_option?: ShiftOption
-  employee?: Employee
+/**
+ * Fields that can be used to sort shifts
+ */
+export type ShiftSortField = keyof Pick<
+  ShiftRow,
+  | 'id'
+  | 'schedule_id'
+  | 'department_id'
+  | 'date'
+  | 'start_time'
+  | 'end_time'
+  | 'shift_category'
+  | 'shift_option_id'
+  | 'is_published'
+  | 'is_auto_generated'
+  | 'created_at'
+  | 'updated_at'
+>;
+
+/**
+ * Shift sort configuration
+ */
+export interface ShiftSort {
+  field: ShiftSortField;
+  direction: 'asc' | 'desc';
 }
 
-export interface ShiftSwapRequest {
-  id: string
-  requester_id: string
-  requested_shift_id: string
-  offered_shift_id: string
-  status: 'pending' | 'approved' | 'rejected'
-  created_at: string
-  updated_at: string
+/**
+ * Shift with employee and option details
+ */
+export interface ShiftWithDetails extends ShiftRow {
+  employee: Employee;
+  shiftAssignment?: ShiftAssignmentRow;
 }
 
-// Types from Supabase
-export type ShiftOptionRow = Tables['shift_options']['Row']
-export type IndividualShiftRow = Tables['individual_shifts']['Row']
-export type ShiftSwapRequestRow = Tables['shift_swap_requests']['Row']
+// Input types
+export type CreateShiftInput = Omit<
+  ShiftRow,
+  'id' | 'created_at' | 'updated_at'
+>;
 
-// Insert types
-export type ShiftOptionInsert = Tables['shift_options']['Insert']
-export type IndividualShiftInsert = Tables['individual_shifts']['Insert']
-export type ShiftSwapRequestInsert = Tables['shift_swap_requests']['Insert']
+export type UpdateShiftInput = Partial<CreateShiftInput>;
 
-// Update types
-export type ShiftOptionUpdate = Tables['shift_options']['Update']
-export type IndividualShiftUpdate = Tables['individual_shifts']['Update']
-export type ShiftSwapRequestUpdate = Tables['shift_swap_requests']['Update']
+export type CreateShiftAssignmentInput = Omit<
+  ShiftAssignmentRow,
+  'id' | 'assigned_at'
+>;
+
+export type UpdateShiftAssignmentInput = Partial<CreateShiftAssignmentInput>;

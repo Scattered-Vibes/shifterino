@@ -1,149 +1,90 @@
 import { createClient } from '@supabase/supabase-js'
-import { authDebug } from './auth-debug'
+import logger from './logger'
+import { Database } from '../../types/supabase/database'
 
-interface TestUser {
-  email: string
-  password: string
-  role: 'dispatcher' | 'supervisor'
-  firstName: string
-  lastName: string
-  shiftPattern: '4x10' | '3x12'
-  employeeId?: string
-  preferredShiftCategory?: 'early' | 'day' | 'swing' | 'graveyard'
-}
+const supabase = createClient<Database>(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
 
-const defaultTestUser: TestUser = {
-  email: 'test@example.com',
-  password: 'password123',
-  role: 'dispatcher',
-  firstName: 'Test',
-  lastName: 'User',
-  shiftPattern: '4x10',
-  employeeId: 'TEST001',
-  preferredShiftCategory: 'day'
-}
-
-export async function createTestUser(options: Partial<TestUser> = {}) {
-  const user = { ...defaultTestUser, ...options }
-  
+export async function createTestUser(email: string, password: string) {
   try {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
+    logger.info({ email }, 'Creating test user')
 
-    authDebug.debug('Creating test user', {
-      email: user.email,
-      role: user.role,
-      employeeId: user.employeeId
-    })
-
-    // Create auth user
-    const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
-      email: user.email,
-      password: user.password,
-      email_confirm: true,
-      user_metadata: {
-        role: user.role,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        employeeId: user.employeeId
-      }
+    // Create user in auth.users
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true
     })
 
     if (authError) {
-      authDebug.error('Failed to create auth user', authError, { user })
       throw authError
     }
 
-    authDebug.info('Auth user created', {
-      userId: authUser.user.id,
-      email: authUser.user.email,
-      employeeId: user.employeeId
-    })
+    if (!authData.user) {
+      throw new Error('No user data returned from auth creation')
+    }
 
     // Create employee record
-    const { error: employeeError } = await supabase
+    const { data: employeeData, error: employeeError } = await supabase
       .from('employees')
       .insert({
-        auth_id: authUser.user.id,
-        email: user.email,
-        employee_id: user.employeeId || `EMP${authUser.user.id.split('-')[0]}`,
-        first_name: user.firstName,
-        last_name: user.lastName,
-        role: user.role,
-        shift_pattern: user.shiftPattern,
-        preferred_shift_category: user.preferredShiftCategory || 'day',
-        weekly_hours_cap: 40,
-        max_overtime_hours: 10,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        auth_id: authData.user.id,
+        email,
+        role: 'dispatcher',
+        first_name: 'Test',
+        last_name: 'User',
+        employee_id: `TEST${Math.floor(Math.random() * 1000)}`,
+        shift_pattern: '4x10',
+        preferred_shift_category: 'day'
       })
+      .select()
+      .single()
 
     if (employeeError) {
-      authDebug.error('Failed to create employee record', employeeError, {
-        userId: authUser.user.id,
-        email: user.email,
-        employeeId: user.employeeId
-      })
-      
-      // Cleanup auth user on failure
-      await supabase.auth.admin.deleteUser(authUser.user.id)
       throw employeeError
     }
 
-    authDebug.info('Test user created successfully', {
-      userId: authUser.user.id,
-      email: user.email,
-      role: user.role,
-      employeeId: user.employeeId
-    })
-
-    return {
-      user: authUser.user,
-      credentials: {
-        email: user.email,
-        password: user.password
-      }
-    }
+    logger.info({ employeeData }, 'Test user created successfully')
+    return employeeData
   } catch (error) {
-    authDebug.error('Unexpected error creating test user', error as Error, { user })
+    logger.error({ err: error }, 'Failed to create test user')
     throw error
   }
 }
 
 export async function deleteTestUser(email: string) {
   try {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
-
-    authDebug.debug('Deleting test user', { email })
+    logger.info({ email }, 'Deleting test user')
 
     // Get user by email
-    const { data: user, error: userError } = await supabase
-      .from('auth.users')
-      .select('id')
+    const { data: userData, error: userError } = await supabase
+      .from('employees')
+      .select('auth_id')
       .eq('email', email)
       .single()
 
     if (userError) {
-      authDebug.error('Failed to find user for deletion', userError, { email })
       throw userError
     }
 
-    // Delete auth user (will cascade to employee record)
-    const { error: deleteError } = await supabase.auth.admin.deleteUser(user.id)
+    if (!userData?.auth_id) {
+      throw new Error('No auth_id found for user')
+    }
+
+    // Delete from auth.users (this will cascade to employees due to RLS)
+    const { error: deleteError } = await supabase.auth.admin.deleteUser(
+      userData.auth_id
+    )
 
     if (deleteError) {
-      authDebug.error('Failed to delete user', deleteError, { email, userId: user.id })
       throw deleteError
     }
 
-    authDebug.info('Test user deleted successfully', { email, userId: user.id })
+    logger.info('Test user deleted successfully')
   } catch (error) {
-    authDebug.error('Unexpected error deleting test user', error as Error, { email })
+    logger.error({ err: error }, 'Failed to delete test user')
     throw error
   }
 } 

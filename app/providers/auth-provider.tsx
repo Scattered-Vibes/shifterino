@@ -1,11 +1,10 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
-import { toast } from 'sonner'
 import { Loading } from '@/components/ui/loading'
-import { useSupabase } from './supabase-provider'
 
 interface AuthContextType {
   user: User | null
@@ -24,36 +23,36 @@ export function useAuth() {
 }
 
 interface AuthProviderProps {
-  children: React.ReactNode
+  children: ReactNode
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const router = useRouter()
-  const supabase = useSupabase()
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
 
   useEffect(() => {
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
-      setIsLoading(false)
-      if (event === 'SIGNED_IN') router.refresh()
-      if (event === 'SIGNED_OUT') router.refresh()
     })
 
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      setIsLoading(false)
-    })
+    // Fetch initial user state after setting up subscription
+    supabase.auth.getUser()
+      .then(({ data: { user }, error }) => {
+        if (error) {
+          setError(error)
+        } else {
+          setUser(user)
+        }
+      })
+      .catch(err => setError(err))
+      .finally(() => setIsLoading(false))
 
     return () => {
       subscription.unsubscribe()
     }
-  }, [router, supabase])
+  }, [])
 
   if (isLoading) {
     return <Loading />

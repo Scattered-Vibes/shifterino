@@ -1,83 +1,96 @@
 import './test-setup'
 import { createTestUser, deleteTestUser } from '../lib/utils/test-user'
 import { createClient } from '@supabase/supabase-js'
-import { authDebug } from '../lib/utils/auth-debug'
+import logger from '../lib/utils/logger'
+import { Database } from '../types/supabase/database'
 
-async function testAuthFlow() {
+async function testAuthFlow(email?: string, password?: string) {
   try {
-    console.log('Starting authentication flow test...')
-    console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
+    logger.info('Starting authentication flow test...')
 
-    // Create test user
-    const testUser = await createTestUser({
-      email: 'auth-test@example.com',
-      password: 'test123!',
-      role: 'dispatcher',
-      firstName: 'Auth',
-      lastName: 'Test',
-      employeeId: 'AUTH001',
-      shiftPattern: '4x10',
-      preferredShiftCategory: 'day'
-    })
+    // Use provided credentials or defaults
+    const testEmail = email || 'testuser@example.com'
+    const testPassword = password || 'testpassword'
 
-    console.log('Test user created:', testUser.credentials.email)
+    // Create a test user
+    await createTestUser(testEmail, testPassword)
 
-    // Initialize Supabase client
-    const supabase = createClient(
+    // Create a Supabase client
+    const supabase = createClient<Database>(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
 
-    // Test sign in
+    // Sign in with the test user
     const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-      email: testUser.credentials.email,
-      password: testUser.credentials.password
+      email: testEmail,
+      password: testPassword,
     })
 
     if (signInError) {
-      throw new Error(`Sign in failed: ${signInError.message}`)
+      throw signInError
     }
 
-    console.log('Sign in successful')
+    logger.info({ email: signInData.user?.email }, 'User signed in')
 
-    // Verify session
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-
-    if (sessionError || !session) {
-      throw new Error(`Session verification failed: ${sessionError?.message || 'No session found'}`)
+    // Assertions after sign-in
+    if (!signInData.user) {
+      throw new Error('User data is null after sign-in')
+    }
+    if (signInData.user.email !== testEmail) {
+      throw new Error(`Expected email to be ${testEmail}, but got ${signInData.user.email}`)
     }
 
-    console.log('Session verified')
-
-    // Get user data
+    // Fetch user data from employees table
     const { data: userData, error: userError } = await supabase
       .from('employees')
       .select('*')
-      .eq('email', testUser.credentials.email)
+      .eq('auth_id', signInData.user.id)
       .single()
 
     if (userError) {
-      throw new Error(`Failed to fetch user data: ${userError.message}`)
+      throw userError
     }
 
-    console.log('User data fetched:', {
-      email: userData.email,
-      role: userData.role,
-      employeeId: userData.employee_id
-    })
+    logger.info({ userData }, 'Fetched user data')
 
-    // Clean up
-    await deleteTestUser(testUser.credentials.email)
-    console.log('Test user deleted')
+    // Assertions on fetched user data
+    if (!userData) {
+      throw new Error('User data not found in employees table')
+    }
+    if (userData.email !== testEmail) {
+      throw new Error(`Expected email to be ${testEmail}, but got ${userData.email}`)
+    }
+    if (!['dispatcher', 'manager', 'supervisor'].includes(userData.role)) {
+      throw new Error(`Unexpected role: ${userData.role}`)
+    }
 
-    console.log('Authentication flow test completed successfully')
+    // Test session data
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    if (sessionError) {
+      throw sessionError
+    }
+    if (!session) {
+      throw new Error('Session is null after sign-in')
+    }
+
+    logger.info('All assertions passed successfully')
+
+    // Delete the test user
+    await deleteTestUser(testEmail)
+    logger.info('Test user deleted')
+
   } catch (error) {
-    console.error('Authentication flow test failed:', error)
+    logger.error({ err: error }, 'Test failed')
     throw error
   }
 }
 
-testAuthFlow().catch(error => {
-  console.error('Test failed:', error)
+// Get email and password from command-line arguments
+const emailArg = process.argv[2]
+const passwordArg = process.argv[3]
+
+testAuthFlow(emailArg, passwordArg).catch(error => {
+  logger.error({ err: error }, 'Test failed')
   process.exit(1)
 }) 

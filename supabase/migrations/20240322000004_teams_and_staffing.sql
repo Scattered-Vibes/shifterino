@@ -1,13 +1,3 @@
--- Create teams table
-CREATE TABLE teams (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT teams_name_unique UNIQUE (name)
-);
-
 -- Create staffing requirements table with proper schema
 CREATE TABLE staffing_requirements (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -24,28 +14,16 @@ CREATE TABLE staffing_requirements (
     )
 );
 
--- Add foreign key to employees table for team_id
-ALTER TABLE employees
-ADD COLUMN IF NOT EXISTS team_id UUID REFERENCES teams(id) ON DELETE SET NULL;
-
 -- Create indexes
-CREATE INDEX idx_teams_name ON teams(name);
 CREATE INDEX idx_staffing_requirements_time ON staffing_requirements(time_block_start, time_block_end);
-CREATE INDEX idx_employees_team ON employees(team_id);
 
 -- Create triggers for updated_at
-CREATE TRIGGER update_teams_updated_at
-    BEFORE UPDATE ON teams
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
 CREATE TRIGGER update_staffing_requirements_updated_at
     BEFORE UPDATE ON staffing_requirements
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
 -- Enable RLS
-ALTER TABLE teams ENABLE ROW LEVEL SECURITY;
 ALTER TABLE staffing_requirements ENABLE ROW LEVEL SECURITY;
 
 -- RLS policies
@@ -65,9 +43,6 @@ CREATE POLICY "Only managers can modify staffing requirements"
     );
 
 -- Add comments
-COMMENT ON TABLE teams IS 'Teams that employees belong to';
-COMMENT ON COLUMN teams.name IS 'The name of the team';
-COMMENT ON COLUMN teams.description IS 'A description of the team and its purpose';
 COMMENT ON TABLE staffing_requirements IS 'Defines minimum staffing requirements for different time blocks';
 COMMENT ON COLUMN staffing_requirements.time_block_start IS 'Start time of the staffing requirement block';
 COMMENT ON COLUMN staffing_requirements.time_block_end IS 'End time of the staffing requirement block';

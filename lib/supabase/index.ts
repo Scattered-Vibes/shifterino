@@ -97,4 +97,14 @@ export async function getUser() {
   }
 }
 
-export type { Database } 
+// Client exports
+export { supabase } from './client'
+
+// Server exports
+export { getServerClient } from './server'
+
+// Admin exports
+export { supabaseAdmin, getSupabaseAdmin } from './admin'
+
+// Types
+export type { Database } from '@/types/supabase/database' 

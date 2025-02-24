@@ -10,6 +10,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 
+interface LoginState {
+  success?: boolean
+  error?: { message: string }
+  redirectTo?: string
+}
+
 // Debug logging
 const requestId = Math.random().toString(36).substring(7)
 console.log(`[LoginPage:${requestId}] Initializing`)
@@ -18,7 +24,10 @@ export default function LoginPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get('redirectTo') || '/overview'
-  const [state, formAction] = useFormState(login, { redirectTo })
+  const [state, formAction] = useFormState<LoginState, FormData>(
+    login,
+    { redirectTo }
+  )
   const { pending } = useFormStatus()
 
   // Debug logging
@@ -34,8 +43,12 @@ export default function LoginPage() {
       const targetUrl = state.redirectTo || redirectTo
       console.log(`[LoginPage:${requestId}] Login success, redirecting to:`, targetUrl)
       toast.success('Login successful')
-      router.push(targetUrl)
-      router.refresh()
+      // Use replace instead of push to prevent back navigation
+      router.replace(targetUrl)
+      // Refresh after a short delay to ensure cookies are set
+      setTimeout(() => {
+        router.refresh()
+      }, 100)
     } else if (state?.error) {
       toast.error(state.error.message)
     }
